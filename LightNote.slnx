@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LightNote.App/LightNote.App.csproj" />
+    <Project Path="src/LightNote.Core/LightNote.Core.csproj" />
+    <Project Path="src/LightNote.Infrastructure/LightNote.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LightNote.Core.Tests/LightNote.Core.Tests.csproj" />
+    <Project Path="tests/LightNote.IntegrationTests/LightNote.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

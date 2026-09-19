@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test-publish:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: editor/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build embedded editor
+        working-directory: editor
+        run: |
+          npm ci
+          npm run build
+
+      - name: Restore
+        run: dotnet restore LightNote.slnx
+
+      - name: Build
+        run: dotnet build LightNote.slnx --configuration Release --no-restore
+
+      - name: Test with coverage
+        run: dotnet test LightNote.slnx --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory artifacts/test-results
+
+      - name: Publish self-contained application
+        run: dotnet publish src/LightNote.App/LightNote.App.csproj --configuration Release --runtime win-x64 --self-contained true --output artifacts/publish/win-x64
+
+      - name: Verify release payload
+        shell: pwsh
+        run: |
+          $required = @(
+            'artifacts/publish/win-x64/LightNote.exe',
+            'artifacts/publish/win-x64/Editor/index.html'
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path -LiteralPath $path)) {
+              throw "发布产物缺少 $path"
+            }
+          }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lightnote-ci-artifacts
+          path: |
+            artifacts/test-results
+            artifacts/publish/win-x64

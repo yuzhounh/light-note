@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Wood desk note icon</title>
+  <desc id="desc">A white abstract pen above two note lines on a rounded honey-oak wood background.</desc>
+
+  <defs>
+    <linearGradient id="wood-base" x1="0.12" y1="0" x2="0.88" y2="1">
+      <stop offset="0" stop-color="#E2AE6A"/>
+      <stop offset="0.42" stop-color="#C9823F"/>
+      <stop offset="0.76" stop-color="#A95C26"/>
+      <stop offset="1" stop-color="#824019"/>
+    </linearGradient>
+
+    <radialGradient id="wood-light" cx="50%" cy="4%" r="95%">
+      <stop offset="0" stop-color="#FFE0A5" stop-opacity="0.34"/>
+      <stop offset="0.52" stop-color="#FFD18A" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#4A210E" stop-opacity="0.20"/>
+    </radialGradient>
+
+    <linearGradient id="glyph-white" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F7F5F1"/>
+    </linearGradient>
+
+    <pattern id="wood-grain" width="256" height="96" patternUnits="userSpaceOnUse">
+      <path d="M-12 13 C38 4 82 20 130 12 S216 7 270 15" fill="none" stroke="#6D3517" stroke-width="2.4" opacity="0.30"/>
+      <path d="M-18 26 C31 34 69 17 118 26 S206 34 274 23" fill="none" stroke="#F4C47E" stroke-width="2" opacity="0.23"/>
+      <path d="M-14 42 C42 29 88 50 144 39 S220 45 270 37" fill="none" stroke="#743718" stroke-width="3" opacity="0.25"/>
+      <path d="M-16 59 C28 68 76 53 119 62 S210 70 274 56" fill="none" stroke="#F7C986" stroke-width="1.8" opacity="0.22"/>
+      <path d="M-12 76 C43 65 82 86 139 74 S220 80 270 72" fill="none" stroke="#663015" stroke-width="2.2" opacity="0.27"/>
+      <path d="M-15 89 C36 96 84 83 134 91 S221 96 271 87" fill="none" stroke="#E9A95D" stroke-width="1.6" opacity="0.24"/>
+    </pattern>
+
+    <clipPath id="tile-clip">
+      <rect x="62" y="62" width="900" height="900" rx="210"/>
+    </clipPath>
+  </defs>
+
+  <!-- Transparent outside the rounded icon tile. -->
+  <g clip-path="url(#tile-clip)">
+    <rect x="62" y="62" width="900" height="900" fill="url(#wood-base)"/>
+    <rect x="62" y="62" width="900" height="900" fill="url(#wood-grain)" opacity="0.72"/>
+    <rect x="62" y="62" width="900" height="900" fill="url(#wood-light)"/>
+  </g>
+  <rect x="62.75" y="62.75" width="898.5" height="898.5" rx="209.25" fill="none" stroke="#713511" stroke-width="1.5" stroke-opacity="0.72"/>
+
+  <!-- Pen glyph. Local geometry is horizontal, then rotated 45 degrees counter-clockwise. -->
+  <g transform="rotate(-45 492 404)" fill="url(#glyph-white)">
+    <!-- Rounded barrel. -->
+    <rect x="292" y="346" width="404" height="116" rx="24"/>
+
+    <!-- Abstract writing tip, separated from the barrel by a narrow wood-colored gap. -->
+    <path d="M204 404 Q202 397 208 392 L263 350 Q270 344 280 346 L282 347 L282 461 L280 462 Q270 464 263 458 L208 416 Q202 411 204 404 Z"/>
+
+    <!-- End cap. -->
+    <rect x="713" y="367" width="72" height="74" rx="30"/>
+
+    <!-- Pocket clip. -->
+    <path d="M727 392 V472 Q727 490 709 490 H622" fill="none" stroke="url(#glyph-white)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Note lines. -->
+  <rect x="225" y="658" width="574" height="64" rx="32" fill="url(#glyph-white)"/>
+  <rect x="225" y="758" width="470" height="64" rx="32" fill="url(#glyph-white)"/>
+</svg>

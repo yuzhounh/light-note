@@ -1,0 +1,6 @@
+{
+  "projectId": "your-firebase-project-id",
+  "apiKey": "your-firebase-web-api-key",
+  "storageBucket": "your-firebase-storage-bucket.firebasestorage.app",
+  "databaseId": "(default)"
+}
