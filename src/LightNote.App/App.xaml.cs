@@ -1,6 +1,8 @@
 ﻿using System.Configuration;
 using System.Data;
 using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using LightNote.Core.Abstractions;
 using LightNote.Core.Models;
@@ -23,6 +25,7 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        RenderOptions.ProcessRenderMode = RenderMode.Default;
         _singleInstance = SingleInstanceManager.Acquire();
         if (!_singleInstance.IsPrimary)
         {
@@ -42,6 +45,18 @@ public partial class App : System.Windows.Application
 
         _services = ConfigureServices();
         var logger = _services.GetRequiredService<IAppLogger>();
+
+        try
+        {
+            if (StartupRegistrationService.RemoveLegacyRegistration())
+            {
+                logger.Info("Removed legacy Windows startup registration.");
+            }
+        }
+        catch (Exception exception)
+        {
+            logger.Error("Failed to remove legacy Windows startup registration.", exception);
+        }
 
         DispatcherUnhandledException += (_, args) => HandleDispatcherException(logger, args);
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -114,7 +129,6 @@ public partial class App : System.Windows.Application
         services.AddSingleton<AppDataPaths>();
         services.AddSingleton<AppSettingsService>();
         services.AddSingleton<ThemeService>();
-        services.AddSingleton<StartupRegistrationService>();
         services.AddSingleton<IAppLogger, FileAppLogger>();
         services.AddSingleton<SqliteConnectionFactory>();
         services.AddSingleton<IDatabaseInitializer, SqliteDatabaseInitializer>();

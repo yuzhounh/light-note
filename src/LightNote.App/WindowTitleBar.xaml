@@ -1,0 +1,73 @@
+<UserControl x:Class="LightNote.App.WindowTitleBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+             Height="42"
+             MouseLeftButtonDown="OnMouseLeftButtonDown">
+    <UserControl.Resources>
+        <Style x:Key="CaptionButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBackground"
+                                Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBackground" Property="Background"
+                                        Value="{DynamicResource BorderBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBackground" Property="Background"
+                                        Value="{DynamicResource MutedTextBrush}" />
+                                <Setter TargetName="ButtonBackground" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <Border Background="{DynamicResource SecondaryPanelBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="46" />
+                <ColumnDefinition Width="46" />
+                <ColumnDefinition Width="46" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                <Image Width="20" Height="20" Source="Assets/pen-note-icon-yellow.ico" />
+                <TextBlock Margin="8,0,0,0" FontSize="13" VerticalAlignment="Center"
+                           Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" />
+            </StackPanel>
+            <Button Grid.Column="1" Style="{StaticResource CaptionButtonStyle}"
+                    shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                    Click="OnMinimizeClick" ToolTip="最小化">
+                <Path Width="11" Height="1" Data="M0,0 H11" Stretch="Fill"
+                      Stroke="{DynamicResource TextBrush}" StrokeThickness="1" />
+            </Button>
+            <Button Grid.Column="2" Style="{StaticResource CaptionButtonStyle}"
+                    shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                    Click="OnMaximizeClick" ToolTip="最大化或还原">
+                <Path x:Name="MaximizeIcon" Width="11" Height="11" Data="M0.5,0.5 H10.5 V10.5 H0.5 Z"
+                      Stretch="Fill" Stroke="{DynamicResource TextBrush}" StrokeThickness="1" />
+            </Button>
+            <Button Grid.Column="3" Style="{StaticResource CaptionButtonStyle}"
+                    shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                    Click="OnCloseClick" ToolTip="关闭">
+                <Path Width="11" Height="11" Data="M0,0 L11,11 M11,0 L0,11" Stretch="Fill"
+                      Stroke="{DynamicResource TextBrush}" StrokeThickness="1" />
+            </Button>
+        </Grid>
+    </Border>
+</UserControl>

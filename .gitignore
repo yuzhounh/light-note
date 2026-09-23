@@ -4,6 +4,7 @@ obj/
 .idea/
 TestResults/
 artifacts/
+tmp/
 *.user
 *.suo
 *.db

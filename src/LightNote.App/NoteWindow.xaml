@@ -1,0 +1,108 @@
+<Window x:Class="LightNote.App.NoteWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:LightNote.App"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="笔记"
+        Icon="Assets/pen-note-icon-yellow.ico"
+        Width="920"
+        Height="720"
+        MinWidth="620"
+        MinHeight="440"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        Background="{DynamicResource PanelBrush}">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="42" ResizeBorderThickness="6"
+                            GlassFrameThickness="0" CornerRadius="8" UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+    <Border Background="{DynamicResource PanelBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            SnapsToDevicePixels="True">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="42" />
+            <RowDefinition Height="44" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <local:WindowTitleBar />
+        <Border Grid.Row="1" Padding="10,6" Background="Transparent"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel Orientation="Horizontal">
+                    <ComboBox x:Name="FontFamilyBox" Width="130" Height="30" MinHeight="0" Margin="3,0"
+                              Style="{StaticResource ToolbarComboBoxStyle}" SelectedIndex="0"
+                              SelectionChanged="OnEditorFontFamilyChanged" ToolTip="字体">
+                        <ComboBoxItem Content="微软雅黑" Tag="Microsoft YaHei" />
+                        <ComboBoxItem Content="宋体" Tag="SimSun" />
+                        <ComboBoxItem Content="黑体" Tag="SimHei" />
+                    </ComboBox>
+                    <ComboBox x:Name="FontSizeBox" Width="56" Height="30" MinHeight="0" Margin="1,0,3,0"
+                              Style="{StaticResource ToolbarComboBoxStyle}" SelectedIndex="0"
+                              SelectionChanged="OnEditorFontSizeChanged" ToolTip="字号">
+                        <ComboBoxItem Content="12" Tag="12" />
+                        <ComboBoxItem Content="14" Tag="14" />
+                        <ComboBoxItem Content="16" Tag="16" />
+                        <ComboBoxItem Content="18" Tag="18" />
+                        <ComboBoxItem Content="24" Tag="24" />
+                        <ComboBoxItem Content="32" Tag="32" />
+                    </ComboBox>
+                    <Button x:Name="ParagraphButton" Width="44" Content="正文" Tag="paragraph"
+                            Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
+                    <Button x:Name="Heading1Button" Content="H₁" Tag="heading1"
+                            Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
+                    <Button x:Name="Heading2Button" Content="H₂" Tag="heading2"
+                            Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
+                    <Separator Margin="5,0" />
+                    <Button x:Name="BoldButton" Content="B" FontWeight="Bold" Tag="bold"
+                            Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
+                    <Button x:Name="ItalicButton" Content="I" FontStyle="Italic" Tag="italic"
+                            Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
+                    <Button x:Name="UnderlineButton" Tag="underline" Style="{StaticResource ToolbarButtonStyle}"
+                            Click="OnEditorCommandClick"><TextBlock Text="U" TextDecorations="Underline" /></Button>
+                    <Button x:Name="StrikeButton" Tag="strike" Style="{StaticResource ToolbarButtonStyle}"
+                            Click="OnEditorCommandClick"><TextBlock Text="ab" TextDecorations="Strikethrough" /></Button>
+                    <Button x:Name="HighlightButton" Tag="highlight" Style="{StaticResource ToolbarButtonStyle}"
+                            Click="OnEditorCommandClick">
+                        <Grid>
+                            <TextBlock Text="ab" VerticalAlignment="Center" />
+                            <Border Height="4" Margin="1,0" Background="#FFFFD633" VerticalAlignment="Bottom" />
+                        </Grid>
+                    </Button>
+                    <Separator Margin="5,0" />
+                    <Button x:Name="BulletListButton" Content="•☰" Tag="bulletList"
+                            Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
+                    <Button x:Name="OrderedListButton" Content="1☰" Tag="orderedList"
+                            Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
+                    <Button x:Name="QuoteButton" Content="❞" Tag="blockquote"
+                            Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
+                    <Button x:Name="CodeBlockButton" Content="{}{ }" Tag="codeBlock"
+                            Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <Border Grid.Row="2" Padding="24,14" BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <StackPanel>
+                <TextBox x:Name="TitleBox" FontSize="22" FontWeight="SemiBold" BorderThickness="0"
+                         Padding="0" Background="Transparent" TextWrapping="NoWrap"
+                         TextChanged="OnTitleChanged" />
+                <TextBlock x:Name="TagsText" Margin="0,6,0,0" Foreground="{DynamicResource AccentBrush}"
+                           TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3" Margin="18,10,18,18" BorderThickness="0" Background="Transparent">
+            <Grid x:Name="EditorWebViewHost">
+                <wv2:WebView2 x:Name="EditorWebView" />
+            </Grid>
+        </Border>
+    </Grid>
+    </Border>
+</Window>

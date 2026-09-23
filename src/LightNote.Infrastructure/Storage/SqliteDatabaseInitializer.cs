@@ -12,6 +12,7 @@ public sealed class SqliteDatabaseInitializer(
     private const string HistoryContentMigrationId = "0004_history_content";
     private const string FirebaseSyncMigrationId = "0005_firebase_sync";
     private const string ReliableSyncMigrationId = "0006_reliable_sync";
+    private const string NotebookGroupsMigrationId = "0007_notebook_groups";
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -64,6 +65,12 @@ public sealed class SqliteDatabaseInitializer(
         {
             await ApplyReliableSyncMigrationAsync(connection, transaction, cancellationToken);
             logger.Info($"Applied database migration {ReliableSyncMigrationId}.");
+        }
+
+        if (!await MigrationExistsAsync(connection, transaction, NotebookGroupsMigrationId, cancellationToken))
+        {
+            await ApplyNotebookGroupsMigrationAsync(connection, transaction, cancellationToken);
+            logger.Info($"Applied database migration {NotebookGroupsMigrationId}.");
         }
 
         await transaction.CommitAsync(cancellationToken);
@@ -376,6 +383,37 @@ public sealed class SqliteDatabaseInitializer(
 
             INSERT INTO schema_migrations (id, applied_at)
             VALUES ('0006_reliable_sync', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+            """;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task ApplyNotebookGroupsMigrationAsync(
+        Microsoft.Data.Sqlite.SqliteConnection connection,
+        Microsoft.Data.Sqlite.SqliteTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            CREATE TABLE notebook_groups (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE notebook_group_memberships (
+                notebook_id TEXT PRIMARY KEY REFERENCES notebooks(id) ON DELETE CASCADE,
+                group_id TEXT NOT NULL REFERENCES notebook_groups(id) ON DELETE CASCADE,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX ix_notebook_group_memberships_group
+                ON notebook_group_memberships(group_id, notebook_id);
+
+            INSERT INTO schema_migrations (id, applied_at)
+            VALUES ('0007_notebook_groups', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

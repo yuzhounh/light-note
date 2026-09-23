@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LightNote.App"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
         Title="LightNote"
@@ -14,7 +15,90 @@
         MinHeight="560"
         FontFamily="Microsoft YaHei"
         Background="{DynamicResource AppBackgroundBrush}"
+        WindowStyle="None"
         WindowStartupLocation="CenterScreen">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="42" ResizeBorderThickness="6"
+                            GlassFrameThickness="0" CornerRadius="8" UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+    <Window.Resources>
+        <Style x:Key="PaneGridSplitterStyle" TargetType="GridSplitter">
+            <Setter Property="Width" Value="7" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBrush}" />
+            <Setter Property="Cursor" Value="SizeWE" />
+            <Setter Property="ResizeDirection" Value="Columns" />
+            <Setter Property="ResizeBehavior" Value="PreviousAndNext" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GridSplitter">
+                        <Grid SnapsToDevicePixels="True">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3" />
+                                <ColumnDefinition Width="1" />
+                                <ColumnDefinition Width="3" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Background="{TemplateBinding Background}" />
+                            <Border x:Name="DividerLine" Grid.Column="1" Width="1"
+                                    Panel.ZIndex="1" HorizontalAlignment="Center"
+                                    Background="{DynamicResource BorderBrush}" />
+                            <Border Grid.Column="2" Background="{TemplateBinding BorderBrush}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="DividerLine" Property="Width" Value="3" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="AccountPopupItemButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ItemBackground" Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}" CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBackground" Property="Background"
+                                        Value="{DynamicResource SecondaryPanelBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ItemBackground" Property="Opacity" Value="0.72" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="AccountThemeMenuStyle" TargetType="ContextMenu">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HasDropShadow" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Padding="6" CornerRadius="10"
+                                Background="{DynamicResource PanelBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="OnFindExecuted" />
     </Window.CommandBindings>
@@ -24,66 +108,49 @@
         <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveCommand}" />
         <KeyBinding Key="F" Modifiers="Control" Command="ApplicationCommands.Find" />
     </Window.InputBindings>
+    <Border Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            SnapsToDevicePixels="True">
     <Grid Background="{DynamicResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="56" />
+            <RowDefinition Height="42" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-
-        <Border Grid.Row="0" Padding="16,10" Background="{DynamicResource PanelBrush}"
-                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
-            <Grid>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button x:Name="AccountButton" Click="OnSyncClick" ToolTip="Google 账户与同步"
-                            AutomationProperties.Name="Google 登录和同步">
-                        <StackPanel Orientation="Horizontal">
-                            <Border x:Name="AccountAvatar" Width="24" Height="24" CornerRadius="12"
-                                    Background="{DynamicResource AccentLightBrush}">
-                                <TextBlock x:Name="AccountAvatarText" Text="G" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource AccentBrush}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <TextBlock x:Name="AccountButtonText" Margin="7,0,0,0" Text="Google 登录"
-                                       VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="SettingsMenuButton" Content="设置 ▾" Click="OnSettingsMenuButtonClick"
-                            ToolTip="应用设置和数据工具" AutomationProperties.Name="打开设置菜单">
-                        <Button.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="导入 / 迁移" Click="OnImportClick" />
-                                <Separator />
-                                <MenuItem Header="备份" Click="OnBackupClick" />
-                                <MenuItem Header="恢复备份" Click="OnRestoreBackupClick" />
-                                <MenuItem Header="数据安全" Click="OnDataSafetyClick" />
-                                <Separator />
-                                <MenuItem Header="应用设置" Click="OnSettingsClick" />
-                            </ContextMenu>
-                        </Button.ContextMenu>
-                    </Button>
-                </StackPanel>
-            </Grid>
-        </Border>
-
+        <local:WindowTitleBar />
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="NotebookColumn" Width="220" MinWidth="170" />
-                <ColumnDefinition Width="1" />
+                <ColumnDefinition Width="7" />
                 <ColumnDefinition x:Name="NoteListColumn" Width="300" MinWidth="230" />
-                <ColumnDefinition Width="1" />
+                <ColumnDefinition Width="7" />
                 <ColumnDefinition Width="*" MinWidth="360" />
             </Grid.ColumnDefinitions>
-            <Border Grid.Column="0" Padding="12" Background="{DynamicResource SecondaryPanelBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+            <Border x:Name="SidebarPanel" Grid.Column="0" Padding="12"
+                    Background="{DynamicResource SecondaryPanelBrush}">
+                <Border.ContextMenu>
+                    <ContextMenu Opened="OnSidebarContextMenuOpened">
+                        <MenuItem Header="新建笔记本" Click="OnNewNotebookClick" />
+                        <MenuItem Header="新建笔记本组" Click="OnNewNotebookGroupClick" />
+                        <Separator Style="{StaticResource MenuSeparatorStyle}" />
+                        <MenuItem Header="最近笔记" Tag="navigation:recent" IsCheckable="True"
+                                  Click="OnNavigationMenuItemClick" />
+                        <MenuItem Header="置顶笔记" Tag="navigation:pinned" IsCheckable="True"
+                                  Click="OnNavigationMenuItemClick" />
+                        <MenuItem Header="回收站" Tag="navigation:trash" IsCheckable="True"
+                                  Click="OnNavigationMenuItemClick" />
+                    </ContextMenu>
+                </Border.ContextMenu>
                 <DockPanel>
-                    <Button DockPanel.Dock="Top" Height="52" Margin="0,0,0,14"
+                    <Button DockPanel.Dock="Top" Height="46" Margin="0,0,0,14"
                             Padding="7,5" HorizontalContentAlignment="Stretch"
                             Background="{DynamicResource PanelBrush}" BorderThickness="0"
                             Command="{Binding NewNoteCommand}" ToolTip="新建笔记（Ctrl+N）"
                             AutomationProperties.Name="新建笔记">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
-                                <Border x:Name="NewNoteButtonBorder" CornerRadius="26"
+                                <Border x:Name="NewNoteButtonBorder" CornerRadius="23"
                                         Background="{TemplateBinding Background}"
                                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                     <ContentPresenter Margin="{TemplateBinding Padding}"
@@ -103,41 +170,174 @@
                         </Button.Template>
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="42" />
+                                <ColumnDefinition Width="36" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Border Width="38" Height="38" CornerRadius="19" Background="#FF00B87A"
+                            <Border Width="32" Height="32" CornerRadius="16" Background="#FF00B87A"
                                     HorizontalAlignment="Left">
-                                <TextBlock Text="＋" FontSize="26" Foreground="White"
+                                <TextBlock Text="＋" FontSize="22" Foreground="White"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <TextBlock Grid.Column="1" Margin="10,0,0,0" Text="新建笔记"
                                        FontSize="16" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
-                    <Grid DockPanel.Dock="Top" Margin="8,8,2,12">
-                        <TextBlock Text="视图、笔记本与标签" Foreground="{StaticResource MutedTextBrush}"
-                                   FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <Button HorizontalAlignment="Right" Padding="7,2" Margin="0" Content="＋"
-                                Click="OnNewNotebookClick" ToolTip="新建笔记本（Ctrl+Shift+N）" />
-                    </Grid>
-                    <ListBox ItemsSource="{Binding Notebooks}" SelectedItem="{Binding SelectedNotebook}"
-                             DisplayMemberPath="DisplayName" BorderThickness="0"
+                    <Border DockPanel.Dock="Bottom" Margin="0,12,0,0" Padding="0,12,0,0"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+                        <Grid x:Name="SidebarFooter">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="38" />
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="AccountButton" Margin="0,0,4,0" Padding="8,7"
+                                    Style="{StaticResource SidebarActionButtonStyle}"
+                                    HorizontalContentAlignment="Left" Click="OnAccountButtonClick"
+                                    ToolTip="账户与同步" AutomationProperties.Name="打开账户菜单">
+                                <TextBlock x:Name="AccountButtonText" Text="Google 登录"
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            </Button>
+                            <Button Grid.Column="1" Margin="0" Padding="0"
+                                    Style="{StaticResource SidebarActionButtonStyle}"
+                                    HorizontalContentAlignment="Center"
+                                     Click="OnSettingsClick" ToolTip="设置"
+                                     AutomationProperties.Name="打开设置">
+                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="17"
+                                           Foreground="{DynamicResource TextBrush}" Text="&#xE713;" />
+                            </Button>
+                            <Popup x:Name="AccountPopup" Grid.ColumnSpan="2"
+                                   Placement="Top" PlacementTarget="{Binding ElementName=SidebarFooter}"
+                                   HorizontalOffset="0" VerticalOffset="-8"
+                                   StaysOpen="False" AllowsTransparency="True"
+                                   PopupAnimation="Fade">
+                                <Border x:Name="AccountPopupCard" Padding="8" CornerRadius="12"
+                                        Background="{DynamicResource PanelBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock x:Name="AccountPopupIdentityText" Margin="10,7,10,0" FontSize="15"
+                                                   FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock x:Name="AccountPopupStatusText" Margin="10,4,10,8"
+                                                   Foreground="{DynamicResource MutedTextBrush}"
+                                                   TextWrapping="Wrap" />
+                                        <Separator Margin="0,2,0,4" Style="{StaticResource MenuSeparatorStyle}" />
+                                        <Button x:Name="AccountPopupPrimaryButton"
+                                                Style="{StaticResource AccountPopupItemButtonStyle}"
+                                                Click="OnAccountPopupPrimaryClick">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="17"
+                                                           Text="&#xE77B;" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="AccountPrimaryText" Grid.Column="1"
+                                                           VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Button>
+                                        <Button x:Name="ThemeModeButton"
+                                                Style="{StaticResource AccountPopupItemButtonStyle}"
+                                                Click="OnThemeModeClick">
+                                            <Button.ContextMenu>
+                                                <ContextMenu x:Name="AccountThemeMenu"
+                                                             Style="{StaticResource AccountThemeMenuStyle}">
+                                                    <MenuItem x:Name="ThemeSystemMenuItem" Header="跟随系统" Tag="system"
+                                                              IsCheckable="True" Click="OnAccountThemeOptionClick" />
+                                                    <MenuItem x:Name="ThemeLightMenuItem" Header="浅色" Tag="light"
+                                                              IsCheckable="True" Click="OnAccountThemeOptionClick" />
+                                                    <MenuItem x:Name="ThemeDarkMenuItem" Header="深色" Tag="dark"
+                                                              IsCheckable="True" Click="OnAccountThemeOptionClick" />
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="18" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="17"
+                                                           Text="&#xE708;" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="颜色模式" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="AccountThemeCurrentText" Grid.Column="2"
+                                                           Margin="8,0,4,0" Foreground="{DynamicResource MutedTextBrush}"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="3" FontFamily="Segoe Fluent Icons" FontSize="12"
+                                                           Text="&#xE76C;" HorizontalAlignment="Right"
+                                                           VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Button>
+                                        <Button Style="{StaticResource AccountPopupItemButtonStyle}"
+                                                Click="OnAccountPopupSettingsClick">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="17"
+                                                           Text="&#xE713;" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="设置" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="AccountSettingsVersionText" Grid.Column="2"
+                                                           Foreground="{DynamicResource MutedTextBrush}" />
+                                            </Grid>
+                                        </Button>
+                                        <Separator x:Name="AccountSignOutSeparator" Margin="0,4"
+                                                   Style="{StaticResource MenuSeparatorStyle}" />
+                                        <Button x:Name="AccountPopupSignOutButton"
+                                                Style="{StaticResource AccountPopupItemButtonStyle}"
+                                                Click="OnAccountPopupSignOutClick">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="17"
+                                                           Foreground="#FFE05252" Text="&#xE8BB;"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Foreground="#FFE05252" Text="退出登录"
+                                                           VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                    <ListBox x:Name="NotebookList" ItemsSource="{Binding Notebooks}"
+                             SelectedItem="{Binding SelectedNotebook}" BorderThickness="0"
                              Background="Transparent" FontSize="14">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
+                                <EventSetter Event="PreviewMouseRightButtonDown" Handler="OnNotebookPreviewMouseRightButtonDown" />
                                 <Setter Property="Padding" Value="7,6" />
                                 <Setter Property="Margin" Value="0,2" />
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                             </Style>
                         </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="{Binding IndentMargin}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="24" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Viewbox Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <Path Width="20" Height="20" Data="{Binding IconData}"
+                                              Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.45"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round" Fill="Transparent" Stretch="Uniform" />
+                                    </Viewbox>
+                                    <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
+                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
                     </ListBox>
                 </DockPanel>
             </Border>
-            <GridSplitter Grid.Column="1" Width="1" HorizontalAlignment="Stretch"
-                          Background="{DynamicResource BorderBrush}" DragCompleted="OnPaneSplitterDragCompleted" />
-            <Border Grid.Column="2" Background="{DynamicResource PanelBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+            <GridSplitter Grid.Column="1" Style="{StaticResource PaneGridSplitterStyle}"
+                          Background="{DynamicResource SecondaryPanelBrush}"
+                          DragCompleted="OnPaneSplitterDragCompleted" />
+            <Border Grid.Column="2" Background="{DynamicResource PanelBrush}">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Padding="14,12" BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="0,0,0,1">
@@ -163,7 +363,7 @@
                                     </TextBlock>
                                 </Grid>
                             </Border>
-                            <TextBlock Margin="2,12,0,0" Text="{Binding NotesHeading}" FontSize="16" FontWeight="SemiBold" />
+                            <TextBlock Margin="2,12,0,0" Text="{Binding NotesHeading}" FontSize="16" FontWeight="Normal" />
                         </StackPanel>
                     </Border>
                     <Button DockPanel.Dock="Bottom" Margin="14,8" Padding="12,7"
@@ -174,44 +374,81 @@
                         <ListBox ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}"
                                  BorderThickness="0" Background="{DynamicResource PanelBrush}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
                                  ScrollViewer.CanContentScroll="True"
+                                 ScrollViewer.PanningMode="VerticalOnly"
+                                 ScrollViewer.IsDeferredScrollingEnabled="False"
                                  VirtualizingPanel.IsVirtualizing="True"
-                                 VirtualizingPanel.VirtualizationMode="Recycling">
-                            <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
-                                    <EventSetter Event="PreviewMouseRightButtonDown" Handler="OnNotePreviewMouseRightButtonDown" />
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                    <Setter Property="ContextMenu">
-                                        <Setter.Value>
-                                            <ContextMenu Opened="OnNoteContextMenuOpened">
-                                                <MenuItem Header="置顶 / 取消置顶" Tag="normal" Click="OnTogglePinMenuClick" />
-                                                <MenuItem Header="移动到笔记本…" Tag="normal" Click="OnMoveNoteClick" />
-                                                <MenuItem Header="编辑标签…" Tag="normal" Click="OnEditTagsClick" />
-                                                <MenuItem Header="历史版本…" Click="OnHistoryClick" />
-                                                <MenuItem Header="导出…" Click="OnExportNoteClick" />
-                                                <Separator Tag="normal" />
-                                                <MenuItem Header="移到回收站" Tag="normal" Click="OnDeleteNoteMenuClick" />
-                                                <MenuItem Header="恢复笔记" Tag="trash" Click="OnRestoreNoteMenuClick" />
-                                                <MenuItem Header="永久删除" Tag="trash" Click="OnPermanentDeleteClick" />
-                                            </ContextMenu>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Width="250" Margin="8,10">
-                                        <local:HighlightedTextBlock HighlightText="{Binding TitleDisplay}"
-                                                                    HighlightQuery="{Binding MatchQuery}"
-                                                                    FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                        <local:HighlightedTextBlock Margin="0,5,0,0" HighlightText="{Binding Preview}"
-                                                                    HighlightQuery="{Binding MatchQuery}"
-                                                                    Foreground="{StaticResource MutedTextBrush}"
-                                                                    TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Margin="0,5,0,0" Text="{Binding UpdatedLabel}" FontSize="11"
-                                                   Foreground="{StaticResource MutedTextBrush}" />
-                                    </StackPanel>
-                                </DataTemplate>
+                                 VirtualizingPanel.VirtualizationMode="Recycling"
+                                 VirtualizingPanel.ScrollUnit="Pixel"
+                                 VirtualizingPanel.CacheLength="2,2"
+                                 VirtualizingPanel.CacheLengthUnit="Page"
+                                 UseLayoutRounding="True" SnapsToDevicePixels="True">
+                            <ListBox.Resources>
+                                <Style TargetType="ScrollBar"
+                                       BasedOn="{StaticResource SlimVerticalScrollBarStyle}" />
+                            </ListBox.Resources>
+                             <ListBox.ItemContainerStyle>
+                                 <Style TargetType="ListBoxItem">
+                                     <EventSetter Event="PreviewMouseRightButtonDown" Handler="OnNotePreviewMouseRightButtonDown" />
+                                     <EventSetter Event="MouseDoubleClick" Handler="OnNoteMouseDoubleClick" />
+                                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                     <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                                     <Setter Property="Margin" Value="6,0" />
+                                     <Setter Property="Padding" Value="0" />
+                                     <Setter Property="Background" Value="Transparent" />
+                                     <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                                     <Setter Property="BorderThickness" Value="0" />
+                                     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                     <Setter Property="SnapsToDevicePixels" Value="True" />
+                                     <Setter Property="Template">
+                                         <Setter.Value>
+                                             <ControlTemplate TargetType="ListBoxItem">
+                                                 <Border x:Name="ItemBackground"
+                                                         Background="{TemplateBinding Background}"
+                                                         CornerRadius="6"
+                                                         Margin="0,-1"
+                                                         SnapsToDevicePixels="True">
+                                                     <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                                 </Border>
+                                                 <ControlTemplate.Triggers>
+                                                     <Trigger Property="IsMouseOver" Value="True">
+                                                         <Setter TargetName="ItemBackground" Property="Background"
+                                                                 Value="{DynamicResource SecondaryPanelBrush}" />
+                                                     </Trigger>
+                                                     <Trigger Property="IsSelected" Value="True">
+                                                         <Setter TargetName="ItemBackground" Property="Background"
+                                                                 Value="{DynamicResource AccentLightBrush}" />
+                                                     </Trigger>
+                                                 </ControlTemplate.Triggers>
+                                             </ControlTemplate>
+                                         </Setter.Value>
+                                     </Setter>
+                                 </Style>
+                             </ListBox.ItemContainerStyle>
+                             <ListBox.ItemTemplate>
+                                 <DataTemplate>
+                                     <Grid>
+                                         <StackPanel Margin="10,10">
+                                             <local:HighlightedTextBlock HighlightText="{Binding TitleDisplay}"
+                                                                        HighlightQuery="{Binding MatchQuery}"
+                                                                        FontSize="15" FontWeight="Normal"
+                                                                        TextTrimming="CharacterEllipsis" />
+                                            <local:HighlightedTextBlock Margin="0,5,0,0"
+                                                                        HighlightText="{Binding Preview}"
+                                                                        HighlightQuery="{Binding MatchQuery}"
+                                                                        Foreground="{StaticResource MutedTextBrush}"
+                                                                        FontSize="14"
+                                                                        TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                                                        LineHeight="18" MaxHeight="72" />
+                                             <TextBlock Margin="0,2,0,0" Text="{Binding UpdatedLabel}" FontSize="12"
+                                                        Foreground="{StaticResource MutedTextBrush}" />
+                                         </StackPanel>
+                                         <Border Height="1" Margin="6,0" VerticalAlignment="Bottom"
+                                                 Background="{DynamicResource BorderBrush}" />
+                                     </Grid>
+                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
                         <Border Background="{DynamicResource PanelBrush}">
@@ -234,12 +471,12 @@
                     </Grid>
                 </DockPanel>
             </Border>
-            <GridSplitter Grid.Column="3" Width="1" HorizontalAlignment="Stretch"
-                          Background="{DynamicResource BorderBrush}" DragCompleted="OnPaneSplitterDragCompleted" />
+            <GridSplitter Grid.Column="3" Style="{StaticResource PaneGridSplitterStyle}"
+                          DragCompleted="OnPaneSplitterDragCompleted" />
             <Grid Grid.Column="4" Background="{DynamicResource PanelBrush}">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="46" />
-                    <RowDefinition Height="82" />
+                    <RowDefinition Height="44" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <Border Grid.Row="1" Padding="24,14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
@@ -247,28 +484,35 @@
                         <TextBox Text="{Binding EditableTitle, UpdateSourceTrigger=PropertyChanged}"
                                  FontSize="22" FontWeight="SemiBold" BorderThickness="0" Padding="0"
                                  Background="Transparent" TextWrapping="NoWrap" />
-                        <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
-                            <TextBlock Text="V1.0 数据可靠版" Foreground="{StaticResource MutedTextBrush}"
-                                       VerticalAlignment="Center" />
-                            <TextBlock Margin="14,0,0,0" Text="{Binding SelectedTagsDisplay}"
-                                       Foreground="{StaticResource AccentBrush}" TextTrimming="CharacterEllipsis"
-                                       VerticalAlignment="Center" />
-                        </StackPanel>
+                        <TextBlock Margin="0,6,0,0" Text="{Binding SelectedTagsDisplay}"
+                                   Foreground="{StaticResource AccentBrush}" TextTrimming="CharacterEllipsis">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
                 </Border>
-                <Border Grid.Row="0" Padding="12,7" Background="Transparent"
+                <Border Grid.Row="0" Padding="10,6" Background="Transparent"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
                         IsEnabled="{Binding IsEditorEnabled}">
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                         <StackPanel Orientation="Horizontal">
-                            <ComboBox x:Name="FontFamilyBox" Width="150" Margin="4,0" Padding="6,3"
+                            <ComboBox x:Name="FontFamilyBox" Width="130" Height="30" MinHeight="0" Margin="3,0"
+                                      Style="{StaticResource ToolbarComboBoxStyle}"
                                       SelectedIndex="0" SelectionChanged="OnEditorFontFamilyChanged"
                                       ToolTip="字体">
                                 <ComboBoxItem Content="微软雅黑" Tag="Microsoft YaHei" />
                                 <ComboBoxItem Content="宋体" Tag="SimSun" />
                                 <ComboBoxItem Content="黑体" Tag="SimHei" />
                             </ComboBox>
-                            <ComboBox x:Name="FontSizeBox" Width="62" Margin="2,0,4,0" Padding="6,3"
+                            <ComboBox x:Name="FontSizeBox" Width="56" Height="30" MinHeight="0" Margin="1,0,3,0"
+                                      Style="{StaticResource ToolbarComboBoxStyle}"
                                       SelectedIndex="0" SelectionChanged="OnEditorFontSizeChanged"
                                       ToolTip="字号">
                                 <ComboBoxItem Content="12" Tag="12" />
@@ -278,41 +522,64 @@
                                 <ComboBoxItem Content="24" Tag="24" />
                                 <ComboBoxItem Content="32" Tag="32" />
                             </ComboBox>
-                            <Button x:Name="ParagraphButton" Padding="8,4" Content="正文" Tag="paragraph"
+                            <Button x:Name="ParagraphButton" Width="44" Content="正文" Tag="paragraph"
+                                    Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="正文" />
-                            <Button x:Name="Heading1Button" Padding="8,4" Content="标题 1" Tag="heading1"
+                            <Button x:Name="Heading1Button" Content="H₁" Tag="heading1"
+                                    Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="一级标题" />
-                            <Button x:Name="Heading2Button" Padding="8,4" Content="标题 2" Tag="heading2"
+                            <Button x:Name="Heading2Button" Content="H₂" Tag="heading2"
+                                    Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="二级标题" />
                             <Separator Margin="5,0" />
-                            <Button x:Name="BoldButton" Width="34" Padding="6,4" Content="B" FontWeight="Bold" Tag="bold"
+                            <Button x:Name="BoldButton" Content="B" FontWeight="Bold" Tag="bold"
+                                    Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="粗体" />
-                            <Button x:Name="ItalicButton" Width="34" Padding="6,4" Content="I" FontStyle="Italic" Tag="italic"
+                            <Button x:Name="ItalicButton" Content="I" FontStyle="Italic" Tag="italic"
+                                    Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="斜体" />
-                            <Button x:Name="UnderlineButton" Width="34" Padding="6,4" Content="U̲" Tag="underline"
-                                    Click="OnEditorCommandClick" ToolTip="下划线（Ctrl+U）" />
-                            <Button x:Name="StrikeButton" Width="34" Padding="6,4" Content="S̶" Tag="strike"
-                                    Click="OnEditorCommandClick" ToolTip="删除线" />
-                            <Button x:Name="HighlightButton" Width="34" Padding="6,4" Content="▰" Tag="highlight"
-                                    Click="OnEditorCommandClick" ToolTip="文字高亮" />
-                            <Button x:Name="InlineCodeButton" Width="38" Padding="6,4" Content="{}{ }" Tag="inlineCode"
-                                    Click="OnEditorCommandClick" ToolTip="行内代码" />
+                            <Button x:Name="UnderlineButton" Tag="underline"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    Click="OnEditorCommandClick" ToolTip="下划线（Ctrl+U）">
+                                <TextBlock Text="U" TextDecorations="Underline" />
+                            </Button>
+                            <Button x:Name="StrikeButton" Tag="strike"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    Click="OnEditorCommandClick" ToolTip="删除线">
+                                <TextBlock Text="ab" TextDecorations="Strikethrough" />
+                            </Button>
+                            <Button x:Name="HighlightButton" Tag="highlight"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    Click="OnEditorCommandClick" ToolTip="文字高亮">
+                                <Grid>
+                                    <TextBlock Text="ab" VerticalAlignment="Center" />
+                                    <Border Height="4" Margin="1,0" Background="#FFFFD633"
+                                            VerticalAlignment="Bottom" />
+                                </Grid>
+                            </Button>
                             <Separator Margin="5,0" />
-                            <Button x:Name="BulletListButton" Padding="8,4" Content="• 列表" Tag="bulletList"
+                            <Button x:Name="BulletListButton" Content="•☰" Tag="bulletList"
+                                    Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="项目符号列表" />
-                            <Button x:Name="OrderedListButton" Padding="8,4" Content="1. 列表" Tag="orderedList"
+                            <Button x:Name="OrderedListButton" Content="1☰" Tag="orderedList"
+                                    Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="编号列表" />
-                            <Button x:Name="QuoteButton" Padding="8,4" Content="引用" Tag="blockquote"
+                            <Button x:Name="QuoteButton" Content="❞" Tag="blockquote"
+                                    Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="引用" />
-                            <Button x:Name="CodeBlockButton" Padding="8,4" Content="代码" Tag="codeBlock"
+                            <Button x:Name="CodeBlockButton" Content="{}{ }" Tag="codeBlock"
+                                    Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="代码块" />
                         </StackPanel>
                     </ScrollViewer>
                 </Border>
                 <Border Grid.Row="2" Margin="18,10,18,18" BorderThickness="0" Background="Transparent">
-                    <wv2:WebView2 x:Name="EditorWebView" />
+                    <Grid x:Name="EditorWebViewHost">
+                        <wv2:WebView2 x:Name="EditorWebView" />
+                    </Grid>
                 </Border>
             </Grid>
         </Grid>
     </Grid>
+    </Border>
 </Window>

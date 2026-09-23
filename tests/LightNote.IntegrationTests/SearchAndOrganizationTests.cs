@@ -187,6 +187,7 @@ public sealed class SearchAndOrganizationTests : IDisposable
         await viewModel.InitializeAsync();
 
         Assert.Equal(50, viewModel.Notes.Count);
+        Assert.Equal("全部笔记（125条）", viewModel.NotesHeading);
         Assert.True(viewModel.HasMoreNotes);
         await viewModel.LoadMoreCommand.ExecuteAsync(null);
         Assert.Equal(100, viewModel.Notes.Count);

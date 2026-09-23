@@ -14,6 +14,12 @@ public interface INoteRepository
         int offset = 0,
         CancellationToken cancellationToken = default);
 
+    Task<int> CountAsync(
+        string? notebookId,
+        bool allNotebooks,
+        bool deletedOnly,
+        CancellationToken cancellationToken = default);
+
     Task UpsertAsync(Note note, CancellationToken cancellationToken = default);
 
     Task DeletePermanentlyAsync(string id, CancellationToken cancellationToken = default);
@@ -32,6 +38,16 @@ public interface INoteRepository
         string tagId,
         int limit = 50,
         int offset = 0,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Note>> ListByNotebookIdsAsync(
+        IReadOnlyList<string> notebookIds,
+        int limit = 50,
+        int offset = 0,
+        CancellationToken cancellationToken = default);
+
+    Task<int> CountByNotebookIdsAsync(
+        IReadOnlyList<string> notebookIds,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<NoteSearchHit>> SearchAsync(

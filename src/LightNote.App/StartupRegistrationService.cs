@@ -2,28 +2,20 @@ using Microsoft.Win32;
 
 namespace LightNote.App;
 
-public sealed class StartupRegistrationService
+public static class StartupRegistrationService
 {
     private const string RegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string ValueName = "LightNote";
 
-    public void SetEnabled(bool enabled)
+    public static bool RemoveLegacyRegistration()
     {
-        using var key = Registry.CurrentUser.CreateSubKey(RegistryPath, writable: true)
-            ?? throw new InvalidOperationException("无法打开 Windows 启动项注册表位置。");
-
-        if (!enabled)
+        using var key = Registry.CurrentUser.OpenSubKey(RegistryPath, writable: true);
+        if (key?.GetValue(ValueName) is null)
         {
-            key.DeleteValue(ValueName, throwOnMissingValue: false);
-            return;
+            return false;
         }
 
-        var executablePath = Environment.ProcessPath;
-        if (string.IsNullOrWhiteSpace(executablePath))
-        {
-            throw new InvalidOperationException("无法确定 LightNote 的程序路径。");
-        }
-
-        key.SetValue(ValueName, $"\"{executablePath}\"", RegistryValueKind.String);
+        key.DeleteValue(ValueName, throwOnMissingValue: false);
+        return true;
     }
 }

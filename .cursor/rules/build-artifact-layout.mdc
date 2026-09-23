@@ -1,0 +1,14 @@
+---
+description: Keep LightNote build outputs organized and always launch the current development build
+alwaysApply: true
+---
+
+# Build Artifact Layout
+
+- Treat `artifacts/development/current/win-x64/LightNote.exe` as the only current development executable.
+- Build it with `.\scripts\build-dev.ps1` and launch it with `.\scripts\run-dev.ps1`.
+- Never launch an executable from `artifacts/archive`, `artifacts/releases`, or a temporary directory when validating current source changes.
+- Store versioned self-contained releases under `artifacts/releases/<version>/win-x64`.
+- Store the current installer under `artifacts/installers` and historical binaries, installers, logs, or walkthrough evidence under `artifacts/archive`.
+- Use `tmp` only for disposable intermediate files. Do not leave runnable LightNote builds there.
+- Before reporting that the current UI is running, verify the live `LightNote` process path points to `artifacts/development/current/win-x64/LightNote.exe`.

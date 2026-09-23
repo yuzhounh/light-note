@@ -18,9 +18,11 @@ public sealed record AppSettings
 
     public string Theme { get; init; } = "system";
 
-    public bool MinimizeToTray { get; init; }
+    public bool ShowRecentNavigation { get; init; }
 
-    public bool StartWithWindows { get; init; }
+    public bool ShowPinnedNavigation { get; init; }
+
+    public bool ShowTrashNavigation { get; init; }
 
     public bool AutomaticBackups { get; init; } = true;
 

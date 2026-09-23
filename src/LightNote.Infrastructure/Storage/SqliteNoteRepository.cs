@@ -62,6 +62,36 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         return notes;
     }
 
+    public async Task<int> CountAsync(
+        string? notebookId,
+        bool allNotebooks,
+        bool deletedOnly,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await connectionFactory.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        var deletionFilter = deletedOnly
+            ? "deleted_at IS NOT NULL AND purged_at IS NULL"
+            : "deleted_at IS NULL AND purged_at IS NULL";
+        var notebookFilter = allNotebooks
+            ? string.Empty
+            : notebookId is null
+                ? "AND notebook_id IS NULL"
+                : "AND notebook_id = $notebookId";
+        command.CommandText = $"""
+            SELECT COUNT(*)
+            FROM notes
+            WHERE {deletionFilter}
+            {notebookFilter};
+            """;
+        if (!allNotebooks && notebookId is not null)
+        {
+            command.Parameters.AddWithValue("$notebookId", notebookId);
+        }
+
+        return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture);
+    }
+
     public Task<IReadOnlyList<Note>> ListRecentAsync(
         int limit = 50,
         int offset = 0,
@@ -104,6 +134,66 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         command.Parameters.AddWithValue("$limit", Math.Clamp(limit, 1, 500));
         command.Parameters.AddWithValue("$offset", Math.Max(0, offset));
         return await ReadNotesAsync(command, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Note>> ListByNotebookIdsAsync(
+        IReadOnlyList<string> notebookIds,
+        int limit = 50,
+        int offset = 0,
+        CancellationToken cancellationToken = default)
+    {
+        if (notebookIds.Count == 0)
+        {
+            return [];
+        }
+
+        await using var connection = await connectionFactory.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        var parameterNames = new string[notebookIds.Count];
+        for (var index = 0; index < notebookIds.Count; index++)
+        {
+            parameterNames[index] = $"$notebook{index}";
+            command.Parameters.AddWithValue(parameterNames[index], notebookIds[index]);
+        }
+
+        command.CommandText = $"""
+            SELECT {Columns}
+            FROM notes
+            WHERE notebook_id IN ({string.Join(", ", parameterNames)})
+              AND deleted_at IS NULL AND purged_at IS NULL
+            ORDER BY is_pinned DESC, created_at DESC
+            LIMIT $limit OFFSET $offset;
+            """;
+        command.Parameters.AddWithValue("$limit", Math.Clamp(limit, 1, 500));
+        command.Parameters.AddWithValue("$offset", Math.Max(0, offset));
+        return await ReadNotesAsync(command, cancellationToken);
+    }
+
+    public async Task<int> CountByNotebookIdsAsync(
+        IReadOnlyList<string> notebookIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (notebookIds.Count == 0)
+        {
+            return 0;
+        }
+
+        await using var connection = await connectionFactory.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        var parameterNames = new string[notebookIds.Count];
+        for (var index = 0; index < notebookIds.Count; index++)
+        {
+            parameterNames[index] = $"$notebook{index}";
+            command.Parameters.AddWithValue(parameterNames[index], notebookIds[index]);
+        }
+
+        command.CommandText = $"""
+            SELECT COUNT(*)
+            FROM notes
+            WHERE notebook_id IN ({string.Join(", ", parameterNames)})
+              AND deleted_at IS NULL AND purged_at IS NULL;
+            """;
+        return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture);
     }
 
     public async Task<IReadOnlyList<NoteSearchHit>> SearchAsync(

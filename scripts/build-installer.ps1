@@ -5,7 +5,6 @@ param(
 
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$publishDirectory = Join-Path $projectRoot "artifacts\publish\win-x64"
 $projectPath = Join-Path $projectRoot "src\LightNote.App\LightNote.App.csproj"
 $installerScript = Join-Path $projectRoot "installer\LightNote.iss"
 $solutionPath = Join-Path $projectRoot "LightNote.slnx"
@@ -19,6 +18,7 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 if ([string]::IsNullOrWhiteSpace($Version)) {
     throw "无法从 Directory.Build.props 读取版本号。"
 }
+$publishDirectory = Join-Path $projectRoot "artifacts\releases\$Version\win-x64"
 
 Push-Location $editorDirectory
 try {
@@ -76,5 +76,5 @@ if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup 编译失败，退出代码：$LASTEXITCODE"
 }
 
-$installerPath = Join-Path $projectRoot "artifacts\installer\LightNote-$Version-win-x64-setup.exe"
+$installerPath = Join-Path $projectRoot "artifacts\installers\LightNote-$Version-win-x64-setup.exe"
 Write-Host "安装包已生成：$installerPath"

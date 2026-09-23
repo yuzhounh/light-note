@@ -38,8 +38,6 @@ public partial class MainWindow : Window
     private readonly IFirebaseSyncService _syncService;
     private readonly AppSettingsService _settingsService;
     private readonly ThemeService _themeService;
-    private readonly StartupRegistrationService _startupRegistrationService;
-    private readonly System.Windows.Forms.NotifyIcon _notifyIcon;
     private readonly SemaphoreSlim _editorTransitionGate = new(1, 1);
     private readonly System.Windows.Threading.DispatcherTimer _syncTimer = new()
     {
@@ -54,8 +52,6 @@ public partial class MainWindow : Window
     private bool _closingInProgress;
     private bool _notebookDialogOpen;
     private bool _syncInProgress;
-    private bool _exitRequested;
-    private bool _trayHintShown;
     private bool _windowLoaded;
     private AppSettings _settings;
 
@@ -71,8 +67,7 @@ public partial class MainWindow : Window
         INoteImportService importService,
         IFirebaseSyncService syncService,
         AppSettingsService settingsService,
-        ThemeService themeService,
-        StartupRegistrationService startupRegistrationService)
+        ThemeService themeService)
     {
         InitializeComponent();
         _viewModel = viewModel;
@@ -87,11 +82,13 @@ public partial class MainWindow : Window
         _syncService = syncService;
         _settingsService = settingsService;
         _themeService = themeService;
-        _startupRegistrationService = startupRegistrationService;
         _settings = settingsService.Load();
+        AccountSettingsVersionText.Text = $"LightNote {typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "unknown"}";
+        _viewModel.ConfigureNavigation(
+            _settings.ShowRecentNavigation,
+            _settings.ShowPinnedNavigation,
+            _settings.ShowTrashNavigation);
         ApplyWindowSettings();
-        _notifyIcon = CreateNotifyIcon();
-        _notifyIcon.Visible = _settings.MinimizeToTray;
         DataContext = viewModel;
         _viewModel.SelectedNoteChanged += OnSelectedNoteChanged;
         _viewModel.NewNotebookRequested += OnNewNotebookRequested;
@@ -113,7 +110,6 @@ public partial class MainWindow : Window
         {
             _syncTimer.Stop();
             _layoutSaveTimer.Stop();
-            _notifyIcon.Dispose();
             EditorWebView.Dispose();
         };
     }
@@ -164,6 +160,9 @@ public partial class MainWindow : Window
 
         var environment = await CoreWebView2Environment.CreateAsync(
             userDataFolder: _paths.WebViewDataDirectory);
+        EditorWebView.DefaultBackgroundColor = _themeService.IsDark
+            ? System.Drawing.Color.FromArgb(32, 35, 40)
+            : System.Drawing.Color.White;
         await EditorWebView.EnsureCoreWebView2Async(environment);
         EditorWebView.CoreWebView2.Profile.PreferredColorScheme = _themeService.IsDark
             ? CoreWebView2PreferredColorScheme.Dark
@@ -386,7 +385,6 @@ public partial class MainWindow : Window
         SetFormattingButtonState(UnderlineButton, ReadBoolean(state, "underline"));
         SetFormattingButtonState(StrikeButton, ReadBoolean(state, "strike"));
         SetFormattingButtonState(HighlightButton, ReadBoolean(state, "highlight"));
-        SetFormattingButtonState(InlineCodeButton, ReadBoolean(state, "inlineCode"));
         SetFormattingButtonState(BulletListButton, ReadBoolean(state, "bulletList"));
         SetFormattingButtonState(OrderedListButton, ReadBoolean(state, "orderedList"));
 
@@ -447,7 +445,7 @@ public partial class MainWindow : Window
     {
         button.Background = isActive
             ? (Brush)FindResource("AccentLightBrush")
-            : (Brush)FindResource("PanelBrush");
+            : Brushes.Transparent;
         button.Foreground = isActive
             ? (Brush)FindResource("AccentBrush")
             : (Brush)FindResource("TextBrush");
@@ -508,20 +506,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_settings.MinimizeToTray && !_exitRequested)
-        {
-            SaveWindowSettings();
-            e.Cancel = true;
-            Hide();
-            if (!_trayHintShown)
-            {
-                _notifyIcon.ShowBalloonTip(2500, "LightNote 仍在运行", "双击托盘图标可重新打开。", System.Windows.Forms.ToolTipIcon.Info);
-                _trayHintShown = true;
-            }
-
-            return;
-        }
-
         e.Cancel = true;
         if (_closingInProgress)
         {
@@ -569,16 +553,141 @@ public partial class MainWindow : Window
     private async void OnNewNotebookClick(object sender, RoutedEventArgs e) =>
         await ShowNewNotebookDialogAsync();
 
-    private void OnSettingsMenuButtonClick(object sender, RoutedEventArgs e)
+    private async void OnNewNotebookGroupClick(object sender, RoutedEventArgs e) =>
+        await ShowNewNotebookGroupDialogAsync();
+
+    private void OnAccountButtonClick(object sender, RoutedEventArgs e)
     {
-        if (SettingsMenuButton.ContextMenu is null)
+        ConfigureAccountPopup();
+        var leftInset = SidebarFooter.TranslatePoint(new Point(0, 0), SidebarPanel).X;
+        AccountPopupCard.Width = Math.Max(0, SidebarPanel.ActualWidth - (leftInset * 2));
+        AccountPopup.IsOpen = true;
+    }
+
+    private void ConfigureAccountPopup()
+    {
+        var account = _syncService.CurrentAccount;
+        var isSignedIn = account is not null;
+        AccountPopupIdentityText.Text = isSignedIn ? account!.Email : "Google 账户";
+        AccountPopupStatusText.Text = isSignedIn ? _viewModel.SyncStatus : "登录后可在设备之间同步笔记";
+        AccountPrimaryText.Text = isSignedIn ? "立即同步" : "Google 登录";
+        AccountPopupSignOutButton.Visibility = isSignedIn ? Visibility.Visible : Visibility.Collapsed;
+        AccountSignOutSeparator.Visibility = isSignedIn ? Visibility.Visible : Visibility.Collapsed;
+        UpdateThemeMenu();
+    }
+
+    private void OnAccountPopupPrimaryClick(object sender, RoutedEventArgs e)
+    {
+        AccountPopup.IsOpen = false;
+        OnSyncClick(sender, e);
+    }
+
+    private void OnAccountPopupSignOutClick(object sender, RoutedEventArgs e)
+    {
+        AccountPopup.IsOpen = false;
+        OnSignOutClick(sender, e);
+    }
+
+    private void OnAccountPopupSettingsClick(object sender, RoutedEventArgs e)
+    {
+        AccountPopup.IsOpen = false;
+        OpenSettings(SettingsSection.ImportExport);
+    }
+
+    private void OnThemeModeClick(object sender, RoutedEventArgs e)
+    {
+        UpdateThemeMenu();
+        AccountThemeMenu.PlacementTarget = ThemeModeButton;
+        AccountThemeMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Right;
+        AccountThemeMenu.IsOpen = true;
+    }
+
+    private void UpdateThemeMenu()
+    {
+        AccountThemeCurrentText.Text = _settings.Theme switch
+        {
+            "light" => "浅色",
+            "dark" => "深色",
+            _ => "系统",
+        };
+        ThemeSystemMenuItem.IsChecked = _settings.Theme == "system";
+        ThemeLightMenuItem.IsChecked = _settings.Theme == "light";
+        ThemeDarkMenuItem.IsChecked = _settings.Theme == "dark";
+    }
+
+    private void OnAccountThemeOptionClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string theme } || theme == _settings.Theme)
         {
             return;
         }
 
-        SettingsMenuButton.ContextMenu.PlacementTarget = SettingsMenuButton;
-        SettingsMenuButton.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        SettingsMenuButton.ContextMenu.IsOpen = true;
+        try
+        {
+            _settings = _settings with { Theme = theme };
+            _settingsService.Save(_settings);
+            ApplyTheme();
+            UpdateThemeMenu();
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to save the color mode.", exception);
+            MessageBox.Show(this, $"颜色模式未能保存：{exception.Message}", "LightNote",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void OnSidebarContextMenuOpened(object sender, RoutedEventArgs e)
+    {
+        if (sender is ContextMenu menu)
+        {
+            UpdateSidebarContextMenuChecks(menu);
+        }
+    }
+
+    private void UpdateSidebarContextMenuChecks(ContextMenu menu)
+    {
+        foreach (var item in menu.Items.OfType<MenuItem>())
+        {
+            item.IsChecked = item.Tag?.ToString() switch
+            {
+                "navigation:recent" => _settings.ShowRecentNavigation,
+                "navigation:pinned" => _settings.ShowPinnedNavigation,
+                "navigation:trash" => _settings.ShowTrashNavigation,
+                _ => false,
+            };
+        }
+    }
+
+    private async void OnNavigationMenuItemClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string tag } item)
+        {
+            return;
+        }
+
+        _settings = tag switch
+        {
+            "navigation:recent" => _settings with { ShowRecentNavigation = item.IsChecked },
+            "navigation:pinned" => _settings with { ShowPinnedNavigation = item.IsChecked },
+            "navigation:trash" => _settings with { ShowTrashNavigation = item.IsChecked },
+            _ => _settings,
+        };
+
+        try
+        {
+            _settingsService.Save(_settings);
+            await _viewModel.UpdateNavigationAsync(
+                _settings.ShowRecentNavigation,
+                _settings.ShowPinnedNavigation,
+                _settings.ShowTrashNavigation);
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to update sidebar navigation.", exception);
+            MessageBox.Show(this, "无法更新导航显示设置，请查看日志。", "LightNote",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void OnPaneSplitterDragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) =>
@@ -603,7 +712,88 @@ public partial class MainWindow : Window
         {
             item.IsSelected = true;
             item.Focus();
+            item.ContextMenu ??= CreateNoteContextMenu();
         }
+    }
+
+    private void OnNotebookPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not ListBoxItem { DataContext: NotebookListItem item } container)
+        {
+            return;
+        }
+
+        container.IsSelected = true;
+        container.Focus();
+        container.ContextMenu = CreateNotebookContextMenu(item);
+    }
+
+    private ContextMenu CreateNotebookContextMenu(NotebookListItem item)
+    {
+        var menu = new ContextMenu();
+        if (item.Kind == NotebookKind.GroupRoot)
+        {
+            menu.Items.Add(CreateNotebookMenuItem("新建笔记本组", null, OnNewNotebookGroupClick));
+        }
+        else if (item.Kind == NotebookKind.Group)
+        {
+            menu.Items.Add(CreateNotebookMenuItem("重命名笔记本组…", item.Id, OnRenameNotebookGroupClick));
+            menu.Items.Add(CreateNotebookMenuItem("删除笔记本组", item.Id, OnDeleteNotebookGroupClick));
+        }
+        else if (item.Kind == NotebookKind.User && item.Id is not null)
+        {
+            menu.Items.Add(CreateNotebookMenuItem("移出笔记本组", new NotebookGroupAssignment(item.Id, null),
+                OnAssignNotebookGroupClick));
+            foreach (var group in _viewModel.Notebooks.Where(candidate => candidate.Kind == NotebookKind.Group))
+            {
+                menu.Items.Add(CreateNotebookMenuItem(
+                    $"移到“{group.Name}”",
+                    new NotebookGroupAssignment(item.Id, group.Id),
+                    OnAssignNotebookGroupClick));
+            }
+        }
+
+        return menu;
+    }
+
+    private static MenuItem CreateNotebookMenuItem(
+        string header,
+        object? tag,
+        RoutedEventHandler clickHandler)
+    {
+        var item = new MenuItem { Header = header, Tag = tag };
+        item.Click += clickHandler;
+        return item;
+    }
+
+    private ContextMenu CreateNoteContextMenu()
+    {
+        var menu = new ContextMenu();
+        menu.Opened += OnNoteContextMenuOpened;
+        menu.Items.Add(CreateNoteMenuItem("置顶 / 取消置顶", "normal", OnTogglePinMenuClick));
+        menu.Items.Add(CreateNoteMenuItem("移动到笔记本…", "normal", OnMoveNoteClick));
+        menu.Items.Add(CreateNoteMenuItem("编辑标签…", "normal", OnEditTagsClick));
+        menu.Items.Add(CreateNoteMenuItem("历史版本…", null, OnHistoryClick));
+        menu.Items.Add(CreateNoteMenuItem("导出…", null, OnExportNoteClick));
+        menu.Items.Add(new Separator
+        {
+            Tag = "normal",
+            Style = (Style)FindResource("MenuSeparatorStyle"),
+        });
+        menu.Items.Add(CreateNoteMenuItem("移到回收站", "normal", OnDeleteNoteMenuClick));
+        menu.Items.Add(CreateNoteMenuItem("恢复笔记", "trash", OnRestoreNoteMenuClick));
+        menu.Items.Add(CreateNoteMenuItem("永久删除", "trash", OnPermanentDeleteClick));
+        return menu;
+    }
+
+    private static MenuItem CreateNoteMenuItem(
+        string header,
+        string? tag,
+        RoutedEventHandler clickHandler)
+    {
+        var item = new MenuItem { Header = header, Tag = tag };
+        item.Click += clickHandler;
+        return item;
     }
 
     private void OnNoteContextMenuOpened(object sender, RoutedEventArgs e)
@@ -663,6 +853,112 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task ShowNewNotebookGroupDialogAsync()
+    {
+        var dialog = new TextPromptDialog("新建笔记本组", "输入笔记本组名称：") { Owner = this };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await _viewModel.CreateNotebookGroupAsync(dialog.Value);
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to create a notebook group.", exception);
+            MessageBox.Show(this, "无法创建笔记本组；名称可能已经存在。", "LightNote",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void OnRenameNotebookGroupClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string groupId })
+        {
+            return;
+        }
+
+        var group = _viewModel.Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.Group && item.Id == groupId);
+        if (group is null)
+        {
+            return;
+        }
+
+        var dialog = new TextPromptDialog("重命名笔记本组", "输入新的组名称：", group.Name) { Owner = this };
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                await _viewModel.RenameNotebookGroupAsync(groupId, dialog.Value);
+            }
+            catch (Exception exception)
+            {
+                _logger.Error("Failed to rename a notebook group.", exception);
+                MessageBox.Show(this, "无法重命名笔记本组；名称可能已经存在。", "LightNote",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+
+    private async void OnDeleteNotebookGroupClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string groupId })
+        {
+            return;
+        }
+
+        var group = _viewModel.Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.Group && item.Id == groupId);
+        if (group is null || MessageBox.Show(this,
+                $"删除笔记本组“{group.Name}”？组内笔记本和笔记都会保留。",
+                "LightNote", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        await _viewModel.DeleteNotebookGroupAsync(groupId);
+    }
+
+    private async void OnAssignNotebookGroupClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: NotebookGroupAssignment assignment })
+        {
+            await _viewModel.AssignNotebookToGroupAsync(assignment.NotebookId, assignment.GroupId);
+        }
+    }
+
+    private async void OnNoteMouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not ListBoxItem { DataContext: NoteListItem item } || item.Model.DeletedAt is not null)
+        {
+            return;
+        }
+
+        try
+        {
+            await CaptureEditorSnapshotAsync();
+            await _viewModel.FlushAllAsync();
+            var window = new NoteWindow(
+                item.Model,
+                _viewModel,
+                _paths,
+                _logger,
+                _attachmentService,
+                _themeService)
+            {
+                Owner = this,
+            };
+            window.Show();
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to open a note window.", exception);
+            MessageBox.Show(this, "无法在独立窗口打开笔记，请查看日志。", "LightNote",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private async void OnPermanentDeleteClick(object sender, RoutedEventArgs e)
     {
         if (_viewModel.SelectedNote is null)
@@ -694,7 +990,7 @@ public partial class MainWindow : Window
             var existingTags = await _viewModel.GetSelectedTagNamesAsync();
             var dialog = new TextPromptDialog(
                 "编辑标签",
-                "用逗号分隔标签名称；清空输入可移除全部标签：",
+                "用中文或英文逗号分隔标签名称；清空输入可移除全部标签：",
                 string.Join(", ", existingTags),
                 allowEmpty: true)
             {
@@ -1032,48 +1328,76 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnSettingsClick(object sender, RoutedEventArgs e)
+    private void OnSettingsClick(object sender, RoutedEventArgs e) =>
+        OpenSettings(SettingsSection.ImportExport);
+
+    private void OnDataSafetyClick(object sender, RoutedEventArgs e) =>
+        OpenSettings(SettingsSection.Safety);
+
+    private void OpenSettings(SettingsSection initialSection)
     {
-        var dialog = new SettingsDialog(_settings) { Owner = this };
+        var dialog = new SettingsDialog(
+            _settings,
+            _paths,
+            _connectionFactory,
+            _integrityChecker,
+            _backupService,
+            _viewModel.SyncStatus,
+            _viewModel.SelectedNote is not null && !_viewModel.IsTrashSelected,
+            initialSection)
+        {
+            Owner = this,
+        };
         if (dialog.ShowDialog() != true)
         {
             return;
         }
 
-        try
+        if (dialog.SettingsSaved)
         {
-            _startupRegistrationService.SetEnabled(dialog.Settings.StartWithWindows);
-            _settings = dialog.Settings;
-            _settingsService.Save(_settings);
-            _themeService.Apply(_settings.Theme);
-            _notifyIcon.Visible = _settings.MinimizeToTray;
-            if (EditorWebView.CoreWebView2 is not null)
+            try
             {
-                EditorWebView.CoreWebView2.Profile.PreferredColorScheme = _themeService.IsDark
-                    ? CoreWebView2PreferredColorScheme.Dark
-                    : CoreWebView2PreferredColorScheme.Light;
+                _settings = dialog.Settings;
+                _settingsService.Save(_settings);
+                ApplyTheme();
+            }
+            catch (Exception exception)
+            {
+                _logger.Error("Failed to save application settings.", exception);
+                MessageBox.Show(this, $"设置未能保存：{exception.Message}", "LightNote",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        catch (Exception exception)
+
+        switch (dialog.RequestedAction)
         {
-            _logger.Error("Failed to save application settings.", exception);
-            MessageBox.Show(this, $"设置未能保存：{exception.Message}", "LightNote",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            case SettingsAction.Import:
+                OnImportClick(this, new RoutedEventArgs());
+                break;
+            case SettingsAction.ExportCurrentNote:
+                OnExportNoteClick(this, new RoutedEventArgs());
+                break;
+            case SettingsAction.CreateBackup:
+                OnBackupClick(this, new RoutedEventArgs());
+                break;
+            case SettingsAction.RestoreBackup:
+                OnRestoreBackupClick(this, new RoutedEventArgs());
+                break;
         }
     }
 
-    private void OnDataSafetyClick(object sender, RoutedEventArgs e)
+    private void ApplyTheme()
     {
-        var dialog = new DataSafetyDialog(
-            _paths,
-            _connectionFactory,
-            _integrityChecker,
-            _backupService,
-            _viewModel.SyncStatus)
+        _themeService.Apply(_settings.Theme);
+        EditorWebView.DefaultBackgroundColor = _themeService.IsDark
+            ? System.Drawing.Color.FromArgb(32, 35, 40)
+            : System.Drawing.Color.White;
+        if (EditorWebView.CoreWebView2 is not null)
         {
-            Owner = this,
-        };
-        dialog.ShowDialog();
+            EditorWebView.CoreWebView2.Profile.PreferredColorScheme = _themeService.IsDark
+                ? CoreWebView2PreferredColorScheme.Dark
+                : CoreWebView2PreferredColorScheme.Light;
+        }
     }
 
     public void ShowAndActivate()
@@ -1132,30 +1456,6 @@ public partial class MainWindow : Window
             NoteListPaneWidth = NoteListColumn.ActualWidth,
         };
         _settingsService.Save(_settings);
-    }
-
-    private System.Windows.Forms.NotifyIcon CreateNotifyIcon()
-    {
-        var icon = string.IsNullOrWhiteSpace(Environment.ProcessPath)
-            ? null
-            : System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath);
-        var menu = new System.Windows.Forms.ContextMenuStrip();
-        menu.Items.Add("显示 LightNote", null, (_, _) => Dispatcher.Invoke(ShowAndActivate));
-        menu.Items.Add("退出", null, (_, _) => Dispatcher.Invoke(() =>
-        {
-            _exitRequested = true;
-            ShowAndActivate();
-            Close();
-        }));
-
-        var notifyIcon = new System.Windows.Forms.NotifyIcon
-        {
-            Text = "LightNote",
-            Icon = icon ?? System.Drawing.SystemIcons.Application,
-            ContextMenuStrip = menu,
-        };
-        notifyIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowAndActivate);
-        return notifyIcon;
     }
 
     private async Task InitializeSyncAsync()
@@ -1223,18 +1523,42 @@ public partial class MainWindow : Window
         await RunSyncAsync(silent: false);
     }
 
+    private async void OnSignOutClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _syncService.SignOutAsync();
+            _syncTimer.Stop();
+            _viewModel.SyncStatus = "登录同步";
+            UpdateAccountDisplay(null);
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Firebase sign-out failed.", exception);
+            MessageBox.Show(this, $"退出登录失败：{exception.Message}", "LightNote",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void UpdateAccountDisplay(FirebaseAccount? account)
     {
         if (account is null)
         {
-            AccountAvatarText.Text = "G";
             AccountButtonText.Text = "Google 登录";
+            AccountButton.ToolTip = "登录 Google 账户以同步笔记";
+            if (IsLoaded)
+            {
+                ConfigureAccountPopup();
+            }
             return;
         }
 
-        AccountAvatarText.Text = account.Email[..1].ToUpperInvariant();
         AccountButtonText.Text = account.Email;
-        AccountButton.ToolTip = $"{account.Email}\n点击立即同步";
+        AccountButton.ToolTip = $"{account.Email}\n点击打开账户菜单";
+        if (IsLoaded)
+        {
+            ConfigureAccountPopup();
+        }
     }
 
     private async Task RunSyncAsync(bool silent)
@@ -1290,4 +1614,6 @@ public partial class MainWindow : Window
         SearchBox.SelectAll();
         e.Handled = true;
     }
+
+    private sealed record NotebookGroupAssignment(string NotebookId, string? GroupId);
 }

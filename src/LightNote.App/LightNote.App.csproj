@@ -8,11 +8,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>..\..\pen-note-icon-yellow.ico</ApplicationIcon>
+    <ApplicationIcon>..\..\images\pen-note-icon-yellow.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3537.50" />
@@ -25,7 +24,7 @@
 
   <ItemGroup>
     <Content Include="Editor\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <Resource Include="..\..\pen-note-icon-yellow.ico" Link="Assets\pen-note-icon-yellow.ico" />
+    <Resource Include="..\..\images\pen-note-icon-yellow.ico" Link="Assets\pen-note-icon-yellow.ico" />
   </ItemGroup>
 
 </Project>

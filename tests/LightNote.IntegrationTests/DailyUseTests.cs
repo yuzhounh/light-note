@@ -1,4 +1,6 @@
+using LightNote.App;
 using LightNote.Core.Abstractions;
+using LightNote.Core.Models;
 using LightNote.Infrastructure.Settings;
 using LightNote.Infrastructure.Storage;
 
@@ -12,6 +14,24 @@ public sealed class DailyUseTests : IDisposable
         Guid.NewGuid().ToString("N"));
 
     [Fact]
+    public void NotePreviewCollapsesBlankLinesAndWhitespace()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var item = new NoteListItem(new Note
+        {
+            Id = "preview-note",
+            Title = "预览",
+            BodyJson = "{}",
+            BodyHtml = "",
+            BodyText = "第一行\n\n第二行\r\n   第三行",
+            CreatedAt = now,
+            UpdatedAt = now,
+        });
+
+        Assert.Equal("第一行 第二行 第三行", item.Preview);
+    }
+
+    [Fact]
     public void SettingsRoundTripAndInvalidValuesAreNormalized()
     {
         var paths = new AppDataPaths(_testDirectory);
@@ -22,7 +42,7 @@ public sealed class DailyUseTests : IDisposable
             WindowHeight = 10_000,
             NotebookPaneWidth = 900,
             Theme = "unknown",
-            MinimizeToTray = true,
+            ShowRecentNavigation = true,
             BackupRetentionCount = 500,
         });
 
@@ -32,7 +52,7 @@ public sealed class DailyUseTests : IDisposable
         Assert.Equal(4320, loaded.WindowHeight);
         Assert.Equal(600, loaded.NotebookPaneWidth);
         Assert.Equal("system", loaded.Theme);
-        Assert.True(loaded.MinimizeToTray);
+        Assert.True(loaded.ShowRecentNavigation);
         Assert.Equal(100, loaded.BackupRetentionCount);
     }
 

@@ -21,8 +21,12 @@ public sealed partial class MainViewModel(
     private readonly SemaphoreSlim _saveGate = new(1, 1);
     private bool _suppressTitleChanges;
     private bool _isInitializing;
+    private bool _showRecentNavigation;
+    private bool _showPinnedNavigation;
+    private bool _showTrashNavigation;
     private int _reloadGeneration;
     private int _tagLoadGeneration;
+    private int? _notesTotalCount;
     private CancellationTokenSource? _searchCancellation;
 
     public event EventHandler? SelectedNoteChanged;
@@ -52,7 +56,7 @@ public sealed partial class MainViewModel(
     private string _searchQuery = string.Empty;
 
     [ObservableProperty]
-    private string _selectedTagsDisplay = "无标签";
+    private string _selectedTagsDisplay = string.Empty;
 
     [ObservableProperty]
     private string _syncStatus = "同步未配置";
@@ -71,9 +75,21 @@ public sealed partial class MainViewModel(
 
     public bool IsSearchActive => !string.IsNullOrWhiteSpace(SearchQuery);
 
-    public string NotesHeading => IsSearchActive
-        ? $"搜索“{SearchQuery.Trim()}”"
-        : SelectedNotebook?.Name ?? "最近笔记";
+    public string NotesHeading
+    {
+        get
+        {
+            if (IsSearchActive)
+            {
+                return $"搜索“{SearchQuery.Trim()}”";
+            }
+
+            var name = SelectedNotebook?.Name ?? "最近笔记";
+            return _notesTotalCount is int totalCount
+                ? $"{name}（{totalCount}条）"
+                : name;
+        }
+    }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -81,6 +97,24 @@ public sealed partial class MainViewModel(
         await ReloadNotebooksAsync(cancellationToken: cancellationToken);
         SelectedNotebook = Notebooks.FirstOrDefault();
         _isInitializing = false;
+        await ReloadNotesAsync(cancellationToken: cancellationToken);
+    }
+
+    public void ConfigureNavigation(bool showRecent, bool showPinned, bool showTrash)
+    {
+        _showRecentNavigation = showRecent;
+        _showPinnedNavigation = showPinned;
+        _showTrashNavigation = showTrash;
+    }
+
+    public async Task UpdateNavigationAsync(
+        bool showRecent,
+        bool showPinned,
+        bool showTrash,
+        CancellationToken cancellationToken = default)
+    {
+        ConfigureNavigation(showRecent, showPinned, showTrash);
+        await ReloadNotebooksAsync(cancellationToken: cancellationToken);
         await ReloadNotesAsync(cancellationToken: cancellationToken);
     }
 
@@ -114,6 +148,83 @@ public sealed partial class MainViewModel(
         await ReloadNotebooksAsync(notebook.Id, cancellationToken);
         SelectedNotebook = Notebooks.First(item => item.Id == notebook.Id);
         EditorStatus = $"已创建笔记本“{notebook.Name}”";
+    }
+
+    public async Task CreateNotebookGroupAsync(string name, CancellationToken cancellationToken = default)
+    {
+        var normalizedName = name.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedName))
+        {
+            return;
+        }
+
+        var existing = Notebooks.FirstOrDefault(item =>
+            item.Kind == NotebookKind.Group &&
+            string.Equals(item.Name, normalizedName, StringComparison.CurrentCultureIgnoreCase));
+        if (existing is not null)
+        {
+            SelectedNotebook = existing;
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var group = new NotebookGroup
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = normalizedName,
+            SortOrder = Notebooks.Count(item => item.Kind == NotebookKind.Group),
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        await notebookRepository.UpsertGroupAsync(group, cancellationToken);
+        await ReloadNotebooksAsync(group.Id, cancellationToken);
+        SelectedNotebook = Notebooks.First(item => item.Id == group.Id && item.Kind == NotebookKind.Group);
+        EditorStatus = $"已创建笔记本组“{group.Name}”";
+    }
+
+    public async Task RenameNotebookGroupAsync(
+        string groupId,
+        string name,
+        CancellationToken cancellationToken = default)
+    {
+        var group = Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.Group && item.Id == groupId);
+        var normalizedName = name.Trim();
+        if (group is null || string.IsNullOrWhiteSpace(normalizedName) || group.Name == normalizedName)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        await notebookRepository.UpsertGroupAsync(new NotebookGroup
+        {
+            Id = groupId,
+            Name = normalizedName,
+            SortOrder = group.SortOrder,
+            CreatedAt = now,
+            UpdatedAt = now,
+        }, cancellationToken);
+        await ReloadNotebooksAsync(groupId, cancellationToken);
+        EditorStatus = $"笔记本组已重命名为“{normalizedName}”";
+    }
+
+    public async Task DeleteNotebookGroupAsync(
+        string groupId,
+        CancellationToken cancellationToken = default)
+    {
+        await notebookRepository.DeleteGroupAsync(groupId, cancellationToken);
+        await ReloadNotebooksAsync(cancellationToken: cancellationToken);
+        await ReloadNotesAsync(cancellationToken: cancellationToken);
+        EditorStatus = "笔记本组已删除，组内笔记本仍保留";
+    }
+
+    public async Task AssignNotebookToGroupAsync(
+        string notebookId,
+        string? groupId,
+        CancellationToken cancellationToken = default)
+    {
+        await notebookRepository.AssignToGroupAsync(notebookId, groupId, cancellationToken);
+        await ReloadNotebooksAsync(notebookId, cancellationToken);
+        EditorStatus = groupId is null ? "笔记本已移出分组" : "笔记本分组已更新";
     }
 
     public async Task RefreshAfterSyncAsync(CancellationToken cancellationToken = default)
@@ -261,6 +372,28 @@ public sealed partial class MainViewModel(
         });
     }
 
+    public void ApplyNoteTitleChange(string noteId, string value)
+    {
+        if (!TryGetLatestNote(noteId, out var current) || current.DeletedAt is not null)
+        {
+            return;
+        }
+
+        var normalizedTitle = string.IsNullOrWhiteSpace(value) ? "无标题笔记" : value.Trim();
+        if (current.Title == normalizedTitle)
+        {
+            return;
+        }
+
+        QueueSave(current with
+        {
+            Title = normalizedTitle,
+            UpdatedAt = DateTimeOffset.UtcNow,
+            Version = current.Version + 1,
+            SyncState = SyncState.Dirty,
+        });
+    }
+
     public async Task<bool> FlushAllAsync()
     {
         foreach (var pending in _pendingSaves.Values)
@@ -318,7 +451,9 @@ public sealed partial class MainViewModel(
 
         if (SelectedNotebook?.Kind is NotebookKind.Trash or NotebookKind.Pinned)
         {
-            SelectedNotebook = Notebooks.First(item => item.Kind == NotebookKind.Recent);
+            SelectedNotebook = Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.Recent)
+                ?? Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.All)
+                ?? Notebooks.First();
         }
 
         var selectedTag = SelectedNotebook?.Kind == NotebookKind.Tag ? SelectedNotebook : null;
@@ -462,6 +597,7 @@ public sealed partial class MainViewModel(
 
     partial void OnSelectedNotebookChanged(NotebookListItem? value)
     {
+        _notesTotalCount = null;
         OnPropertyChanged(nameof(IsTrashSelected));
         OnPropertyChanged(nameof(NotesHeading));
         if (!_isInitializing && value is not null)
@@ -485,7 +621,7 @@ public sealed partial class MainViewModel(
         SelectedNoteChanged?.Invoke(this, EventArgs.Empty);
         if (value is null)
         {
-            SelectedTagsDisplay = "无标签";
+            SelectedTagsDisplay = string.Empty;
         }
         else
         {
@@ -498,6 +634,7 @@ public sealed partial class MainViewModel(
         _searchCancellation?.Cancel();
         _searchCancellation?.Dispose();
         _searchCancellation = new CancellationTokenSource();
+        _notesTotalCount = null;
         OnPropertyChanged(nameof(IsSearchActive));
         OnPropertyChanged(nameof(NotesHeading));
         _ = ReloadSearchDebouncedAsync(_searchCancellation.Token);
@@ -566,7 +703,7 @@ public sealed partial class MainViewModel(
     {
         if (tagRepository is null)
         {
-            SelectedTagsDisplay = "无标签";
+            SelectedTagsDisplay = string.Empty;
             return;
         }
 
@@ -578,7 +715,7 @@ public sealed partial class MainViewModel(
         }
 
         SelectedTagsDisplay = tags.Count == 0
-            ? "无标签"
+            ? string.Empty
             : string.Join("  ", tags.Select(tag => $"#{tag.Name}"));
     }
 
@@ -587,6 +724,8 @@ public sealed partial class MainViewModel(
         CancellationToken cancellationToken = default)
     {
         var notebooks = await notebookRepository.ListAsync(cancellationToken);
+        var groups = await notebookRepository.ListGroupsAsync(cancellationToken);
+        var groupAssignments = await notebookRepository.ListGroupAssignmentsAsync(cancellationToken);
         var tags = tagRepository is null
             ? []
             : await tagRepository.ListAsync(cancellationToken);
@@ -596,22 +735,53 @@ public sealed partial class MainViewModel(
         var wasInitializing = _isInitializing;
         _isInitializing = true;
         Notebooks.Clear();
-        Notebooks.Add(new NotebookListItem(null, "最近笔记", NotebookKind.Recent));
-        Notebooks.Add(new NotebookListItem(null, "置顶笔记", NotebookKind.Pinned));
-        Notebooks.Add(new NotebookListItem(null, "全部笔记", NotebookKind.All));
-        Notebooks.Add(new NotebookListItem(null, "未归档", NotebookKind.Unfiled));
-        foreach (var notebook in notebooks)
+        if (_showRecentNavigation)
         {
-            Notebooks.Add(new NotebookListItem(notebook.Id, notebook.Name, NotebookKind.User));
+            Notebooks.Add(new NotebookListItem(null, "最近笔记", NotebookKind.Recent));
+        }
+        if (_showPinnedNavigation)
+        {
+            Notebooks.Add(new NotebookListItem(null, "置顶笔记", NotebookKind.Pinned));
+        }
+        Notebooks.Add(new NotebookListItem(null, "全部笔记", NotebookKind.All));
+        Notebooks.Add(new NotebookListItem(null, "笔记本组", NotebookKind.GroupRoot));
+        foreach (var group in groups)
+        {
+            Notebooks.Add(new NotebookListItem(
+                group.Id,
+                group.Name,
+                NotebookKind.Group,
+                SortOrder: group.SortOrder));
+            foreach (var notebook in notebooks.Where(item =>
+                         groupAssignments.TryGetValue(item.Id, out var groupId) && groupId == group.Id))
+            {
+                Notebooks.Add(new NotebookListItem(
+                    notebook.Id,
+                    notebook.Name,
+                    NotebookKind.User,
+                    group.Id,
+                    notebook.SortOrder));
+            }
+        }
+        foreach (var notebook in notebooks.Where(item => !groupAssignments.ContainsKey(item.Id)))
+        {
+            Notebooks.Add(new NotebookListItem(
+                notebook.Id,
+                notebook.Name,
+                NotebookKind.User,
+                SortOrder: notebook.SortOrder));
         }
         foreach (var tag in tags)
         {
             Notebooks.Add(new NotebookListItem(tag.Id, tag.Name, NotebookKind.Tag));
         }
-        Notebooks.Add(new NotebookListItem(null, "回收站", NotebookKind.Trash));
+        if (_showTrashNavigation)
+        {
+            Notebooks.Add(new NotebookListItem(null, "回收站", NotebookKind.Trash));
+        }
 
         SelectedNotebook = Notebooks.FirstOrDefault(item =>
-            item.Id == currentId && item.Kind is NotebookKind.User or NotebookKind.Tag)
+            item.Id == currentId && item.Kind is NotebookKind.User or NotebookKind.Tag or NotebookKind.Group)
             ?? Notebooks.FirstOrDefault(item => item.Kind == currentKind)
             ?? Notebooks[0];
         _isInitializing = wasInitializing;
@@ -638,15 +808,19 @@ public sealed partial class MainViewModel(
         if (notebook is null)
         {
             HasMoreNotes = false;
+            _notesTotalCount = null;
+            OnPropertyChanged(nameof(NotesHeading));
             return;
         }
 
         var generation = Interlocked.Increment(ref _reloadGeneration);
+        var totalCountTask = CountNotesForHeadingAsync(notebook, cancellationToken);
         var page = await LoadNoteItemsAsync(
             notebook,
             0,
             NotePageSize + 1,
             cancellationToken);
+        var totalCount = await totalCountTask;
         var loadedItems = page.Take(NotePageSize).ToArray();
         var hasMore = page.Count > NotePageSize;
         if (generation != _reloadGeneration)
@@ -663,6 +837,8 @@ public sealed partial class MainViewModel(
         }
 
         HasMoreNotes = hasMore;
+        _notesTotalCount = totalCount;
+        OnPropertyChanged(nameof(NotesHeading));
         SelectedNote = Notes.FirstOrDefault(item => item.Model.Id == selectedId) ?? Notes.FirstOrDefault();
         OnPropertyChanged(nameof(HasNotes));
         EditorStatus = Notes.Count == 0
@@ -704,9 +880,18 @@ public sealed partial class MainViewModel(
             NotebookKind.Tag when notebook.Id is not null =>
                 await noteRepository.ListByTagAsync(
                     notebook.Id, limit, offset, cancellationToken),
+            NotebookKind.Group when notebook.Id is not null =>
+                await noteRepository.ListByNotebookIdsAsync(
+                    (await notebookRepository.ListGroupAssignmentsAsync(cancellationToken))
+                        .Where(item => item.Value == notebook.Id)
+                        .Select(item => item.Key)
+                        .ToArray(),
+                    limit,
+                    offset,
+                    cancellationToken),
             _ => await noteRepository.ListAsync(
                 notebook.Kind == NotebookKind.User ? notebook.Id : null,
-                notebook.Kind is NotebookKind.All or NotebookKind.Trash,
+                notebook.Kind is NotebookKind.All or NotebookKind.GroupRoot or NotebookKind.Trash,
                 notebook.Kind == NotebookKind.Trash,
                 limit,
                 offset,
@@ -719,6 +904,29 @@ public sealed partial class MainViewModel(
                 : storedNote;
             return new NoteListItem(note);
         }).ToArray();
+    }
+
+    private async Task<int?> CountNotesForHeadingAsync(
+        NotebookListItem notebook,
+        CancellationToken cancellationToken)
+    {
+        return notebook.Kind switch
+        {
+            NotebookKind.All or NotebookKind.GroupRoot =>
+                await noteRepository.CountAsync(
+                    null, allNotebooks: true, deletedOnly: false, cancellationToken: cancellationToken),
+            NotebookKind.User when notebook.Id is not null =>
+                await noteRepository.CountAsync(
+                    notebook.Id, allNotebooks: false, deletedOnly: false, cancellationToken: cancellationToken),
+            NotebookKind.Group when notebook.Id is not null =>
+                await noteRepository.CountByNotebookIdsAsync(
+                    (await notebookRepository.ListGroupAssignmentsAsync(cancellationToken))
+                        .Where(item => item.Value == notebook.Id)
+                        .Select(item => item.Key)
+                        .ToArray(),
+                    cancellationToken),
+            _ => null,
+        };
     }
 
     private async Task SetDeletedStateAsync(string noteId, DateTimeOffset? deletedAt)
@@ -934,12 +1142,23 @@ public sealed class NoteListItem(
 
     public string TitleDisplay => Model.IsPinned ? $"★ {Model.Title}" : Model.Title;
 
-    public string Preview => _previewOverride ??
-        (string.IsNullOrWhiteSpace(Model.BodyText) ? "空笔记" : Model.BodyText);
+    public string Preview => NormalizePreview(_previewOverride ?? Model.BodyText);
 
     public string MatchQuery { get; } = matchQuery;
 
     public string UpdatedLabel => Model.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+    private static string NormalizePreview(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return "空笔记";
+        }
+
+        return string.Join(' ', text.Split(
+            (char[]?)null,
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    }
 
     public void Update(Note updatedNote)
     {
@@ -952,17 +1171,37 @@ public sealed class NoteListItem(
     }
 }
 
-public sealed record NotebookListItem(string? Id, string Name, NotebookKind Kind)
+public sealed record NotebookListItem(
+    string? Id,
+    string Name,
+    NotebookKind Kind,
+    string? GroupId = null,
+    int SortOrder = 0)
 {
-    public string DisplayName => Kind switch
+    public string DisplayName => Name;
+
+    public double Indent => Kind switch
     {
-        NotebookKind.Recent => $"◷  {Name}",
-        NotebookKind.Pinned => $"★  {Name}",
-        NotebookKind.All => $"▤  {Name}",
-        NotebookKind.Unfiled => $"◇  {Name}",
-        NotebookKind.Tag => $"#  {Name}",
-        NotebookKind.Trash => $"♲  {Name}",
-        _ => $"▢  {Name}",
+        NotebookKind.Group => 14,
+        NotebookKind.User when GroupId is not null => 32,
+        NotebookKind.User => 14,
+        _ => 0,
+    };
+
+    public System.Windows.Thickness IndentMargin => new(Indent, 0, 0, 0);
+
+    public string IconData => Kind switch
+    {
+        NotebookKind.Recent => "M10,2 A8,8 0 1 0 18,10 M10,5 V10 L14,12",
+        NotebookKind.Pinned => "M10,2 L12.3,7 L18,7.7 L13.8,11.5 L15,17 L10,14 L5,17 L6.2,11.5 L2,7.7 L7.7,7 Z",
+        NotebookKind.All => "M4,2 H16 V18 H4 Z M7,6 H13 M7,10 H13 M7,14 H13",
+        NotebookKind.GroupRoot => "M2,5 H8 L10,7 H18 V17 H2 Z M4,3 H9 L11,5",
+        NotebookKind.Group => "M2,6 H8 L10,8 H18 V17 H2 Z",
+        NotebookKind.Unfiled => "M4,3 H16 V17 H4 Z",
+        NotebookKind.User => "M4,3 H14 A2,2 0 0 1 16,5 V17 H6 A2,2 0 0 1 4,15 Z M7,3 V17",
+        NotebookKind.Tag => "M3,4 H11 L17,10 L11,16 H3 Z M7,8 A1,1 0 1 0 7.1,8",
+        NotebookKind.Trash => "M5,6 H15 M7,6 V17 H13 V6 M8,3 H12 L13,6 H7 Z M9,9 V14 M11,9 V14",
+        _ => "M4,3 H16 V17 H4 Z",
     };
 }
 
@@ -971,6 +1210,8 @@ public enum NotebookKind
     Recent,
     Pinned,
     All,
+    GroupRoot,
+    Group,
     Unfiled,
     User,
     Tag,

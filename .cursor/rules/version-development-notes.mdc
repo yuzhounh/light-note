@@ -1,0 +1,18 @@
+---
+description: Record every completed LightNote release as a detailed development note
+alwaysApply: true
+---
+
+# Version Development Notes
+
+- After completing and verifying each new LightNote version, add one new note to the `LightNote 开发记录` notebook.
+- Use the version number and theme as the note title, for example `V1.1：主题名称`.
+- Keep one version per note. Never overwrite or merge earlier version notes.
+- Base the note on the changes actually implemented and verified in that version, not only on the original plan.
+- Include these sections:
+  - `版本定位`: the version goal and intended outcome.
+  - `主要修改`: detailed user-facing and technical changes.
+  - `验收重点`: tests, checks, and observable acceptance results.
+  - `当前状态`: completed work, known limitations, and remaining external validation.
+- Mention database migrations, compatibility changes, data-safety measures, and release or installation changes when applicable.
+- Create the note only after the version contents are stable enough to describe accurately. If the version is still in progress, update the development plan instead of creating a misleading completed-version note.

@@ -1,11 +1,12 @@
 # LightNote
 
-LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前版本为 **V1.0 数据可靠版**。
+LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前版本为 **V1.6 交互细节统一版**。
 
 ## 当前能力
 
 - 新建、选择、重命名、编辑和置顶笔记。
-- 新建与切换一级笔记本，以及未归档视图。
+- 新建与切换一级笔记本。
+- 创建笔记本组并将笔记本移入、移出、重命名或删除分组；删除分组不会删除笔记本和笔记。
 - SQLite FTS5 标题与正文全文搜索，250 毫秒防抖查询和结果关键词高亮。
 - 中文、英文、数字和混合关键词搜索；短关键词自动使用兼容查询。
 - 最近笔记、置顶笔记、全部笔记和回收站快捷视图。
@@ -31,12 +32,12 @@ LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前�
 - Firestore 增量拉取和 Firebase Storage 图片上传/下载；未配置 Firebase 时完全不影响本地使用。
 - 远端较新内容优先，尚未同步的本地内容自动保留为可恢复的冲突历史版本。
 - 每分钟后台同步和顶部手动同步状态入口。
-- 数据安全中心集中显示待同步数、冲突副本、最近备份和完整性结果，可完整验证最近备份并生成不含正文与令牌的脱敏诊断包。
+- 第一栏账户卡片集中管理 Google 登录、同步和颜色模式；设置中心分别提供导入与导出、备份和数据安全页面。
+- 设置中心的数据安全页显示待同步数、冲突副本、最近备份和完整性结果，可完整验证最近备份并生成不含正文与令牌的脱敏诊断包。
 - 历史窗口支持当前内容与任一历史版本或同步冲突副本并排预览后再决定是否恢复。
 - 浅色、深色与跟随系统主题；深色主题同时覆盖原生界面和 WebView2 编辑器。
 - 单实例运行；重复启动会唤醒现有窗口。
 - 记忆窗口大小、位置、最大化状态以及笔记本/列表栏宽。
-- 可选关闭到系统托盘和登录 Windows 后自动启动。
 - 每日自动备份，默认保留最近 10 份，可在设置中调整或关闭。
 - 缺少 WebView2 Runtime 时给出说明并可打开微软官方下载页。
 - x64 自包含发布和按当前用户安装的安装包，不依赖目标电脑预装 .NET。
@@ -51,6 +52,7 @@ LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前�
 - Markdown 标题、段落、列表、引用、代码块、粗体、斜体和行内代码会转换为可继续编辑的富文本。
 - HTML 导入会移除脚本、样式及嵌入对象；本地相对图片会被复制，远程或不受支持的图片会显示占位说明并在结果中提示。
 - 最近修改排序，并按笔记 ID 隔离快速切换时的待保存内容。
+- 双击列表中的笔记可在独立编辑窗口打开，并继续使用格式工具栏、附件与自动保存。
 - 笔记列表和搜索支持分批加载与 UI 虚拟化，可连续浏览超过首屏限制的数据。
 - WebView2 加载随应用发布的本地编辑器资源。
 - WPF 与编辑器通过结构化 JSON 双向通信。
@@ -80,8 +82,11 @@ Pop-Location
 dotnet restore LightNote.slnx
 dotnet build LightNote.slnx
 dotnet test LightNote.slnx
-dotnet run --project src/LightNote.App/LightNote.App.csproj
+.\scripts\build-dev.ps1
+.\scripts\run-dev.ps1
 ```
+
+当前开发版的唯一入口为 `artifacts\development\current\win-x64\LightNote.exe`；不要直接运行历史发布目录中的程序。
 
 生成 x64 自包含发布和 Inno Setup 安装包：
 
@@ -89,6 +94,6 @@ dotnet run --project src/LightNote.App/LightNote.App.csproj
 .\scripts\build-installer.ps1
 ```
 
-输出文件为 `artifacts\installer\LightNote-1.0.0-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%LocalAppData%\LightNote`。
+发布目录为 `artifacts\releases\1.6.0\win-x64`，安装包为 `artifacts\installers\LightNote-1.6.0-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%LocalAppData%\LightNote`。
 
-详细路线见 [docs/implementation-plan.md](docs/implementation-plan.md)。
+构建产物规范见 [docs/build-artifacts.md](docs/build-artifacts.md)，详细路线见 [docs/implementation-plan.md](docs/implementation-plan.md)。

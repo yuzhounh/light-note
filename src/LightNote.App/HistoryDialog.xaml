@@ -27,8 +27,8 @@
                     <DataTemplate>
                         <StackPanel Margin="8">
                             <TextBlock FontWeight="SemiBold">
-                                <Run Text="版本 " /><Run Text="{Binding Version}" /><Run Text=" · " />
-                                <Run Text="{Binding CreatedLabel}" />
+                                <Run Text="版本 " /><Run Text="{Binding Version, Mode=OneWay}" /><Run Text=" · " />
+                                <Run Text="{Binding CreatedLabel, Mode=OneWay}" />
                             </TextBlock>
                             <TextBlock Margin="0,5,0,0" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
                             <TextBlock Margin="0,4,0,0" Text="{Binding Preview}" Foreground="#FF68707A"
