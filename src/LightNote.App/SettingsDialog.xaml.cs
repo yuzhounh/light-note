@@ -14,6 +14,7 @@ namespace LightNote.App;
 
 public enum SettingsSection
 {
+    General,
     ImportExport,
     Backup,
     Safety,
@@ -36,6 +37,7 @@ public partial class SettingsDialog : Window
     private readonly IDatabaseIntegrityChecker _integrityChecker;
     private readonly IBackupService _backupService;
     private DatabaseIntegrityResult? _lastIntegrityResult;
+    private bool _isInitializing = true;
 
     public SettingsDialog(
         AppSettings settings,
@@ -45,7 +47,8 @@ public partial class SettingsDialog : Window
         IBackupService backupService,
         string syncStatus,
         bool canExportCurrentNote,
-        SettingsSection initialSection = SettingsSection.ImportExport)
+        SettingsSection initialSection = SettingsSection.General,
+        string? accountEmail = null)
     {
         InitializeComponent();
         _originalSettings = settings;
@@ -55,12 +58,46 @@ public partial class SettingsDialog : Window
         _backupService = backupService;
 
         Settings = settings;
+
+        // 初始化外观与导航状态
+        switch (settings.Theme)
+        {
+            case "dark":
+                ThemeDarkRadio.IsChecked = true;
+                break;
+            case "light":
+                ThemeLightRadio.IsChecked = true;
+                break;
+            default:
+                ThemeSystemRadio.IsChecked = true;
+                break;
+        }
+
+        ShowRecentBox.IsChecked = settings.ShowRecentNavigation;
+        ShowPinnedBox.IsChecked = settings.ShowPinnedNavigation;
+        ShowTrashBox.IsChecked = settings.ShowTrashNavigation;
+
+        // 初始化备份配置
         AutomaticBackupsBox.IsChecked = settings.AutomaticBackups;
         RetentionBox.Text = settings.BackupRetentionCount.ToString();
         ExportNoteButton.IsEnabled = canExportCurrentNote;
         SyncStatusText.Text = syncStatus;
-        VersionText.Text = $"版本 {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "unknown"}";
-        NavigationList.SelectedIndex = (int)initialSection;
+
+        // 初始化侧边栏底部账户与版本
+        var isOnline = !string.IsNullOrWhiteSpace(accountEmail);
+        AccountEmailText.Text = isOnline ? accountEmail! : "本地离线模式";
+        AccountAvatarText.Text = isOnline ? accountEmail!.Substring(0, 1).ToUpperInvariant() : "L";
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.6";
+        AppVersionText.Text = $"LightNote v{version}";
+
+        // 初始化存储路径
+        BackupsPathText.Text = _paths.BackupsDirectory;
+        LogsPathText.Text = _paths.LogsDirectory;
+
+        // 默认定位到初始标签
+        SetInitialSection(initialSection);
+
+        _isInitializing = false;
         Loaded += OnLoaded;
     }
 
@@ -69,6 +106,18 @@ public partial class SettingsDialog : Window
     public SettingsAction RequestedAction { get; private set; }
 
     public bool SettingsSaved { get; private set; }
+
+    private void SetInitialSection(SettingsSection section)
+    {
+        NavigationList.SelectedItem = section switch
+        {
+            SettingsSection.General => NavItemGeneral,
+            SettingsSection.ImportExport => NavItemImportExport,
+            SettingsSection.Backup => NavItemBackup,
+            SettingsSection.Safety => NavItemSafety,
+            _ => NavItemGeneral,
+        };
+    }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -90,9 +139,109 @@ public partial class SettingsDialog : Window
             return;
         }
 
+        GeneralPage.Visibility = tag == "general" ? Visibility.Visible : Visibility.Collapsed;
         ImportExportPage.Visibility = tag == "import-export" ? Visibility.Visible : Visibility.Collapsed;
         BackupPage.Visibility = tag == "backup" ? Visibility.Visible : Visibility.Collapsed;
         SafetyPage.Visibility = tag == "safety" ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnThemeRadioChecked(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        var theme = ThemeDarkRadio.IsChecked == true
+            ? "dark"
+            : ThemeLightRadio.IsChecked == true
+                ? "light"
+                : "system";
+
+        Settings = Settings with { Theme = theme };
+        SettingsSaved = true;
+
+        // 即时应用主题到当前应用上下文，提供无缝换色体验
+        if (Application.Current is App app)
+        {
+            var themeService = new ThemeService();
+            themeService.Apply(theme);
+        }
+    }
+
+    private void OnNavToggleClicked(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        Settings = Settings with
+        {
+            ShowRecentNavigation = ShowRecentBox.IsChecked == true,
+            ShowPinnedNavigation = ShowPinnedBox.IsChecked == true,
+            ShowTrashNavigation = ShowTrashBox.IsChecked == true,
+        };
+        SettingsSaved = true;
+    }
+
+    private void OnAutoBackupToggleClicked(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        Settings = Settings with
+        {
+            AutomaticBackups = AutomaticBackupsBox.IsChecked == true,
+        };
+        SettingsSaved = true;
+    }
+
+    private void OnRetentionTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        if (int.TryParse(RetentionBox.Text, out var count) && count is >= 1 and <= 100)
+        {
+            Settings = Settings with { BackupRetentionCount = count };
+            SettingsSaved = true;
+        }
+    }
+
+    private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
+    {
+        var query = SearchBox.Text?.Trim() ?? string.Empty;
+        SearchPlaceholder.Visibility = string.IsNullOrEmpty(query) ? Visibility.Visible : Visibility.Collapsed;
+
+        if (string.IsNullOrEmpty(query))
+        {
+            NavItemGeneral.Visibility = Visibility.Visible;
+            NavItemImportExport.Visibility = Visibility.Visible;
+            NavItemBackup.Visibility = Visibility.Visible;
+            NavItemSafety.Visibility = Visibility.Visible;
+            HeaderPreferences.Visibility = Visibility.Visible;
+            return;
+        }
+
+        // 智能关键词匹配各模块
+        var matchGeneral = MatchesQuery("常规 外观 主题 深色 浅色 快捷导航 最近 置顶 回收站", query);
+        var matchImport = MatchesQuery("导入 导出 迁移 enex keep csv markdown html 纯文本 数据", query);
+        var matchBackup = MatchesQuery("备份 恢复 还原 自动备份 归档 快照 保留份数 策略", query);
+        var matchSafety = MatchesQuery("安全 诊断 完整性 检查 同步 冲突 sqlite 数据库 日志 报告 维护", query);
+
+        NavItemGeneral.Visibility = matchGeneral ? Visibility.Visible : Visibility.Collapsed;
+        NavItemImportExport.Visibility = matchImport ? Visibility.Visible : Visibility.Collapsed;
+        NavItemBackup.Visibility = matchBackup ? Visibility.Visible : Visibility.Collapsed;
+        NavItemSafety.Visibility = matchSafety ? Visibility.Visible : Visibility.Collapsed;
+        HeaderPreferences.Visibility = matchGeneral ? Visibility.Visible : Visibility.Collapsed;
+
+        // 如果当前选中的项被隐藏了，自动切换到第一个可见项
+        if (NavigationList.SelectedItem is ListBoxItem { Visibility: Visibility.Collapsed })
+        {
+            if (matchGeneral) NavigationList.SelectedItem = NavItemGeneral;
+            else if (matchImport) NavigationList.SelectedItem = NavItemImportExport;
+            else if (matchBackup) NavigationList.SelectedItem = NavItemBackup;
+            else if (matchSafety) NavigationList.SelectedItem = NavItemSafety;
+        }
+    }
+
+    private static bool MatchesQuery(string keywords, string query)
+    {
+        return keywords.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+               query.Split(' ', StringSplitOptions.RemoveEmptyEntries).Any(part => keywords.Contains(part, StringComparison.OrdinalIgnoreCase));
     }
 
     private void OnImportRequestClick(object sender, RoutedEventArgs e) =>
@@ -113,25 +262,10 @@ public partial class SettingsDialog : Window
         DialogResult = true;
     }
 
-    private void OnSaveClick(object sender, RoutedEventArgs e)
+    private void OnCloseClick(object sender, RoutedEventArgs e)
     {
-        if (!int.TryParse(RetentionBox.Text, out var retentionCount) || retentionCount is < 1 or > 100)
-        {
-            MessageBox.Show(this, "自动备份保留份数请输入 1 到 100 之间的整数。", "LightNote 设置",
-                MessageBoxButton.OK, MessageBoxImage.Information);
-            NavigationList.SelectedIndex = (int)SettingsSection.Backup;
-            RetentionBox.Focus();
-            RetentionBox.SelectAll();
-            return;
-        }
-
-        Settings = _originalSettings with
-        {
-            AutomaticBackups = AutomaticBackupsBox.IsChecked == true,
-            BackupRetentionCount = retentionCount,
-        };
-        SettingsSaved = true;
         DialogResult = true;
+        Close();
     }
 
     private async Task RefreshSummaryAsync()
@@ -150,12 +284,19 @@ public partial class SettingsDialog : Window
         PendingCountText.Text = reader.GetInt64(0).ToString();
         ConflictCountText.Text = reader.GetInt64(1).ToString();
 
+        var schemaVersion = reader.GetString(2);
+        DbVersionText.Text = schemaVersion;
+
+        var dbFileInfo = new FileInfo(_paths.DatabasePath);
+        DbSizeText.Text = dbFileInfo.Exists ? FormatBytes(dbFileInfo.Length) : "0 B";
+
         var latestBackup = GetLatestBackup();
         BackupStatusText.Text = latestBackup is null
-            ? "尚未找到备份"
+            ? "尚未找到备份文件"
             : $"最近备份：{latestBackup.LastWriteTime.ToLocalTime():yyyy-MM-dd HH:mm}";
-        DetailsText.Text = $"数据库迁移版本：{reader.GetString(2)}{Environment.NewLine}" +
-                           $"数据库大小：{FormatBytes(new FileInfo(_paths.DatabasePath).Length)}{Environment.NewLine}" +
+
+        DetailsText.Text = $"数据库迁移版本：{schemaVersion}{Environment.NewLine}" +
+                           $"数据库大小：{DbSizeText.Text}{Environment.NewLine}" +
                            $"备份目录：{_paths.BackupsDirectory}";
     }
 

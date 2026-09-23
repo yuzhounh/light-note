@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -591,7 +591,7 @@ public partial class MainWindow : Window
     private void OnAccountPopupSettingsClick(object sender, RoutedEventArgs e)
     {
         AccountPopup.IsOpen = false;
-        OpenSettings(SettingsSection.ImportExport);
+        OpenSettings(SettingsSection.General);
     }
 
     private void OnThemeModeClick(object sender, RoutedEventArgs e)
@@ -1329,7 +1329,7 @@ public partial class MainWindow : Window
     }
 
     private void OnSettingsClick(object sender, RoutedEventArgs e) =>
-        OpenSettings(SettingsSection.ImportExport);
+        OpenSettings(SettingsSection.General);
 
     private void OnDataSafetyClick(object sender, RoutedEventArgs e) =>
         OpenSettings(SettingsSection.Safety);
@@ -1344,7 +1344,8 @@ public partial class MainWindow : Window
             _backupService,
             _viewModel.SyncStatus,
             _viewModel.SelectedNote is not null && !_viewModel.IsTrashSelected,
-            initialSection)
+            initialSection,
+            _syncService.CurrentAccount?.Email)
         {
             Owner = this,
         };
@@ -1360,6 +1361,10 @@ public partial class MainWindow : Window
                 _settings = dialog.Settings;
                 _settingsService.Save(_settings);
                 ApplyTheme();
+                _viewModel.ConfigureNavigation(
+                    _settings.ShowRecentNavigation,
+                    _settings.ShowPinnedNavigation,
+                    _settings.ShowTrashNavigation);
             }
             catch (Exception exception)
             {

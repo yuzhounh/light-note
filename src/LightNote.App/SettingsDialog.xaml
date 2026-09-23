@@ -4,29 +4,60 @@
         xmlns:local="clr-namespace:LightNote.App"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="LightNote 设置"
-        Width="940"
-        Height="750"
-        MinWidth="760"
-        MinHeight="540"
+        Width="920"
+        Height="660"
+        MinWidth="780"
+        MinHeight="560"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         WindowStyle="None"
         Background="{DynamicResource AppBackgroundBrush}">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="42" ResizeBorderThickness="6"
-                            GlassFrameThickness="0" CornerRadius="8" UseAeroCaptionButtons="False" />
+                            GlassFrameThickness="0" CornerRadius="10" UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
+        <Style x:Key="CaptionCloseButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBackground" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBackground" Property="Background" Value="#E81123" />
+                                <Setter Property="Foreground" Value="#FFFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBackground" Property="Background" Value="#C4101E" />
+                                <Setter Property="Foreground" Value="#FFFFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="SettingsNavItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Padding" Value="12,9" />
-            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="8,2" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
                         <Border x:Name="NavBorder" Padding="{TemplateBinding Padding}"
-                                Background="{TemplateBinding Background}" CornerRadius="7">
+                                Background="{TemplateBinding Background}" CornerRadius="7"
+                                SnapsToDevicePixels="True">
                             <ContentPresenter />
                         </Border>
                         <ControlTemplate.Triggers>
@@ -43,41 +74,56 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
         <Style x:Key="SettingsCardStyle" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="9" />
-            <Setter Property="Padding" Value="16" />
-            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="18,16" />
+            <Setter Property="Margin" Value="0,0,0,14" />
         </Style>
+
         <Style x:Key="PageTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="22" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,0,0,5" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
+
         <Style x:Key="PageDescriptionStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Margin" Value="0,0,0,20" />
         </Style>
+
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Margin" Value="0,6,0,10" />
+        </Style>
+
         <Style x:Key="CardTitleStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         </Style>
+
         <Style x:Key="CardDescriptionStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="LineHeight" Value="18" />
         </Style>
+
         <Style x:Key="SettingsActionButtonStyle" TargetType="Button"
                BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Width" Value="100" />
-            <Setter Property="Height" Value="40" />
-            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinWidth" Value="88" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="14,0" />
             <Setter Property="Margin" Value="0" />
-            <Setter Property="Padding" Value="0" />
             <Setter Property="HorizontalAlignment" Value="Right" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
@@ -86,197 +132,548 @@
     <Border Background="{DynamicResource AppBackgroundBrush}"
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="1"
-            CornerRadius="8"
+            CornerRadius="10"
             SnapsToDevicePixels="True">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="42" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="42" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <local:WindowTitleBar />
-        <Border Grid.Row="1" Padding="24,17" Background="{DynamicResource PanelBrush}"
-                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
-            <Grid>
-                <StackPanel>
-                    <TextBlock Text="设置" FontSize="24" FontWeight="SemiBold" />
-                    <TextBlock Margin="0,3,0,0" Text="管理导入、导出、备份与数据安全"
-                               Foreground="{DynamicResource MutedTextBrush}" />
-                </StackPanel>
-                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="LightNote" FontSize="16" FontWeight="Normal"
-                               Foreground="{DynamicResource TextBrush}" TextAlignment="Right" />
-                    <TextBlock x:Name="VersionText" Margin="0,2,0,0" FontSize="14" FontWeight="Normal"
-                               Foreground="{DynamicResource MutedTextBrush}" TextAlignment="Right" />
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="210" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Border Padding="16,18" Background="{DynamicResource PanelBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
-                <ListBox x:Name="NavigationList" BorderThickness="0" Background="Transparent"
-                         ItemContainerStyle="{StaticResource SettingsNavItemStyle}"
-                         SelectionChanged="OnNavigationSelectionChanged">
-                    <ListBoxItem Content="导入与导出" Tag="import-export" />
-                    <ListBoxItem Content="备份" Tag="backup" />
-                    <ListBoxItem Content="数据安全" Tag="safety" />
-                </ListBox>
+            <!-- 顶部轻量标题栏与关闭按钮 -->
+            <Border Grid.Row="0" Height="42" Background="{DynamicResource SecondaryPanelBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="46" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                        <Image Width="18" Height="18" Source="Assets/pen-note-icon-yellow.ico" />
+                        <TextBlock Margin="10,0,0,0" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Text="LightNote 设置" Foreground="{DynamicResource TextBrush}" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource CaptionCloseButtonStyle}"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Click="OnCloseClick" ToolTip="关闭 (Esc)" IsCancel="True">
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="&#xE711;"
+                                   Foreground="{DynamicResource TextBrush}" />
+                    </Button>
+                </Grid>
             </Border>
 
-            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled" Padding="28,24">
-                <Grid>
-                    <StackPanel x:Name="ImportExportPage" Visibility="Collapsed">
-                        <TextBlock Text="导入与导出" Style="{StaticResource PageTitleStyle}" />
-                        <TextBlock Text="导入其他应用的数据，或将当前笔记导出为通用文件。"
-                                   Style="{StaticResource PageDescriptionStyle}" />
-                        <Border Style="{StaticResource SettingsCardStyle}">
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="导入笔记" Style="{StaticResource CardTitleStyle}" />
-                                    <TextBlock Margin="0,4,12,0" Text="从 ENEX、Google Keep、CSV、Markdown、文本或 HTML 迁移内容。"
-                                               Style="{StaticResource CardDescriptionStyle}" />
-                                </StackPanel>
-                                <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
-                                        Content="选择来源" Click="OnImportRequestClick" />
-                            </Grid>
-                        </Border>
-                        <Border Style="{StaticResource SettingsCardStyle}">
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="导出当前笔记" Style="{StaticResource CardTitleStyle}" />
-                                    <TextBlock Margin="0,4,12,0" Text="将当前笔记保存为 HTML、Markdown 或纯文本。"
-                                               Style="{StaticResource CardDescriptionStyle}" />
-                                </StackPanel>
-                                <Button x:Name="ExportNoteButton" Grid.Column="1"
-                                        Style="{StaticResource SettingsActionButtonStyle}"
-                                        Content="导出" Click="OnExportRequestClick" />
-                            </Grid>
-                        </Border>
-                    </StackPanel>
+            <!-- 下方主体两栏结构 -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="230" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-                    <StackPanel x:Name="BackupPage" Visibility="Collapsed">
-                        <TextBlock Text="备份" Style="{StaticResource PageTitleStyle}" />
-                        <TextBlock Text="创建、恢复并安排本地完整备份。"
-                                   Style="{StaticResource PageDescriptionStyle}" />
-                        <Border Style="{StaticResource SettingsCardStyle}">
+                <!-- 左侧结构化导航 -->
+                <Border Grid.Column="0" Background="{DynamicResource PanelBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- 搜索框 -->
+                        <Border Grid.Row="0" Margin="12,12,12,8" CornerRadius="7"
+                                Background="{DynamicResource SecondaryPanelBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                Padding="8,5">
                             <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="创建完整备份" Style="{StaticResource CardTitleStyle}" />
-                                    <TextBlock Margin="0,4,12,0" Text="备份数据库、附件和恢复所需的完整性信息。"
-                                               Style="{StaticResource CardDescriptionStyle}" />
-                                </StackPanel>
-                                <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
-                                        Content="立即备份" Click="OnBackupRequestClick" />
+                                <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="12"
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           VerticalAlignment="Center" Margin="2,0,0,0" />
+                                <TextBox x:Name="SearchBox" Margin="20,0,0,0" BorderThickness="0"
+                                         Background="Transparent" FontSize="12.5"
+                                         VerticalAlignment="Center" TextChanged="OnSearchTextChanged"
+                                         Foreground="{DynamicResource TextBrush}" />
+                                <TextBlock x:Name="SearchPlaceholder" Margin="22,0,0,0" Text="搜索设置…"
+                                           IsHitTestVisible="False" FontSize="12.5"
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           VerticalAlignment="Center" />
                             </Grid>
                         </Border>
-                        <Border Style="{StaticResource SettingsCardStyle}">
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="恢复完整备份" Style="{StaticResource CardTitleStyle}" />
-                                    <TextBlock Margin="0,4,12,0" Text="验证备份后恢复到单独目录，不会直接覆盖当前资料。"
-                                               Style="{StaticResource CardDescriptionStyle}" />
-                                </StackPanel>
-                                <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
-                                        Content="恢复" Click="OnRestoreRequestClick" />
-                            </Grid>
-                        </Border>
-                        <Border Style="{StaticResource SettingsCardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="自动备份" Style="{StaticResource CardTitleStyle}" />
-                                <TextBlock Margin="0,4,0,10" Text="安排本地数据库与附件的定期备份。"
-                                           Style="{StaticResource CardDescriptionStyle}" />
-                                <CheckBox x:Name="AutomaticBackupsBox" Content="每天自动备份数据库和附件" FontSize="13" />
-                                <StackPanel Margin="22,10,0,0" Orientation="Horizontal">
-                                    <TextBlock Text="保留份数" FontSize="13" VerticalAlignment="Center" />
-                                    <TextBox x:Name="RetentionBox" Width="64" Margin="10,0,0,0" Padding="6,4" FontSize="13" />
-                                </StackPanel>
+
+                        <!-- 分类导航列表 -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Margin="0,2,0,8">
+                                <TextBlock x:Name="HeaderPreferences" Text="偏好设置" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource MutedTextBrush}" Margin="16,8,0,4" />
+                                <ListBox x:Name="NavigationList" BorderThickness="0" Background="Transparent"
+                                         ItemContainerStyle="{StaticResource SettingsNavItemStyle}"
+                                         SelectionChanged="OnNavigationSelectionChanged">
+                                    <ListBoxItem x:Name="NavItemGeneral" Tag="general">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="&#xE790;" FontFamily="Segoe Fluent Icons" FontSize="15"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                            <TextBlock Grid.Column="1" Text="常规与外观" FontSize="13"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                        </Grid>
+                                    </ListBoxItem>
+                                    <ListBoxItem x:Name="NavItemImportExport" Tag="import-export">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe Fluent Icons" FontSize="15"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                            <TextBlock Grid.Column="1" Text="导入与导出" FontSize="13"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                        </Grid>
+                                    </ListBoxItem>
+                                    <ListBoxItem x:Name="NavItemBackup" Tag="backup">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="&#xE753;" FontFamily="Segoe Fluent Icons" FontSize="15"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                            <TextBlock Grid.Column="1" Text="备份与恢复" FontSize="13"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                        </Grid>
+                                    </ListBoxItem>
+                                    <ListBoxItem x:Name="NavItemSafety" Tag="safety">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="&#xE72D;" FontFamily="Segoe Fluent Icons" FontSize="15"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                            <TextBlock Grid.Column="1" Text="数据安全与诊断" FontSize="13"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                        </Grid>
+                                    </ListBoxItem>
+                                </ListBox>
                             </StackPanel>
-                        </Border>
-                        <TextBlock Text="备份设置保存在本机，不会同步到 Firebase。"
-                                   Foreground="{DynamicResource MutedTextBrush}" />
-                    </StackPanel>
+                        </ScrollViewer>
 
-                    <StackPanel x:Name="SafetyPage" Visibility="Collapsed">
-                        <TextBlock Text="数据安全" Style="{StaticResource PageTitleStyle}" />
-                        <TextBlock Text="查看同步队列、冲突、备份状态和本地数据库完整性。"
-                                   Style="{StaticResource PageDescriptionStyle}" />
-                        <UniformGrid Columns="3" Margin="0,0,0,12">
-                            <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,8,0">
-                                <StackPanel>
-                                    <TextBlock Text="同步状态" Style="{StaticResource CardDescriptionStyle}" />
-                                    <TextBlock x:Name="SyncStatusText" Margin="0,6,0,0" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource SettingsCardStyle}" Margin="4,0">
-                                <StackPanel>
-                                    <TextBlock Text="待同步项目" Style="{StaticResource CardDescriptionStyle}" />
-                                    <TextBlock x:Name="PendingCountText" Margin="0,6,0,0" FontSize="18" FontWeight="SemiBold" />
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource SettingsCardStyle}" Margin="8,0,0,0">
-                                <StackPanel>
-                                    <TextBlock Text="冲突副本" Style="{StaticResource CardDescriptionStyle}" />
-                                    <TextBlock x:Name="ConflictCountText" Margin="0,6,0,0" FontSize="18" FontWeight="SemiBold" />
-                                </StackPanel>
-                            </Border>
-                        </UniformGrid>
-                        <Border Style="{StaticResource SettingsCardStyle}">
+                        <!-- 底部账户与版本锚点 -->
+                        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="0,1,0,0" Padding="12,10"
+                                Background="{DynamicResource SecondaryPanelBrush}">
                             <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="本地完整性" Style="{StaticResource CardTitleStyle}" />
-                                    <TextBlock x:Name="IntegrityStatusText" Margin="0,5,0,0" FontSize="13" Text="尚未检查" />
-                                    <TextBlock x:Name="BackupStatusText" Margin="0,5,12,0"
-                                               Style="{StaticResource CardDescriptionStyle}" />
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="30" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="26" Height="26" CornerRadius="13"
+                                        Background="{DynamicResource AccentBrush}"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center">
+                                    <TextBlock x:Name="AccountAvatarText" Text="L" Foreground="#FFFFFFFF"
+                                               FontSize="12" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="AccountEmailText" Text="本地离线模式" FontSize="12"
+                                               FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource TextBrush}" />
+                                    <TextBlock x:Name="AppVersionText" Text="LightNote v1.6" FontSize="11"
+                                               Foreground="{DynamicResource MutedTextBrush}" />
                                 </StackPanel>
-                                <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
-                                        Content="立即检查" Click="OnCheckClick" />
                             </Grid>
                         </Border>
-                        <Border Style="{StaticResource SettingsCardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="数据库与系统详情" Style="{StaticResource CardTitleStyle}" />
-                                <TextBlock Margin="0,4,0,8" Text="数据库版本、文件大小、备份位置及检查诊断信息。"
-                                           Style="{StaticResource CardDescriptionStyle}" />
-                                <TextBox x:Name="DetailsText" MinHeight="84" Padding="10" IsReadOnly="True"
-                                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                         FontFamily="Microsoft YaHei" FontSize="13"
-                                         Background="{DynamicResource SecondaryPanelBrush}"
-                                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" />
-                            </StackPanel>
-                        </Border>
-                        <WrapPanel Margin="0,4,0,0" HorizontalAlignment="Right">
-                            <Button Content="验证最近备份" Click="OnValidateBackupClick" />
-                            <Button Content="打开备份目录" Click="OnOpenBackupsClick" />
-                            <Button Content="打开日志目录" Click="OnOpenLogsClick" />
-                            <Button Content="生成脱敏诊断报告" Click="OnCreateDiagnosticClick"
-                                    ToolTip="报告不包含笔记正文、Firebase 配置或登录令牌" />
-                        </WrapPanel>
-                    </StackPanel>
+                    </Grid>
+                </Border>
 
-                </Grid>
-            </ScrollViewer>
+                <!-- 右侧设置内容区 -->
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Padding="32,24,32,32">
+                    <Grid>
+                        <!-- 常规与外观页 -->
+                        <StackPanel x:Name="GeneralPage" Visibility="Visible">
+                            <TextBlock Text="常规与外观" Style="{StaticResource PageTitleStyle}" />
+                            <TextBlock Text="自定义应用外观色彩、主题模式以及主界面侧边栏导航视图。"
+                                       Style="{StaticResource PageDescriptionStyle}" />
+
+                            <TextBlock Text="外观模式" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="应用主题" Style="{StaticResource CardTitleStyle}" />
+                                        <TextBlock Margin="0,4,12,0" Text="选择深浅色外观，或根据 Windows 系统外观设置自动切换。"
+                                                   Style="{StaticResource CardDescriptionStyle}" />
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Background="{DynamicResource SecondaryPanelBrush}"
+                                            CornerRadius="7" Padding="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton x:Name="ThemeSystemRadio" Content="跟随系统"
+                                                         Style="{StaticResource SegmentedRadioButtonStyle}"
+                                                         Checked="OnThemeRadioChecked" />
+                                            <RadioButton x:Name="ThemeLightRadio" Content="浅色"
+                                                         Style="{StaticResource SegmentedRadioButtonStyle}"
+                                                         Checked="OnThemeRadioChecked" />
+                                            <RadioButton x:Name="ThemeDarkRadio" Content="深色"
+                                                         Style="{StaticResource SegmentedRadioButtonStyle}"
+                                                         Checked="OnThemeRadioChecked" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <TextBlock Text="侧边栏快捷导航" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="最近笔记" Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Margin="0,4,12,0" Text="在左侧笔记本栏顶部显示最近编辑笔记列表。"
+                                                       Style="{StaticResource CardDescriptionStyle}" />
+                                        </StackPanel>
+                                        <CheckBox x:Name="ShowRecentBox" Grid.Column="1"
+                                                  Style="{StaticResource ToggleSwitchStyle}"
+                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                  Click="OnNavToggleClicked" />
+                                    </Grid>
+
+                                    <Separator Margin="0,12,0,12" Background="{DynamicResource BorderBrush}" Height="1" />
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="置顶笔记" Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Margin="0,4,12,0" Text="在左侧笔记本栏顶部显示快捷置顶笔记分类。"
+                                                       Style="{StaticResource CardDescriptionStyle}" />
+                                        </StackPanel>
+                                        <CheckBox x:Name="ShowPinnedBox" Grid.Column="1"
+                                                  Style="{StaticResource ToggleSwitchStyle}"
+                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                  Click="OnNavToggleClicked" />
+                                    </Grid>
+
+                                    <Separator Margin="0,12,0,12" Background="{DynamicResource BorderBrush}" Height="1" />
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="回收站" Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Margin="0,4,12,0" Text="在左侧笔记本栏底部显示废纸篓与软删除笔记视图。"
+                                                       Style="{StaticResource CardDescriptionStyle}" />
+                                        </StackPanel>
+                                        <CheckBox x:Name="ShowTrashBox" Grid.Column="1"
+                                                  Style="{StaticResource ToggleSwitchStyle}"
+                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                  Click="OnNavToggleClicked" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- 导入与导出页 -->
+                        <StackPanel x:Name="ImportExportPage" Visibility="Collapsed">
+                            <TextBlock Text="导入与导出" Style="{StaticResource PageTitleStyle}" />
+                            <TextBlock Text="导入其他应用的历史笔记，或将当前笔记导出为开放标准格式。"
+                                       Style="{StaticResource PageDescriptionStyle}" />
+
+                            <TextBlock Text="数据迁移" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="导入外部数据" Style="{StaticResource CardTitleStyle}" />
+                                        <TextBlock Margin="0,4,12,0" Text="支持批量迁移 Evernote (.enex)、Google Keep (JSON)、CSV、Markdown、纯文本及 HTML。"
+                                                   Style="{StaticResource CardDescriptionStyle}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
+                                            Content="选择来源…" Click="OnImportRequestClick" />
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="导出当前笔记" Style="{StaticResource CardTitleStyle}" />
+                                        <TextBlock Margin="0,4,12,0" Text="将当前选中的笔记完整导出为自包含 HTML、纯文本或带独立附件目录的 Markdown。"
+                                                   Style="{StaticResource CardDescriptionStyle}" />
+                                    </StackPanel>
+                                    <Button x:Name="ExportNoteButton" Grid.Column="1"
+                                            Style="{StaticResource SettingsActionButtonStyle}"
+                                            Content="导出笔记…" Click="OnExportRequestClick" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- 备份与恢复页 -->
+                        <StackPanel x:Name="BackupPage" Visibility="Collapsed">
+                            <TextBlock Text="备份与恢复" Style="{StaticResource PageTitleStyle}" />
+                            <TextBlock Text="配置本地自动化备份策略，或手动创建与校验完整恢复归档。"
+                                       Style="{StaticResource PageDescriptionStyle}" />
+
+                            <TextBlock Text="备份策略" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="每日自动备份" Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Margin="0,4,12,0" Text="应用启动与运行期间，每日自动将 SQLite 数据库与所有附件完整归档。"
+                                                       Style="{StaticResource CardDescriptionStyle}" />
+                                        </StackPanel>
+                                        <CheckBox x:Name="AutomaticBackupsBox" Grid.Column="1"
+                                                  Style="{StaticResource ToggleSwitchStyle}"
+                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                  Click="OnAutoBackupToggleClicked" />
+                                    </Grid>
+
+                                    <Separator Margin="0,12,0,12" Background="{DynamicResource BorderBrush}" Height="1" />
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="自动备份保留份数" Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Margin="0,4,12,0" Text="超出保留数量时自动清理最旧的备份档案（支持 1 到 100 份）。"
+                                                       Style="{StaticResource CardDescriptionStyle}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <TextBox x:Name="RetentionBox" Width="52" Padding="6,4"
+                                                     TextAlignment="Center" FontSize="13"
+                                                     TextChanged="OnRetentionTextChanged" />
+                                            <TextBlock Text="份" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource MutedTextBrush}" FontSize="13" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="手动快照与恢复" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="创建完整备份" Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Margin="0,4,12,0" Text="立即备份数据库、附件库及恢复所需的所有 SHA-256 完整性清单。"
+                                                       Style="{StaticResource CardDescriptionStyle}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
+                                                Content="立即备份" Click="OnBackupRequestClick" />
+                                    </Grid>
+
+                                    <Separator Margin="0,12,0,12" Background="{DynamicResource BorderBrush}" Height="1" />
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="恢复完整备份" Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Margin="0,4,12,0" Text="在安全沙箱中校验归档并恢复到单独空目录，绝不直接覆盖当前资料库。"
+                                                       Style="{StaticResource CardDescriptionStyle}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
+                                                Content="恢复备份…" Click="OnRestoreRequestClick" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="本地离线安全" Style="{StaticResource CardTitleStyle}" />
+                                        <TextBlock Margin="0,4,12,0" Text="备份文件全部安全存放于本机 AppData 目录，绝不会未经许可同步到云端。"
+                                                   Style="{StaticResource CardDescriptionStyle}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
+                                            Content="打开备份目录" Click="OnOpenBackupsClick" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- 数据安全与诊断页 -->
+                        <StackPanel x:Name="SafetyPage" Visibility="Collapsed">
+                            <TextBlock Text="数据安全与诊断" Style="{StaticResource PageTitleStyle}" />
+                            <TextBlock Text="实时监控云端同步队列、冲突处理、本地完整性与底层系统详情。"
+                                       Style="{StaticResource PageDescriptionStyle}" />
+
+                            <!-- 顶部 3 个指标卡片 -->
+                            <UniformGrid Columns="3" Margin="0,0,0,14">
+                                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,8,0">
+                                    <StackPanel>
+                                        <TextBlock Text="同步状态" Style="{StaticResource CardDescriptionStyle}" />
+                                        <TextBlock x:Name="SyncStatusText" Margin="0,6,0,0" FontSize="14"
+                                                   FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextBrush}" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource SettingsCardStyle}" Margin="4,0">
+                                    <StackPanel>
+                                        <TextBlock Text="待同步队列" Style="{StaticResource CardDescriptionStyle}" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                            <TextBlock x:Name="PendingCountText" FontSize="20" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextBrush}" Text="0" />
+                                            <TextBlock Text=" 项" Margin="4,0,0,0" VerticalAlignment="Bottom"
+                                                       Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource SettingsCardStyle}" Margin="8,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="冲突副本" Style="{StaticResource CardDescriptionStyle}" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                            <TextBlock x:Name="ConflictCountText" FontSize="20" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextBrush}" Text="0" />
+                                            <TextBlock Text=" 份" Margin="4,0,0,0" VerticalAlignment="Bottom"
+                                                       Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+
+                            <!-- 本地完整性检查 -->
+                            <TextBlock Text="数据库完整性" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="本地完整性检查" Style="{StaticResource CardTitleStyle}" />
+                                        <TextBlock x:Name="IntegrityStatusText" Margin="0,4,0,2" FontSize="13"
+                                                   FontWeight="SemiBold" Text="尚未检查" Foreground="{DynamicResource TextBrush}" />
+                                        <TextBlock x:Name="BackupStatusText" Style="{StaticResource CardDescriptionStyle}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
+                                            Content="立即检查" Click="OnCheckClick" />
+                                </Grid>
+                            </Border>
+
+                            <!-- 结构化存储与系统详情卡片 -->
+                            <TextBlock Text="系统与存储环境" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="存储与数据库详情" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,10" />
+                                    <Border Background="{DynamicResource SecondaryPanelBrush}" CornerRadius="8" Padding="14,10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Text="SQLite 迁移版本" Foreground="{DynamicResource MutedTextBrush}" FontSize="12.5" Margin="0,3" />
+                                            <TextBlock x:Name="DbVersionText" Grid.Row="0" Grid.Column="1" FontSize="12.5" FontWeight="SemiBold" Margin="0,3" Foreground="{DynamicResource TextBrush}" />
+
+                                            <TextBlock Grid.Row="1" Text="数据库文件大小" Foreground="{DynamicResource MutedTextBrush}" FontSize="12.5" Margin="0,3" />
+                                            <TextBlock x:Name="DbSizeText" Grid.Row="1" Grid.Column="1" FontSize="12.5" FontWeight="SemiBold" Margin="0,3" Foreground="{DynamicResource TextBrush}" />
+
+                                            <TextBlock Grid.Row="2" Text="备份存储目录" Foreground="{DynamicResource MutedTextBrush}" FontSize="12.5" Margin="0,3" />
+                                            <TextBlock x:Name="BackupsPathText" Grid.Row="2" Grid.Column="1" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,3" Foreground="{DynamicResource MutedTextBrush}" />
+
+                                            <TextBlock Grid.Row="3" Text="应用日志目录" Foreground="{DynamicResource MutedTextBrush}" FontSize="12.5" Margin="0,3" />
+                                            <TextBlock x:Name="LogsPathText" Grid.Row="3" Grid.Column="1" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,3" Foreground="{DynamicResource MutedTextBrush}" />
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock x:Name="DetailsText" Visibility="Collapsed" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 排障与工具箱 -->
+                            <TextBlock Text="排障与工具" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="验证最近备份" Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Margin="0,3,12,0" Text="在临时沙箱中验证最近归档的结构、大小、SHA-256 及 SQLite 完整性。"
+                                                       Style="{StaticResource CardDescriptionStyle}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
+                                                Content="验证备份" Click="OnValidateBackupClick" />
+                                    </Grid>
+
+                                    <Separator Margin="0,10,0,10" Background="{DynamicResource BorderBrush}" Height="1" />
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="生成脱敏诊断包" Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Margin="0,3,12,0" Text="导出包含系统指标与数据库结构诊断报告的 zip 包（不含任何笔记内容与秘钥）。"
+                                                       Style="{StaticResource CardDescriptionStyle}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
+                                                Content="生成诊断包" Click="OnCreateDiagnosticClick" />
+                                    </Grid>
+
+                                    <Separator Margin="0,10,0,10" Background="{DynamicResource BorderBrush}" Height="1" />
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="应用运行日志" Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Margin="0,3,12,0" Text="查看详细启动记录、错误追踪和异常调试信息。"
+                                                       Style="{StaticResource CardDescriptionStyle}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
+                                                Content="打开日志" Click="OnOpenLogsClick" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
         </Grid>
-
-        <Border Grid.Row="3" Padding="18,12" Background="{DynamicResource PanelBrush}"
-                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Margin="0,0,8,0" Padding="18,7" Content="取消" IsCancel="True" />
-                <Button Padding="18,7" Content="保存" IsDefault="True" Click="OnSaveClick" />
-            </StackPanel>
-        </Border>
-    </Grid>
     </Border>
 </Window>
