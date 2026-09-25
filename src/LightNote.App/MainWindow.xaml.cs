@@ -441,6 +441,41 @@ public partial class MainWindow : Window
         EditorWebView.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(message));
     }
 
+    private void OnTitlePreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.ImeProcessed)
+        {
+            return;
+        }
+
+        if ((e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None) || e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            FocusEditor();
+        }
+    }
+
+    public async void FocusEditor(string? position = "start")
+    {
+        EditorWebView.Focus();
+        if (!_editorReady || EditorWebView.CoreWebView2 is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var script = string.IsNullOrWhiteSpace(position)
+                ? "window.lightNoteEditor ? window.lightNoteEditor.focus() : (document.querySelector('.ProseMirror')?.focus())"
+                : $"window.lightNoteEditor ? window.lightNoteEditor.focus('{position}') : (document.querySelector('.ProseMirror')?.focus())";
+            await EditorWebView.CoreWebView2.ExecuteScriptAsync(script);
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to focus editor via script.", exception);
+        }
+    }
+
     private void SetFormattingButtonState(Button button, bool isActive)
     {
         button.Background = isActive

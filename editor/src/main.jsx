@@ -263,6 +263,13 @@ function EditorApp() {
         codeBlock: () => editor.chain().focus().toggleCodeBlock().run(),
         undo: () => editor.chain().focus().undo().run(),
         redo: () => editor.chain().focus().redo().run(),
+        focus: () => {
+          if (value === 'start' || value === 'end' || value === 'all') {
+            editor.commands.focus(value)
+          } else {
+            editor.commands.focus()
+          }
+        },
       }
       commands[command]?.()
       emitState(editor)
@@ -319,11 +326,28 @@ function EditorApp() {
       emitState(editor)
     }
 
-    window.lightNoteEditor = { getSnapshot }
+    const onWindowFocus = () => {
+      if (editor && !editor.isFocused && noteIdRef.current) {
+        editor.commands.focus()
+      }
+    }
+    window.addEventListener('focus', onWindowFocus)
+
+    window.lightNoteEditor = {
+      getSnapshot,
+      focus: (position = 'start') => {
+        if (position === 'start' || position === 'end' || position === 'all') {
+          editor.commands.focus(position)
+        } else {
+          editor.commands.focus()
+        }
+      },
+    }
     window.chrome.webview.addEventListener('message', onMessage)
     post('editor.ready')
     return () => {
       clearTimeout(changeTimerRef.current)
+      window.removeEventListener('focus', onWindowFocus)
       window.chrome.webview.removeEventListener('message', onMessage)
       delete window.lightNoteEditor
     }

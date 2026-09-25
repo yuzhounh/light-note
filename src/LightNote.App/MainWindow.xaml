@@ -1,4 +1,4 @@
-﻿<Window x:Class="LightNote.App.MainWindow"
+<Window x:Class="LightNote.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -479,28 +479,10 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <Border Grid.Row="1" Padding="24,14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-                    <StackPanel IsEnabled="{Binding IsEditorEnabled}">
-                        <TextBox Text="{Binding EditableTitle, UpdateSourceTrigger=PropertyChanged}"
-                                 FontSize="22" FontWeight="SemiBold" BorderThickness="0" Padding="0"
-                                 Background="Transparent" TextWrapping="NoWrap" />
-                        <TextBlock Margin="0,6,0,0" Text="{Binding SelectedTagsDisplay}"
-                                   Foreground="{StaticResource AccentBrush}" TextTrimming="CharacterEllipsis">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Style.Triggers>
-                                        <Trigger Property="Text" Value="">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </StackPanel>
-                </Border>
                 <Border Grid.Row="0" Padding="10,6" Background="Transparent"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
-                        IsEnabled="{Binding IsEditorEnabled}">
+                        IsEnabled="{Binding IsEditorEnabled}"
+                        KeyboardNavigation.TabNavigation="None">
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                         <StackPanel Orientation="Horizontal">
                             <ComboBox x:Name="FontFamilyBox" Width="130" Height="30" MinHeight="0" Margin="3,0"
@@ -572,6 +554,27 @@
                                     Click="OnEditorCommandClick" ToolTip="代码块" />
                         </StackPanel>
                     </ScrollViewer>
+                </Border>
+                <Border Grid.Row="1" Padding="24,14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                    <StackPanel IsEnabled="{Binding IsEditorEnabled}">
+                        <TextBox x:Name="TitleBox"
+                                 Text="{Binding EditableTitle, UpdateSourceTrigger=PropertyChanged}"
+                                 FontSize="22" FontWeight="SemiBold" BorderThickness="0" Padding="0"
+                                 Background="Transparent" TextWrapping="NoWrap"
+                                 PreviewKeyDown="OnTitlePreviewKeyDown" />
+                        <TextBlock Margin="0,6,0,0" Text="{Binding SelectedTagsDisplay}"
+                                    Foreground="{StaticResource AccentBrush}" TextTrimming="CharacterEllipsis">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
                 </Border>
                 <Border Grid.Row="2" Margin="18,10,18,18" BorderThickness="0" Background="Transparent">
                     <Grid x:Name="EditorWebViewHost">

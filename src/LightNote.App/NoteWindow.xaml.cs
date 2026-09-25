@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using LightNote.Core.Abstractions;
 using LightNote.Core.Models;
@@ -225,6 +226,41 @@ public partial class NoteWindow : Window
 
         _viewModel.ApplyNoteTitleChange(_note.Id, TitleBox.Text);
         Title = $"{(string.IsNullOrWhiteSpace(TitleBox.Text) ? "无标题笔记" : TitleBox.Text.Trim())} - LightNote";
+    }
+
+    private void OnTitlePreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.ImeProcessed)
+        {
+            return;
+        }
+
+        if ((e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None) || e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            FocusEditor();
+        }
+    }
+
+    public async void FocusEditor(string? position = "start")
+    {
+        EditorWebView.Focus();
+        if (!_editorReady || EditorWebView.CoreWebView2 is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var script = string.IsNullOrWhiteSpace(position)
+                ? "window.lightNoteEditor ? window.lightNoteEditor.focus() : (document.querySelector('.ProseMirror')?.focus())"
+                : $"window.lightNoteEditor ? window.lightNoteEditor.focus('{position}') : (document.querySelector('.ProseMirror')?.focus())";
+            await EditorWebView.CoreWebView2.ExecuteScriptAsync(script);
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to focus editor via script.", exception);
+        }
     }
 
     private void OnEditorCommandClick(object sender, RoutedEventArgs e)

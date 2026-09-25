@@ -32,7 +32,8 @@
 
         <local:WindowTitleBar />
         <Border Grid.Row="1" Padding="10,6" Background="Transparent"
-                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                KeyboardNavigation.TabNavigation="None">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <StackPanel Orientation="Horizontal">
                     <ComboBox x:Name="FontFamilyBox" Width="130" Height="30" MinHeight="0" Margin="3,0"
@@ -92,7 +93,8 @@
             <StackPanel>
                 <TextBox x:Name="TitleBox" FontSize="22" FontWeight="SemiBold" BorderThickness="0"
                          Padding="0" Background="Transparent" TextWrapping="NoWrap"
-                         TextChanged="OnTitleChanged" />
+                         TextChanged="OnTitleChanged"
+                         PreviewKeyDown="OnTitlePreviewKeyDown" />
                 <TextBlock x:Name="TagsText" Margin="0,6,0,0" Foreground="{DynamicResource AccentBrush}"
                            TextTrimming="CharacterEllipsis" />
             </StackPanel>
