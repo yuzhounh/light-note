@@ -113,7 +113,7 @@ public partial class SettingsDialog : Window
             AccountAvatarText.FontSize = 13;
             AccountAvatarText.Text = "\uE77B";
         }
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.7";
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.8";
         AppVersionText.Text = $"LightNote v{version}";
 
         // 初始化存储路径

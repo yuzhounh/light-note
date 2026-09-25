@@ -284,7 +284,7 @@
                                     <TextBlock x:Name="AccountEmailText" Text="本地离线模式" FontSize="12"
                                                FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
                                                Foreground="{DynamicResource TextBrush}" />
-                                    <TextBlock x:Name="AppVersionText" Text="LightNote v1.7" FontSize="11"
+                                    <TextBlock x:Name="AppVersionText" Text="LightNote v1.8" FontSize="11"
                                                Foreground="{DynamicResource MutedTextBrush}" />
                                 </StackPanel>
                             </Grid>

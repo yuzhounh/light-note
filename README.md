@@ -1,6 +1,6 @@
 # LightNote
 
-LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前版本为 **V1.7 设置中心视觉重构版**。
+LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前版本为 **V1.8 数学公式与数据一致性版**。
 
 ## 当前能力
 
@@ -12,7 +12,7 @@ LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前�
 - 最近笔记、置顶笔记、全部笔记和回收站快捷视图。
 - 多标签编辑、标签筛选，以及笔记本间移动。
 - 每篇笔记自动保留最近 20 个内容版本，并可从历史记录恢复。
-- 段落、两级标题、粗体、斜体、项目符号、编号列表、引用和代码块。
+- 段落、两级标题、粗体、斜体、项目符号、编号列表、引用、代码块以及 KaTeX 行内与块级数学公式。
 - 编辑器撤销/重做，以及选区格式与 WPF 工具栏状态同步。
 - 从剪贴板直接粘贴截图，或拖入 PNG、JPEG、WebP 和 GIF（单张最大 20 MB）。
 - 图片按 SHA-256 去重，保存尺寸与相对路径，重启后仍可离线显示。
@@ -94,6 +94,6 @@ dotnet test LightNote.slnx
 .\scripts\build-installer.ps1
 ```
 
-发布目录为 `artifacts\releases\1.7.0\win-x64`，安装包为 `artifacts\installers\LightNote-1.7.0-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%UserProfile%\.lightnote`。
+发布目录为 `artifacts\releases\1.8.0\win-x64`，安装包为 `artifacts\installers\LightNote-1.8.0-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%UserProfile%\.lightnote`。
 
 构建产物规范见 [docs/build-artifacts.md](docs/build-artifacts.md)，详细路线见 [docs/implementation-plan.md](docs/implementation-plan.md)。
