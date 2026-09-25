@@ -9,8 +9,11 @@
   "dependencies": {
     "@tiptap/core": "3.31.3",
     "@tiptap/extension-image": "3.31.3",
+    "@tiptap/extension-mathematics": "^3.31.3",
     "@tiptap/react": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
+    "katex": "^0.18.9",
+    "markdown-it": "^15.0.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

@@ -56,14 +56,14 @@ LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前�
 - 笔记列表和搜索支持分批加载与 UI 虚拟化，可连续浏览超过首屏限制的数据。
 - WebView2 加载随应用发布的本地编辑器资源。
 - WPF 与编辑器通过结构化 JSON 双向通信。
-- `%LocalAppData%\LightNote` 下的数据、附件、日志和 WebView2 目录。
+- `%UserProfile%\.lightnote` 下的数据、附件、日志和 WebView2 目录。
 - 启动及未处理异常日志，以及界面内日志目录入口。
 
 快捷键：`Ctrl+N` 新建笔记、`Ctrl+Shift+N` 新建笔记本、`Ctrl+S` 保存、`Ctrl+F` 聚焦全文搜索。
 
-本地数据默认位于 `%LocalAppData%\LightNote`。应用内“备份”会把数据库和附件打包到该目录的 `backups` 子目录；“恢复”始终写入用户选择的空目录，避免覆盖正在使用的数据。
+本地数据默认位于 `%UserProfile%\.lightnote`，避免从 MSIX 应用（例如 Codex）启动时受到 LocalAppData 重定向影响。首次启动时会从旧的 `%LocalAppData%\LightNote` 及应用包私有目录中选择笔记最多的数据安全迁移。应用内“备份”会把数据库和附件打包到该目录的 `backups` 子目录；“恢复”始终写入用户选择的空目录，避免覆盖正在使用的数据。
 
-Firebase 参数暂未内置。收到项目配置后，将 [配置模板](docs/firebase.example.json) 复制为 `%LocalAppData%\LightNote\firebase.json`，并按 [Firebase 配置说明](docs/firebase-setup.md) 发布私有安全规则即可进行真实云端联调。
+Firebase 参数暂未内置。收到项目配置后，将 [配置模板](docs/firebase.example.json) 复制为 `%UserProfile%\.lightnote\firebase.json`，并按 [Firebase 配置说明](docs/firebase-setup.md) 发布私有安全规则即可进行真实云端联调。
 
 ## 开发
 
@@ -94,6 +94,6 @@ dotnet test LightNote.slnx
 .\scripts\build-installer.ps1
 ```
 
-发布目录为 `artifacts\releases\1.7.0\win-x64`，安装包为 `artifacts\installers\LightNote-1.7.0-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%LocalAppData%\LightNote`。
+发布目录为 `artifacts\releases\1.7.0\win-x64`，安装包为 `artifacts\installers\LightNote-1.7.0-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%UserProfile%\.lightnote`。
 
 构建产物规范见 [docs/build-artifacts.md](docs/build-artifacts.md)，详细路线见 [docs/implementation-plan.md](docs/implementation-plan.md)。

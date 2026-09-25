@@ -14,7 +14,7 @@ V0.5 在没有 Firebase 配置时仍保持完整的本地笔记能力。配置�
 复制 `docs/firebase.example.json` 为：
 
 ```text
-%LocalAppData%\LightNote\firebase.json
+%UserProfile%\.lightnote\firebase.json
 ```
 
 不要把真实配置、登录密码或本机生成的 `firebase-session.dat` 提交到版本库。Firebase Web API Key 用于标识项目，实际数据访问仍必须由 Authentication 和 Security Rules 限制。

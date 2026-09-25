@@ -126,6 +126,40 @@ public sealed class ReliabilityAndExportTests : IDisposable
     }
 
     [Fact]
+    public async Task ExportsMathFormulasToMarkdownAndHtml()
+    {
+        var (paths, factory, notes) = await CreateServicesAsync();
+        var note = CreateNote("Math Note", "E=mc^2");
+        note = note with
+        {
+            BodyHtml = "<p>Formula: <span data-type=\"inline-math\" data-latex=\"\\rightarrow\"></span></p><div data-type=\"block-math\" data-latex=\"\\sum_{i=1}^n x_i\"></div>",
+            BodyJson = """
+                {"type":"doc","content":[
+                  {"type":"paragraph","content":[
+                    {"type":"text","text":"Formula: "},
+                    {"type":"inlineMath","attrs":{"latex":"\\rightarrow"}}
+                  ]},
+                  {"type":"blockMath","attrs":{"latex":"\\sum_{i=1}^n x_i"}}
+                ]}
+                """,
+        };
+        var exporter = new NoteExportService(paths);
+        var outputDirectory = Path.Combine(_testDirectory, "math_exports");
+        var htmlPath = Path.Combine(outputDirectory, "math.html");
+        var markdownPath = Path.Combine(outputDirectory, "math.md");
+
+        await exporter.ExportAsync(note, NoteExportFormat.Html, htmlPath);
+        await exporter.ExportAsync(note, NoteExportFormat.Markdown, markdownPath);
+
+        var markdown = await File.ReadAllTextAsync(markdownPath);
+        Assert.Contains(@"$\rightarrow$", markdown);
+        Assert.Contains(@"$$\sum_{i=1}^n x_i$$".Replace("$$", "$$\r\n").Replace(@"\sum_{i=1}^n x_i", @"\sum_{i=1}^n x_i" + "\r\n"), markdown);
+
+        var html = await File.ReadAllTextAsync(htmlPath);
+        Assert.Contains("katex", html);
+    }
+
+    [Fact]
     public async Task RecoveryReplaysNewerDraftAndIntegrityReportsMissingAttachment()
     {
         var (paths, factory, notes) = await CreateServicesAsync();

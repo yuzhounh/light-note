@@ -539,6 +539,11 @@
                                             VerticalAlignment="Bottom" />
                                 </Grid>
                             </Button>
+                            <Button x:Name="FormulaButton" Tag="inlineMath"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    Click="OnEditorCommandClick" ToolTip="数学公式（Ctrl+M）">
+                                <TextBlock Text="fx" FontFamily="Segoe UI" FontWeight="SemiBold" FontStyle="Italic" FontSize="13" />
+                            </Button>
                             <Separator Margin="5,0" />
                             <Button x:Name="BulletListButton" Content="•☰" Tag="bulletList"
                                     Style="{StaticResource ToolbarButtonStyle}"

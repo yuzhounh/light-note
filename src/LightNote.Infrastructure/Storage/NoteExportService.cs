@@ -59,11 +59,13 @@ public sealed class NoteExportService(AppDataPaths paths) : INoteExportService
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1">
               <title>{{WebUtility.HtmlEncode(note.Title)}}</title>
+              <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
               <style>
                 body { max-width: 820px; margin: 48px auto; padding: 0 24px; color: #1d2733; font: 16px/1.75 "Segoe UI", sans-serif; }
                 img { max-width: 100%; height: auto; }
                 blockquote { border-left: 4px solid #d7dce2; margin-left: 0; padding-left: 1em; color: #52606d; }
                 pre { padding: 14px 16px; border-radius: 7px; background: #f1f3f5; white-space: pre-wrap; }
+                .tiptap-mathematics-render--block, div[data-type="block-math"] { display: flex; justify-content: center; margin: 0.8em 0; }
               </style>
             </head>
             <body>
@@ -209,6 +211,13 @@ public sealed class NoteExportService(AppDataPaths paths) : INoteExportService
                 builder.AppendLine(string.Concat(children.Select(GetText)));
                 builder.AppendLine("```").AppendLine();
                 break;
+            case "blockMath":
+                var blockLatex = node.TryGetProperty("attrs", out var blockAttrs) &&
+                    blockAttrs.TryGetProperty("latex", out var blockLatexEl)
+                        ? blockLatexEl.GetString() ?? string.Empty
+                        : string.Empty;
+                builder.AppendLine("$$").AppendLine(blockLatex).AppendLine("$$").AppendLine();
+                break;
             default:
                 RenderInline(children, builder, imageMappings);
                 break;
@@ -260,6 +269,14 @@ public sealed class NoteExportService(AppDataPaths paths) : INoteExportService
                     .Append(imageMappings.GetValueOrDefault(src, src)).Append(')');
                 continue;
             }
+            if (type == "inlineMath" && child.TryGetProperty("attrs", out var mathAttrs))
+            {
+                var latex = mathAttrs.TryGetProperty("latex", out var latexElement)
+                    ? latexElement.GetString() ?? string.Empty
+                    : string.Empty;
+                builder.Append('$').Append(latex).Append('$');
+                continue;
+            }
 
             var text = GetText(child);
             if (child.TryGetProperty("marks", out var marks) && marks.ValueKind == JsonValueKind.Array)
@@ -282,8 +299,29 @@ public sealed class NoteExportService(AppDataPaths paths) : INoteExportService
         }
     }
 
-    private static string GetText(JsonElement node) =>
-        node.TryGetProperty("text", out var text) ? text.GetString() ?? string.Empty : string.Empty;
+    private static string GetText(JsonElement node)
+    {
+        if (node.TryGetProperty("text", out var text))
+        {
+            return text.GetString() ?? string.Empty;
+        }
+
+        if (node.TryGetProperty("type", out var typeElement))
+        {
+            var type = typeElement.GetString();
+            if (type is "inlineMath" or "blockMath" &&
+                node.TryGetProperty("attrs", out var attrs) &&
+                attrs.TryGetProperty("latex", out var latexElement))
+            {
+                var latex = latexElement.GetString() ?? string.Empty;
+                return type == "blockMath"
+                    ? $"{Environment.NewLine}$${Environment.NewLine}{latex}{Environment.NewLine}$${Environment.NewLine}"
+                    : $"${latex}$";
+            }
+        }
+
+        return string.Empty;
+    }
 
     private bool TryResolveAttachmentUrl(string url, out string path)
     {

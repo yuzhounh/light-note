@@ -69,7 +69,12 @@ public partial class App : System.Windows.Application
 
         try
         {
-            _services.GetRequiredService<AppDataPaths>().EnsureCreated();
+            var paths = _services.GetRequiredService<AppDataPaths>();
+            paths.EnsureCreated();
+            if (paths.MigratedFromDirectory is not null)
+            {
+                logger.Info($"Migrated LightNote data from {paths.MigratedFromDirectory} to {paths.RootDirectory}.");
+            }
             var settings = _services.GetRequiredService<AppSettingsService>().Load();
             _services.GetRequiredService<ThemeService>().Apply(settings.Theme);
             await _services.GetRequiredService<IDatabaseInitializer>().InitializeAsync();
