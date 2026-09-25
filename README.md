@@ -1,6 +1,16 @@
-# LightNote
+<p align="center">
+  <img src="images/pen-note-icon-yellow-1024.png" width="104" alt="LightNote brand icon" />
+</p>
 
-LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前版本为 **V1.8 数学公式与数据一致性版**。
+<h1 align="center">LightNote</h1>
+
+<p align="center"><strong>Windows 优先、本地优先的轻量笔记应用。</strong></p>
+
+LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，支持毫秒级 SQLite FTS5 全文搜索、多级分组、KaTeX 数学公式、多版本历史记录与可选的云端同步。当前版本为 **V1.8 数学公式与数据一致性版**。
+
+<p align="center">
+  <img src="screenshots/ss_1.png" width="800" alt="LightNote 界面截图" />
+</p>
 
 ## 当前能力
 
