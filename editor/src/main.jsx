@@ -72,7 +72,18 @@ const TextAppearance = Mark.create({
       },
     }
   },
-  parseHTML: () => [{ tag: 'span' }],
+  parseHTML() {
+    return [
+      {
+        tag: 'span[style]',
+        getAttrs: element => {
+          if (element.hasAttribute('data-type')) return false
+          const { fontFamily, fontSize, backgroundColor } = element.style
+          return fontFamily || fontSize || backgroundColor ? {} : false
+        },
+      },
+    ]
+  },
   renderHTML({ HTMLAttributes }) {
     const style = [
       HTMLAttributes.fontFamily ? `font-family: ${HTMLAttributes.fontFamily}` : '',
@@ -124,6 +135,7 @@ const InlineMath = Node.create({
   atom: true,
   selectable: true,
   draggable: true,
+  priority: 1000,
   addAttributes() {
     return {
       latex: {
@@ -134,7 +146,10 @@ const InlineMath = Node.create({
     }
   },
   parseHTML() {
-    return [{ tag: 'span[data-type="inline-math"]' }]
+    return [
+      { tag: 'span[data-type="inline-math"]', priority: 1000 },
+      { tag: 'math-inline', priority: 1000 },
+    ]
   },
   renderHTML({ HTMLAttributes }) {
     return ['span', mergeAttributes(HTMLAttributes, { 'data-type': 'inline-math' })]
@@ -266,6 +281,7 @@ const BlockMath = Node.create({
   atom: true,
   selectable: true,
   draggable: true,
+  priority: 1000,
   addAttributes() {
     return {
       latex: {
@@ -276,7 +292,10 @@ const BlockMath = Node.create({
     }
   },
   parseHTML() {
-    return [{ tag: 'div[data-type="block-math"]' }]
+    return [
+      { tag: 'div[data-type="block-math"]', priority: 1000 },
+      { tag: 'math-block', priority: 1000 },
+    ]
   },
   renderHTML({ HTMLAttributes }) {
     return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'block-math' })]
@@ -394,6 +413,18 @@ function extractExistingKatex(root) {
 }
 
 function convertMathInTextNodes(root) {
+  for (const span of [...root.querySelectorAll('span')]) {
+    if (span.hasAttribute('data-type') || span.classList.contains('katex')) continue
+    const text = span.textContent?.trim() || ''
+    const match = text.match(/^\$([^$]+)\$$/)
+    if (match && isLikelyMath(match[1])) {
+      const inline = document.createElement('span')
+      inline.setAttribute('data-type', 'inline-math')
+      inline.setAttribute('data-latex', match[1].trim())
+      span.parentNode?.replaceChild(inline, span)
+    }
+  }
+
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
   const textNodes = []
   let currentNode
