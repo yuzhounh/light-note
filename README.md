@@ -1,6 +1,6 @@
 # LightNote
 
-LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前版本为 **V1.6 交互细节统一版**。
+LightNote 是一个 Windows 优先、本地优先的轻量笔记应用。当前版本为 **V1.7 设置中心视觉重构版**。
 
 ## 当前能力
 
@@ -94,6 +94,6 @@ dotnet test LightNote.slnx
 .\scripts\build-installer.ps1
 ```
 
-发布目录为 `artifacts\releases\1.6.1\win-x64`，安装包为 `artifacts\installers\LightNote-1.6.1-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%LocalAppData%\LightNote`。
+发布目录为 `artifacts\releases\1.7.0\win-x64`，安装包为 `artifacts\installers\LightNote-1.7.0-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%LocalAppData%\LightNote`。
 
 构建产物规范见 [docs/build-artifacts.md](docs/build-artifacts.md)，详细路线见 [docs/implementation-plan.md](docs/implementation-plan.md)。

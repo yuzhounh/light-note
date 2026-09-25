@@ -110,6 +110,8 @@ public partial class SettingsDialog : Window
         SetInitialSection(initialSection);
 
         _isInitializing = false;
+        SourceInitialized += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+        Activated += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
         Loaded += OnLoaded;
     }
 
@@ -134,6 +136,7 @@ public partial class SettingsDialog : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         Loaded -= OnLoaded;
+        WindowNativeHelper.ApplyNativeFrame(this);
         try
         {
             await RefreshSummaryAsync();
@@ -175,6 +178,7 @@ public partial class SettingsDialog : Window
         {
             var themeService = new ThemeService();
             themeService.Apply(theme);
+            WindowNativeHelper.ApplyNativeFrame(this);
         }
     }
 

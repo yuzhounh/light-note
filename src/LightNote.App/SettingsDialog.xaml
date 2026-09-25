@@ -14,9 +14,11 @@
         Background="{DynamicResource AppBackgroundBrush}">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="42" ResizeBorderThickness="6"
-                            GlassFrameThickness="0" CornerRadius="10" UseAeroCaptionButtons="False" />
+                            GlassFrameThickness="0" CornerRadius="8" UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
+        <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimVerticalScrollBarStyle}" />
+
         <Style x:Key="CaptionCloseButtonStyle" TargetType="Button">
             <Setter Property="Margin" Value="0" />
             <Setter Property="Padding" Value="0" />
@@ -132,7 +134,7 @@
     <Border Background="{DynamicResource AppBackgroundBrush}"
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="1"
-            CornerRadius="10"
+            CornerRadius="8"
             SnapsToDevicePixels="True">
         <Grid>
             <Grid.RowDefinitions>
@@ -280,7 +282,7 @@
                                     <TextBlock x:Name="AccountEmailText" Text="本地离线模式" FontSize="12"
                                                FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
                                                Foreground="{DynamicResource TextBrush}" />
-                                    <TextBlock x:Name="AppVersionText" Text="LightNote v1.6" FontSize="11"
+                                    <TextBlock x:Name="AppVersionText" Text="LightNote v1.7" FontSize="11"
                                                Foreground="{DynamicResource MutedTextBrush}" />
                                 </StackPanel>
                             </Grid>

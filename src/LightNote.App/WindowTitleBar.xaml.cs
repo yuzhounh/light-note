@@ -17,8 +17,8 @@ public partial class WindowTitleBar : UserControl
             if (Window.GetWindow(this) is { } window)
             {
                 window.StateChanged += (_, _) => UpdateMaximizeIcon(window);
-                window.Activated += (_, _) => ApplyNativeFrame(window);
-                ApplyNativeFrame(window);
+                window.Activated += (_, _) => WindowNativeHelper.ApplyNativeFrame(window);
+                WindowNativeHelper.ApplyNativeFrame(window);
                 UpdateMaximizeIcon(window);
             }
         };
@@ -91,54 +91,4 @@ public partial class WindowTitleBar : UserControl
                 ? "M2.5,0.5 H10.5 V8.5 H8.5 M0.5,2.5 H8.5 V10.5 H0.5 Z"
                 : "M0.5,0.5 H10.5 V10.5 H0.5 Z");
     }
-
-    private static void ApplyNativeFrame(Window window)
-    {
-        var handle = new WindowInteropHelper(window).Handle;
-        if (handle == IntPtr.Zero)
-        {
-            return;
-        }
-
-        if (HwndSource.FromHwnd(handle) is { CompositionTarget: { } compositionTarget } &&
-            window.Background is SolidColorBrush backgroundBrush)
-        {
-            compositionTarget.BackgroundColor = backgroundBrush.Color;
-        }
-
-        try
-        {
-            var renderingPolicy = DwmNcRenderingEnabled;
-            _ = DwmSetWindowAttribute(
-                handle,
-                DwmWindowAttributeNcRenderingPolicy,
-                ref renderingPolicy,
-                sizeof(int));
-
-            var cornerPreference = DwmWindowCornerPreferenceRound;
-            _ = DwmSetWindowAttribute(
-                handle,
-                DwmWindowAttributeCornerPreference,
-                ref cornerPreference,
-                sizeof(int));
-        }
-        catch (DllNotFoundException)
-        {
-        }
-        catch (EntryPointNotFoundException)
-        {
-        }
-    }
-
-    private const int DwmWindowAttributeNcRenderingPolicy = 2;
-    private const int DwmNcRenderingEnabled = 2;
-    private const int DwmWindowAttributeCornerPreference = 33;
-    private const int DwmWindowCornerPreferenceRound = 2;
-
-    [DllImport("dwmapi.dll", PreserveSig = true)]
-    private static extern int DwmSetWindowAttribute(
-        IntPtr windowHandle,
-        int attribute,
-        ref int attributeValue,
-        int attributeSize);
 }
