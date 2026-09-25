@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using LightNote.Core.Abstractions;
 using LightNote.Core.Models;
 using LightNote.Infrastructure.Settings;
@@ -98,7 +99,20 @@ public partial class SettingsDialog : Window
         // 初始化侧边栏底部账户与版本
         var isOnline = !string.IsNullOrWhiteSpace(accountEmail);
         AccountEmailText.Text = isOnline ? accountEmail! : "本地离线模式";
-        AccountAvatarText.Text = isOnline ? accountEmail!.Substring(0, 1).ToUpperInvariant() : "L";
+        if (isOnline)
+        {
+            AccountAvatarText.FontFamily = new FontFamily("Segoe UI, Microsoft YaHei");
+            AccountAvatarText.FontWeight = FontWeights.SemiBold;
+            AccountAvatarText.FontSize = 12;
+            AccountAvatarText.Text = accountEmail!.Substring(0, 1).ToUpperInvariant();
+        }
+        else
+        {
+            AccountAvatarText.FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets");
+            AccountAvatarText.FontWeight = FontWeights.Normal;
+            AccountAvatarText.FontSize = 13;
+            AccountAvatarText.Text = "\uE77B";
+        }
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.7";
         AppVersionText.Text = $"LightNote v{version}";
 
