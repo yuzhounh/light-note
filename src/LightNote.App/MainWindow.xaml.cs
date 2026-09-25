@@ -1073,8 +1073,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void OnBackupClick(object sender, RoutedEventArgs e)
+    private async Task CreateBackupAsync(Window? owner = null)
     {
+        owner ??= this;
         try
         {
             await CaptureEditorSnapshotAsync();
@@ -1084,20 +1085,24 @@ public partial class MainWindow : Window
             }
 
             var backupPath = await _backupService.CreateAsync();
-            MessageBox.Show(this, $"备份已创建：\n{backupPath}", "LightNote",
+            MessageBox.Show(owner, $"备份已创建：\n{backupPath}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception)
         {
             _logger.Error("Failed to create a backup.", exception);
-            MessageBox.Show(this, "备份失败，请查看日志。", "LightNote",
+            MessageBox.Show(owner, "备份失败，请查看日志。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
-    private async void OnImportClick(object sender, RoutedEventArgs e)
+    private async void OnBackupClick(object sender, RoutedEventArgs e) =>
+        await CreateBackupAsync(this);
+
+    private async Task ImportAsync(Window? owner = null)
     {
-        var sourceDialog = new ImportSourceDialog { Owner = this };
+        owner ??= this;
+        var sourceDialog = new ImportSourceDialog { Owner = owner };
         if (sourceDialog.ShowDialog() != true)
         {
             return;
@@ -1116,7 +1121,7 @@ public partial class MainWindow : Window
                     Title = "选择包含笔记文件的文件夹",
                     Multiselect = false,
                 };
-                if (folderDialog.ShowDialog(this) != true)
+                if (folderDialog.ShowDialog(owner) != true)
                 {
                     return;
                 }
@@ -1129,7 +1134,7 @@ public partial class MainWindow : Window
                 prefixRelativeDirectory = true;
                 if (sourcePaths.Count == 0)
                 {
-                    MessageBox.Show(this, "该文件夹中没有可导入的 ENEX、Google Keep JSON、CSV、Markdown、文本或 HTML 文件。", "LightNote",
+                    MessageBox.Show(owner, "该文件夹中没有可导入的 ENEX、Google Keep JSON、CSV、Markdown、文本或 HTML 文件。", "LightNote",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -1147,7 +1152,7 @@ public partial class MainWindow : Window
                     Multiselect = true,
                     CheckFileExists = true,
                 };
-                if (fileDialog.ShowDialog(this) != true)
+                if (fileDialog.ShowDialog(owner) != true)
                 {
                     return;
                 }
@@ -1194,17 +1199,20 @@ public partial class MainWindow : Window
                 details.Add("失败文件：" + string.Join("；", result.Failures.Take(5).Select(failure =>
                     $"{System.IO.Path.GetFileName(failure.SourcePath)}（{failure.Message}）")));
             }
-            MessageBox.Show(this, string.Join(Environment.NewLine + Environment.NewLine, details), "导入完成",
+            MessageBox.Show(owner, string.Join(Environment.NewLine + Environment.NewLine, details), "导入完成",
                 MessageBoxButton.OK,
                 result.FailedCount == 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
         catch (Exception exception)
         {
             _logger.Error("Failed to import notes.", exception);
-            MessageBox.Show(this, $"导入失败：{exception.Message}", "LightNote",
+            MessageBox.Show(owner, $"导入失败：{exception.Message}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
+
+    private async void OnImportClick(object sender, RoutedEventArgs e) =>
+        await ImportAsync(this);
 
     private static bool IsSupportedImportPath(string path) =>
         System.IO.Path.GetExtension(path).ToLowerInvariant()
@@ -1222,15 +1230,16 @@ public partial class MainWindow : Window
             .ToArray();
     }
 
-    private async void OnRestoreBackupClick(object sender, RoutedEventArgs e)
+    private async Task RestoreBackupAsync(Window? owner = null)
     {
+        owner ??= this;
         var archiveDialog = new Microsoft.Win32.OpenFileDialog
         {
             Title = "选择 LightNote 备份",
             Filter = "LightNote 备份 (*.zip)|*.zip",
             CheckFileExists = true,
         };
-        if (archiveDialog.ShowDialog(this) != true)
+        if (archiveDialog.ShowDialog(owner) != true)
         {
             return;
         }
@@ -1240,7 +1249,7 @@ public partial class MainWindow : Window
             Title = "选择一个空目录保存恢复的数据",
             Multiselect = false,
         };
-        if (folderDialog.ShowDialog(this) != true)
+        if (folderDialog.ShowDialog(owner) != true)
         {
             return;
         }
@@ -1248,19 +1257,23 @@ public partial class MainWindow : Window
         try
         {
             await _backupService.RestoreAsync(archiveDialog.FileName, folderDialog.FolderName);
-            MessageBox.Show(this, $"备份已安全恢复到：\n{folderDialog.FolderName}", "LightNote",
+            MessageBox.Show(owner, $"备份已安全恢复到：\n{folderDialog.FolderName}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception)
         {
             _logger.Error("Failed to restore a backup.", exception);
-            MessageBox.Show(this, $"恢复失败：{exception.Message}", "LightNote",
+            MessageBox.Show(owner, $"恢复失败：{exception.Message}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
-    private async void OnExportNoteClick(object sender, RoutedEventArgs e)
+    private async void OnRestoreBackupClick(object sender, RoutedEventArgs e) =>
+        await RestoreBackupAsync(this);
+
+    private async Task ExportCurrentNoteAsync(Window? owner = null)
     {
+        owner ??= this;
         var note = _viewModel.SelectedNote?.Model;
         if (note is null || _viewModel.IsTrashSelected)
         {
@@ -1286,7 +1299,7 @@ public partial class MainWindow : Window
                 AddExtension = true,
                 OverwritePrompt = true,
             };
-            if (dialog.ShowDialog(this) != true)
+            if (dialog.ShowDialog(owner) != true)
             {
                 return;
             }
@@ -1298,16 +1311,19 @@ public partial class MainWindow : Window
                 _ => LightNote.Core.Models.NoteExportFormat.Html,
             };
             await _exportService.ExportAsync(note, format, dialog.FileName);
-            MessageBox.Show(this, $"笔记已导出：\n{dialog.FileName}", "LightNote",
+            MessageBox.Show(owner, $"笔记已导出：\n{dialog.FileName}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception)
         {
             _logger.Error("Failed to export a note.", exception);
-            MessageBox.Show(this, "导出失败，请查看日志。", "LightNote",
+            MessageBox.Show(owner, "导出失败，请查看日志。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
+
+    private async void OnExportNoteClick(object sender, RoutedEventArgs e) =>
+        await ExportCurrentNoteAsync(this);
 
     private void OnOpenLogsClick(object sender, RoutedEventArgs e)
     {
@@ -1345,14 +1361,15 @@ public partial class MainWindow : Window
             _viewModel.SyncStatus,
             _viewModel.SelectedNote is not null && !_viewModel.IsTrashSelected,
             initialSection,
-            _syncService.CurrentAccount?.Email)
+            _syncService.CurrentAccount?.Email,
+            onImportAsync: ImportAsync,
+            onExportCurrentNoteAsync: ExportCurrentNoteAsync,
+            onCreateBackupAsync: CreateBackupAsync,
+            onRestoreBackupAsync: RestoreBackupAsync)
         {
             Owner = this,
         };
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
+        dialog.ShowDialog();
 
         if (dialog.SettingsSaved)
         {

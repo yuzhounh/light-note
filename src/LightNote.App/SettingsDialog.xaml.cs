@@ -36,6 +36,10 @@ public partial class SettingsDialog : Window
     private readonly SqliteConnectionFactory _connectionFactory;
     private readonly IDatabaseIntegrityChecker _integrityChecker;
     private readonly IBackupService _backupService;
+    private readonly Func<Window, Task>? _onImportAsync;
+    private readonly Func<Window, Task>? _onExportCurrentNoteAsync;
+    private readonly Func<Window, Task>? _onCreateBackupAsync;
+    private readonly Func<Window, Task>? _onRestoreBackupAsync;
     private DatabaseIntegrityResult? _lastIntegrityResult;
     private bool _isInitializing = true;
 
@@ -48,7 +52,11 @@ public partial class SettingsDialog : Window
         string syncStatus,
         bool canExportCurrentNote,
         SettingsSection initialSection = SettingsSection.General,
-        string? accountEmail = null)
+        string? accountEmail = null,
+        Func<Window, Task>? onImportAsync = null,
+        Func<Window, Task>? onExportCurrentNoteAsync = null,
+        Func<Window, Task>? onCreateBackupAsync = null,
+        Func<Window, Task>? onRestoreBackupAsync = null)
     {
         InitializeComponent();
         _originalSettings = settings;
@@ -56,6 +64,10 @@ public partial class SettingsDialog : Window
         _connectionFactory = connectionFactory;
         _integrityChecker = integrityChecker;
         _backupService = backupService;
+        _onImportAsync = onImportAsync;
+        _onExportCurrentNoteAsync = onExportCurrentNoteAsync;
+        _onCreateBackupAsync = onCreateBackupAsync;
+        _onRestoreBackupAsync = onRestoreBackupAsync;
 
         Settings = settings;
 
@@ -87,7 +99,7 @@ public partial class SettingsDialog : Window
         var isOnline = !string.IsNullOrWhiteSpace(accountEmail);
         AccountEmailText.Text = isOnline ? accountEmail! : "本地离线模式";
         AccountAvatarText.Text = isOnline ? accountEmail!.Substring(0, 1).ToUpperInvariant() : "L";
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.6";
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.7";
         AppVersionText.Text = $"LightNote v{version}";
 
         // 初始化存储路径
@@ -244,17 +256,56 @@ public partial class SettingsDialog : Window
                query.Split(' ', StringSplitOptions.RemoveEmptyEntries).Any(part => keywords.Contains(part, StringComparison.OrdinalIgnoreCase));
     }
 
-    private void OnImportRequestClick(object sender, RoutedEventArgs e) =>
-        RequestAction(SettingsAction.Import);
+    private async void OnImportRequestClick(object sender, RoutedEventArgs e)
+    {
+        if (_onImportAsync is not null)
+        {
+            await _onImportAsync(this);
+            await RefreshSummaryAsync();
+        }
+        else
+        {
+            RequestAction(SettingsAction.Import);
+        }
+    }
 
-    private void OnExportRequestClick(object sender, RoutedEventArgs e) =>
-        RequestAction(SettingsAction.ExportCurrentNote);
+    private async void OnExportRequestClick(object sender, RoutedEventArgs e)
+    {
+        if (_onExportCurrentNoteAsync is not null)
+        {
+            await _onExportCurrentNoteAsync(this);
+        }
+        else
+        {
+            RequestAction(SettingsAction.ExportCurrentNote);
+        }
+    }
 
-    private void OnBackupRequestClick(object sender, RoutedEventArgs e) =>
-        RequestAction(SettingsAction.CreateBackup);
+    private async void OnBackupRequestClick(object sender, RoutedEventArgs e)
+    {
+        if (_onCreateBackupAsync is not null)
+        {
+            await _onCreateBackupAsync(this);
+            await RefreshSummaryAsync();
+        }
+        else
+        {
+            RequestAction(SettingsAction.CreateBackup);
+        }
+    }
 
-    private void OnRestoreRequestClick(object sender, RoutedEventArgs e) =>
-        RequestAction(SettingsAction.RestoreBackup);
+    private async void OnRestoreRequestClick(object sender, RoutedEventArgs e)
+    {
+        if (_onRestoreBackupAsync is not null)
+        {
+            await _onRestoreBackupAsync(this);
+            await RefreshSummaryAsync();
+        }
+        else
+        {
+            RequestAction(SettingsAction.RestoreBackup);
+        }
+    }
 
     private void RequestAction(SettingsAction action)
     {
