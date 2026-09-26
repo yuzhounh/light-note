@@ -36,18 +36,18 @@ export function Sidebar({
 
   return (
     <div className="flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
-      {/* Top Action: Large '+ 新建笔记' pill button */}
-      <div className="p-3">
+      {/* Top Action: '+ 新建笔记' pill button */}
+      <div className="px-3 pt-3 pb-2">
         <button
           onClick={() => {
             onCreateNote()
             if (isMobile) onCloseMobile()
           }}
-          className="w-full h-[42px] relative flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-full shadow-xs hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.98] transition cursor-pointer"
+          className="w-full h-[34px] relative flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-full shadow-xs hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.98] transition cursor-pointer"
         >
-          {/* Green circle: outer cap radius is 21px. Circle is 30px, left margin is 6px. Center = (21, 21). 100% concentric */}
-          <div className="w-[30px] h-[30px] rounded-full bg-[#00b87a] flex items-center justify-center shrink-0 ml-[6px]">
-            <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" stroke="currentColor" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          {/* Green circle: outer cap radius is 17px. Circle is 24px, left margin is 5px. Center = (17, 17). 100% concentric */}
+          <div className="w-[24px] h-[24px] rounded-full bg-[#00b87a] flex items-center justify-center shrink-0 ml-[5px]">
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
