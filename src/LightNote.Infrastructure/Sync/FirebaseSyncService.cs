@@ -31,15 +31,33 @@ public sealed class FirebaseSyncService(
 
     public SyncResult? LastSyncResult { get; private set; }
 
-    public FirebaseAccount? CurrentAccount => _session is null
-        ? null
-        : new FirebaseAccount
+    public FirebaseAccount? CurrentAccount
+    {
+        get
         {
-            UserId = _session.UserId,
-            Email = _session.Email,
-            DisplayName = _session.DisplayName,
-            PhotoUrl = _session.PhotoUrl,
-        };
+            if (_session is null)
+            {
+                try
+                {
+                    _session = _sessionStore.Load();
+                }
+                catch
+                {
+                    // Ignore load error on initial probe
+                }
+            }
+
+            return _session is null
+                ? null
+                : new FirebaseAccount
+                {
+                    UserId = _session.UserId,
+                    Email = _session.Email,
+                    DisplayName = _session.DisplayName,
+                    PhotoUrl = _session.PhotoUrl,
+                };
+        }
+    }
 
     public async Task<FirebaseAccount?> RestoreSessionAsync(
         CancellationToken cancellationToken = default)
@@ -51,7 +69,7 @@ public sealed class FirebaseSyncService(
 
         try
         {
-            _session = _sessionStore.Load();
+            _session ??= _sessionStore.Load();
             if (_session is null)
             {
                 return null;

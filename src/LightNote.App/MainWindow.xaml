@@ -202,7 +202,7 @@
                                             Background="#E2E8F0" HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Margin="0,0,8,0">
                                         <Grid>
-                                            <TextBlock x:Name="SidebarAvatarInitial" Text="G"
+                                            <TextBlock x:Name="SidebarAvatarInitial" Text="" Visibility="Collapsed"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                                        FontSize="12" FontWeight="SemiBold" Foreground="#475569" />
                                             <Image x:Name="SidebarAvatarImage" Stretch="UniformToFill">
@@ -248,7 +248,7 @@
                                             <Border Grid.Column="1" Width="40" Height="40" CornerRadius="8"
                                                     Background="#E2E8F0" HorizontalAlignment="Right" VerticalAlignment="Center">
                                                 <Grid>
-                                                    <TextBlock x:Name="AccountPopupAvatarInitial" Text="G"
+                                                    <TextBlock x:Name="AccountPopupAvatarInitial" Text="" Visibility="Collapsed"
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                FontSize="16" FontWeight="Bold" Foreground="#475569" />
                                                     <Image x:Name="AccountPopupAvatarImage" Stretch="UniformToFill">

@@ -1,3 +1,6 @@
+using System.IO;
+using Path = System.IO.Path;
+using System.Net.Http;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -89,6 +92,14 @@ public partial class MainWindow : Window
             _settings.ShowPinnedNavigation,
             _settings.ShowTrashNavigation);
         ApplyWindowSettings();
+        if (_syncService.CurrentAccount is { } cachedAccount)
+        {
+            UpdateAccountDisplay(cachedAccount);
+        }
+        else
+        {
+            UpdateAccountDisplay(null);
+        }
         DataContext = viewModel;
         _viewModel.SelectedNoteChanged += OnSelectedNoteChanged;
         _viewModel.NewNotebookRequested += OnNewNotebookRequested;
@@ -650,14 +661,20 @@ public partial class MainWindow : Window
         UpdateThemeMenu();
     }
 
+    private bool _avatarRefreshedThisSession;
+
     private void UpdateAvatarImages(FirebaseAccount? account)
     {
+        var avatarCachePath = Path.Combine(_paths.RootDirectory, "avatar_cache.jpg");
+
         if (account is null)
         {
             SidebarAvatarImage.Source = null;
             SidebarAvatarInitial.Text = "G";
+            SidebarAvatarInitial.Visibility = Visibility.Visible;
             AccountPopupAvatarImage.Source = null;
             AccountPopupAvatarInitial.Text = "G";
+            AccountPopupAvatarInitial.Visibility = Visibility.Visible;
             return;
         }
 
@@ -668,30 +685,144 @@ public partial class MainWindow : Window
         SidebarAvatarInitial.Text = initial;
         AccountPopupAvatarInitial.Text = initial;
 
-        if (!string.IsNullOrWhiteSpace(account.PhotoUrl) &&
-            Uri.TryCreate(account.PhotoUrl, UriKind.Absolute, out var photoUri))
+        // 1. If a local cached avatar image exists, load it immediately from disk.
+        if (File.Exists(avatarCachePath))
         {
             try
             {
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.UriSource = photoUri;
-                bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.EndInit();
+                var bitmap = LoadBitmapFromPath(avatarCachePath);
+                if (bitmap is not null)
+                {
+                    SidebarAvatarImage.Source = bitmap;
+                    AccountPopupAvatarImage.Source = bitmap;
+                    SidebarAvatarInitial.Visibility = Visibility.Collapsed;
+                    AccountPopupAvatarInitial.Visibility = Visibility.Collapsed;
 
-                SidebarAvatarImage.Source = bitmap;
-                AccountPopupAvatarImage.Source = bitmap;
-                return;
+                    // Silent background refresh once per session if photo URL is present
+                    if (!_avatarRefreshedThisSession &&
+                        !string.IsNullOrWhiteSpace(account.PhotoUrl) &&
+                        Uri.TryCreate(account.PhotoUrl, UriKind.Absolute, out var photoUri))
+                    {
+                        _avatarRefreshedThisSession = true;
+                        _ = DownloadAndCacheAvatarAsync(photoUri, avatarCachePath, initial, updateUi: false);
+                    }
+                    return;
+                }
             }
             catch (Exception ex)
             {
-                _logger.Info($"Failed to load user avatar image: {ex.Message}");
+                _logger.Info($"Failed to load cached avatar: {ex.Message}");
             }
         }
 
+        // 2. If user has a PhotoUrl, keep initials collapsed (do not show transitional letter)
+        // and fetch photo in background.
+        if (!string.IsNullOrWhiteSpace(account.PhotoUrl) &&
+            Uri.TryCreate(account.PhotoUrl, UriKind.Absolute, out var newPhotoUri))
+        {
+            SidebarAvatarInitial.Visibility = Visibility.Collapsed;
+            AccountPopupAvatarInitial.Visibility = Visibility.Collapsed;
+            _avatarRefreshedThisSession = true;
+            _ = DownloadAndCacheAvatarAsync(newPhotoUri, avatarCachePath, initial, updateUi: true);
+            return;
+        }
+
+        // 3. Fallback: Only show initial if user has no photo URL
         SidebarAvatarImage.Source = null;
         AccountPopupAvatarImage.Source = null;
+        SidebarAvatarInitial.Visibility = Visibility.Visible;
+        AccountPopupAvatarInitial.Visibility = Visibility.Visible;
+    }
+
+    private static BitmapImage? LoadBitmapFromPath(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var bytes = File.ReadAllBytes(path);
+        if (bytes.Length == 0)
+        {
+            return null;
+        }
+
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.StreamSource = new MemoryStream(bytes);
+        bitmap.EndInit();
+        bitmap.Freeze();
+        return bitmap;
+    }
+
+    private async Task DownloadAndCacheAvatarAsync(Uri photoUri, string cachePath, string fallbackInitial, bool updateUi)
+    {
+        try
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+            var bytes = await client.GetByteArrayAsync(photoUri);
+            if (bytes.Length > 0)
+            {
+                if (File.Exists(cachePath))
+                {
+                    try
+                    {
+                        var existingBytes = await File.ReadAllBytesAsync(cachePath);
+                        if (bytes.AsSpan().SequenceEqual(existingBytes))
+                        {
+                            return;
+                        }
+                    }
+                    catch
+                    {
+                        // Proceed to overwrite
+                    }
+                }
+
+                var tempPath = $"{cachePath}.{Guid.NewGuid():N}.tmp";
+                await File.WriteAllBytesAsync(tempPath, bytes);
+                File.Move(tempPath, cachePath, overwrite: true);
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    try
+                    {
+                        var bitmap = LoadBitmapFromPath(cachePath);
+                        if (bitmap is not null)
+                        {
+                            SidebarAvatarImage.Source = bitmap;
+                            AccountPopupAvatarImage.Source = bitmap;
+                            SidebarAvatarInitial.Visibility = Visibility.Collapsed;
+                            AccountPopupAvatarInitial.Visibility = Visibility.Collapsed;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Info($"Failed to decode updated avatar: {ex.Message}");
+                    }
+                });
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Info($"Failed to download user avatar image: {ex.Message}");
+        }
+
+        if (updateUi)
+        {
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (SidebarAvatarImage.Source is null)
+                {
+                    SidebarAvatarInitial.Text = fallbackInitial;
+                    SidebarAvatarInitial.Visibility = Visibility.Visible;
+                    AccountPopupAvatarInitial.Text = fallbackInitial;
+                    AccountPopupAvatarInitial.Visibility = Visibility.Visible;
+                }
+            });
+        }
     }
 
     private void OnAccountPopupPrimaryClick(object sender, RoutedEventArgs e)
@@ -1709,6 +1840,11 @@ public partial class MainWindow : Window
             await _syncService.SignOutAsync();
             _syncTimer.Stop();
             _viewModel.SyncStatus = "登录同步";
+            var avatarCachePath = Path.Combine(_paths.RootDirectory, "avatar_cache.jpg");
+            if (File.Exists(avatarCachePath))
+            {
+                try { File.Delete(avatarCachePath); } catch { }
+            }
             UpdateAccountDisplay(null);
         }
         catch (Exception exception)
