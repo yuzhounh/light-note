@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import { 
-  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check
+  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut
 } from 'lucide-react'
-import { UserProfileModal } from '../modals/UserProfileModal'
 
 export function Sidebar({
   notebooks,
@@ -171,12 +170,12 @@ export function Sidebar({
       </div>
 
       {/* Bottom Footer: User Profile / Google Login and Settings gear icon */}
-      <div className="flex items-center justify-between px-3.5 py-2.5 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
+      <div className="relative flex items-center justify-between px-3.5 py-2.5 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
         {currentUser ? (
           <button
-            onClick={() => setIsProfileModalOpen(true)}
+            onClick={() => setIsProfileModalOpen(!isProfileModalOpen)}
             className="flex items-center gap-2 max-w-[145px] hover:opacity-80 transition cursor-pointer text-left min-w-0"
-            title="查看账号详情与退出登录"
+            title="点击管理账号"
           >
             {currentUser.photoURL ? (
               <img
@@ -218,15 +217,58 @@ export function Sidebar({
             <Settings size={16} />
           </button>
         </div>
-      </div>
 
-      {/* Account Profile & Logout Modal */}
-      <UserProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        user={currentUser}
-        onLogout={onLogout}
-      />
+        {/* Compact Popover Card anchored right above the username in Column 1 */}
+        {isProfileModalOpen && currentUser && (
+          <>
+            {/* Invisible backdrop to dismiss on click outside */}
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setIsProfileModalOpen(false)} 
+            />
+
+            <div 
+              className="absolute bottom-full left-2 mb-2 w-52 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl p-3 z-50 flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-150 select-none"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2.5">
+                {currentUser.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt=""
+                    className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-zinc-300 dark:ring-zinc-700"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-semibold text-xs shrink-0">
+                    {currentUser.displayName ? currentUser.displayName.slice(0, 1).toUpperCase() : 'U'}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 truncate">
+                    {currentUser.displayName || 'LightNote 用户'}
+                  </div>
+                  <div className="text-[10px] text-zinc-400 truncate" title={currentUser.email}>
+                    {currentUser.email || ''}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-zinc-100 dark:border-zinc-800" />
+
+              <button
+                onClick={() => {
+                  setIsProfileModalOpen(false)
+                  if (onLogout) onLogout()
+                }}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-medium transition cursor-pointer"
+              >
+                <LogOut size={13} />
+                <span>退出登录</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
