@@ -12,6 +12,25 @@
         Foreground="{DynamicResource TextBrush}">
     <Window.Resources>
         <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimVerticalScrollBarStyle}" />
+        <Style x:Key="HistoryBodyTextBoxStyle" TargetType="TextBox">
+            <Setter Property="FontFamily" Value="Microsoft YaHei" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CaretBrush" Value="{DynamicResource TextBrush}" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      Margin="0,0,2,8"
+                                      Padding="12,0,8,0"
+                                      Focusable="False" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Grid Margin="18">
         <Grid.RowDefinitions>
@@ -29,7 +48,9 @@
             </Grid.ColumnDefinitions>
             <GroupBox Header="版本列表" Padding="2">
                 <ListBox x:Name="VersionsList" ItemsSource="{Binding}" SelectionChanged="OnSelectionChanged"
-                         Background="Transparent" BorderThickness="0" AutomationProperties.Name="历史版本列表">
+                         Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         AutomationProperties.Name="历史版本列表">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="Margin" Value="4,2" />
@@ -83,20 +104,22 @@
                     <ColumnDefinition Width="10" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <GroupBox Header="当前版本" Padding="10">
-                    <DockPanel>
-                        <TextBlock x:Name="CurrentTitleText" DockPanel.Dock="Top" Margin="0,0,0,8"
+                <GroupBox Header="当前版本" Padding="0">
+                    <DockPanel LastChildFill="True">
+                        <TextBlock x:Name="CurrentTitleText" DockPanel.Dock="Top" Margin="12,12,12,8"
                                    FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}" />
                         <TextBox x:Name="CurrentBodyText" IsReadOnly="True" BorderThickness="0"
-                                 Background="Transparent" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+                                 Background="Transparent" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                 Style="{StaticResource HistoryBodyTextBoxStyle}" />
                     </DockPanel>
                 </GroupBox>
-                <GroupBox Grid.Column="2" Header="所选历史版本" Padding="10">
-                    <DockPanel>
-                        <TextBlock x:Name="SelectedTitleText" DockPanel.Dock="Top" Margin="0,0,0,8"
+                <GroupBox Grid.Column="2" Header="所选历史版本" Padding="0">
+                    <DockPanel LastChildFill="True">
+                        <TextBlock x:Name="SelectedTitleText" DockPanel.Dock="Top" Margin="12,12,12,8"
                                    FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}" />
                         <TextBox x:Name="SelectedBodyText" IsReadOnly="True" BorderThickness="0"
-                                 Background="Transparent" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+                                 Background="Transparent" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                 Style="{StaticResource HistoryBodyTextBoxStyle}" />
                     </DockPanel>
                 </GroupBox>
             </Grid>

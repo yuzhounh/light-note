@@ -762,9 +762,13 @@
                             <Button x:Name="QuoteButton" Content="❞" Tag="blockquote"
                                     Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="引用" />
-                            <Button x:Name="CodeBlockButton" Content="{}{ }" Tag="codeBlock"
+                            <Button x:Name="CodeBlockButton" Tag="codeBlock"
                                     Style="{StaticResource ToolbarButtonStyle}"
-                                    Click="OnEditorCommandClick" ToolTip="代码块" />
+                                    Click="OnEditorCommandClick" ToolTip="代码块">
+                                <TextBlock Text="{}{ }" FontFamily="Consolas, Cascadia Code, monospace"
+                                           FontWeight="SemiBold" FontSize="13"
+                                           VerticalAlignment="Center" Margin="0,-2,0,0" />
+                            </Button>
                             <Button x:Name="TimestampButton" Tag="insertTimestamp"
                                     Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="插入当前时间">

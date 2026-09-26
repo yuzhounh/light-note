@@ -106,7 +106,7 @@ public partial class SettingsDialog : Window
         SyncStatusText.Text = syncStatus;
 
         // 初始化侧边栏底部软件与版本
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.1.1";
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.1.2";
         AppVersionText.Text = $"LightNote v{version}";
 
         // 初始化存储路径

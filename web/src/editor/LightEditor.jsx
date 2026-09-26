@@ -549,17 +549,17 @@ export const LightEditor = forwardRef(function LightEditor(
           ”
         </button>
 
-        {/* Code block: slightly smaller 22x22 square with no space {} */}
+        {/* Code block */}
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`w-[22px] h-[22px] rounded flex items-center justify-center text-[11px] font-mono shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs font-mono shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('codeBlock')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="代码块"
         >
-          <span className="font-mono whitespace-nowrap leading-none font-medium">{'{}'}</span>
+          <span className="font-mono whitespace-nowrap leading-none font-medium -translate-y-px">{'{}'}</span>
         </button>
 
         {/* Timestamp */}
