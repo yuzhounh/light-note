@@ -996,6 +996,314 @@ public partial class MainWindow : Window
         container.ContextMenu = CreateNotebookContextMenu(item);
     }
 
+    private Point _noteDragStartPoint;
+    private bool _isNoteDragging;
+    private Point _notebookDragStartPoint;
+    private bool _isNotebookDragging;
+    private ListBoxItem? _lastDropTargetItem;
+
+    private void OnNotePreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _noteDragStartPoint = e.GetPosition(this);
+        _isNoteDragging = false;
+    }
+
+    private void OnNotePreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _isNoteDragging)
+        {
+            return;
+        }
+
+        var currentPoint = e.GetPosition(this);
+        var diff = _noteDragStartPoint - currentPoint;
+        if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+            Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+        {
+            if (sender is ListBoxItem item && item.DataContext is NoteListItem noteItem)
+            {
+                _isNoteDragging = true;
+                try
+                {
+                    var data = new DataObject("LightNote.NoteId", noteItem.Model.Id);
+                    data.SetData("LightNote.NoteTitle", noteItem.Title);
+                    DragDrop.DoDragDrop(item, data, DragDropEffects.Move);
+                }
+                finally
+                {
+                    _isNoteDragging = false;
+                    ClearDropIndicators();
+                }
+            }
+        }
+    }
+
+    private void OnNotebookPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _notebookDragStartPoint = e.GetPosition(this);
+        _isNotebookDragging = false;
+    }
+
+    private void OnNotebookPreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _isNotebookDragging)
+        {
+            return;
+        }
+
+        var currentPoint = e.GetPosition(this);
+        var diff = _notebookDragStartPoint - currentPoint;
+        if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+            Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+        {
+            if (sender is ListBoxItem item && item.DataContext is NotebookListItem notebookItem)
+            {
+                if (notebookItem.Kind is not (NotebookKind.User or NotebookKind.Group))
+                {
+                    return;
+                }
+
+                _isNotebookDragging = true;
+                try
+                {
+                    var data = new DataObject();
+                    if (notebookItem.Kind == NotebookKind.User && notebookItem.Id is not null)
+                    {
+                        data.SetData("LightNote.NotebookId", notebookItem.Id);
+                        data.SetData("LightNote.NotebookItem", notebookItem);
+                    }
+                    else if (notebookItem.Kind == NotebookKind.Group && notebookItem.Id is not null)
+                    {
+                        data.SetData("LightNote.GroupId", notebookItem.Id);
+                        data.SetData("LightNote.GroupItem", notebookItem);
+                    }
+
+                    DragDrop.DoDragDrop(item, data, DragDropEffects.Move);
+                }
+                finally
+                {
+                    _isNotebookDragging = false;
+                    ClearDropIndicators();
+                }
+            }
+        }
+    }
+
+    private void OnNotebookDragOver(object sender, DragEventArgs e)
+    {
+        if (sender is not ListBoxItem targetItem || targetItem.DataContext is not NotebookListItem target)
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        // Scenario 1: Dragging a Note
+        if (e.Data.GetDataPresent("LightNote.NoteId"))
+        {
+            if (target.Kind is NotebookKind.User or NotebookKind.All)
+            {
+                e.Effects = DragDropEffects.Move;
+                SetDropTargetIndicator(targetItem, DropIndicator.Highlight);
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+                ClearDropIndicators();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        // Scenario 2: Dragging a User Notebook
+        if (e.Data.GetDataPresent("LightNote.NotebookId"))
+        {
+            var sourceId = (string)e.Data.GetData("LightNote.NotebookId");
+            var sourceItem = e.Data.GetData("LightNote.NotebookItem") as NotebookListItem;
+
+            // Target is a Group: "笔记本可以拖动放置某个笔记本组"
+            if (target.Kind == NotebookKind.Group)
+            {
+                if (sourceItem?.GroupId != target.Id)
+                {
+                    e.Effects = DragDropEffects.Move;
+                    SetDropTargetIndicator(targetItem, DropIndicator.Highlight);
+                }
+                else
+                {
+                    e.Effects = DragDropEffects.None;
+                    ClearDropIndicators();
+                }
+                e.Handled = true;
+                return;
+            }
+
+            // Target is GroupRoot or All: remove from group
+            if (target.Kind is NotebookKind.GroupRoot or NotebookKind.All)
+            {
+                if (sourceItem?.GroupId != null)
+                {
+                    e.Effects = DragDropEffects.Move;
+                    SetDropTargetIndicator(targetItem, DropIndicator.Highlight);
+                }
+                else
+                {
+                    e.Effects = DragDropEffects.None;
+                    ClearDropIndicators();
+                }
+                e.Handled = true;
+                return;
+            }
+
+            // Target is another User Notebook: "笔记本组或者笔记本也都可以拖动进行排序"
+            if (target.Kind == NotebookKind.User && target.Id != sourceId)
+            {
+                e.Effects = DragDropEffects.Move;
+                var pos = e.GetPosition(targetItem);
+                var insertAfter = pos.Y > targetItem.ActualHeight / 2;
+                SetDropTargetIndicator(targetItem, insertAfter ? DropIndicator.BottomLine : DropIndicator.TopLine);
+                e.Handled = true;
+                return;
+            }
+
+            e.Effects = DragDropEffects.None;
+            ClearDropIndicators();
+            e.Handled = true;
+            return;
+        }
+
+        // Scenario 3: Dragging a Notebook Group
+        if (e.Data.GetDataPresent("LightNote.GroupId"))
+        {
+            var sourceGroupId = (string)e.Data.GetData("LightNote.GroupId");
+            if (target.Kind == NotebookKind.Group && target.Id != sourceGroupId)
+            {
+                e.Effects = DragDropEffects.Move;
+                var pos = e.GetPosition(targetItem);
+                var insertAfter = pos.Y > targetItem.ActualHeight / 2;
+                SetDropTargetIndicator(targetItem, insertAfter ? DropIndicator.BottomLine : DropIndicator.TopLine);
+                e.Handled = true;
+                return;
+            }
+
+            e.Effects = DragDropEffects.None;
+            ClearDropIndicators();
+            e.Handled = true;
+            return;
+        }
+
+        e.Effects = DragDropEffects.None;
+        ClearDropIndicators();
+        e.Handled = true;
+    }
+
+    private void OnNotebookDragLeave(object sender, DragEventArgs e)
+    {
+        if (sender is ListBoxItem item && item == _lastDropTargetItem)
+        {
+            DropHelper.SetIndicator(item, DropIndicator.None);
+            _lastDropTargetItem = null;
+        }
+    }
+
+    private async void OnNotebookDrop(object sender, DragEventArgs e)
+    {
+        ClearDropIndicators();
+        if (sender is not ListBoxItem targetItem || targetItem.DataContext is not NotebookListItem target)
+        {
+            return;
+        }
+
+        try
+        {
+            // Drop Scenario 1: Note dropped onto Notebook
+            if (e.Data.GetDataPresent("LightNote.NoteId"))
+            {
+                var noteId = (string)e.Data.GetData("LightNote.NoteId");
+                string? targetNotebookId = target.Kind == NotebookKind.User ? target.Id : null;
+                await _viewModel.MoveNoteAsync(noteId, targetNotebookId);
+                e.Handled = true;
+                return;
+            }
+
+            // Drop Scenario 2: Notebook dropped
+            if (e.Data.GetDataPresent("LightNote.NotebookId"))
+            {
+                var sourceId = (string)e.Data.GetData("LightNote.NotebookId");
+                var sourceItem = e.Data.GetData("LightNote.NotebookItem") as NotebookListItem;
+
+                // A. Dropped onto a Group -> assign to group
+                if (target.Kind == NotebookKind.Group && target.Id is not null)
+                {
+                    if (sourceItem?.GroupId != target.Id)
+                    {
+                        await _viewModel.AssignNotebookToGroupAsync(sourceId, target.Id);
+                    }
+                    e.Handled = true;
+                    return;
+                }
+
+                // B. Dropped onto GroupRoot or All -> unassign group
+                if (target.Kind is NotebookKind.GroupRoot or NotebookKind.All)
+                {
+                    if (sourceItem?.GroupId != null)
+                    {
+                        await _viewModel.AssignNotebookToGroupAsync(sourceId, null);
+                    }
+                    e.Handled = true;
+                    return;
+                }
+
+                // C. Dropped onto another User Notebook -> reorder
+                if (target.Kind == NotebookKind.User && target.Id is not null && target.Id != sourceId)
+                {
+                    var pos = e.GetPosition(targetItem);
+                    var insertAfter = pos.Y > targetItem.ActualHeight / 2;
+                    await _viewModel.ReorderNotebooksAsync(sourceId, target.Id, insertAfter);
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // Drop Scenario 3: Notebook Group dropped
+            if (e.Data.GetDataPresent("LightNote.GroupId"))
+            {
+                var sourceGroupId = (string)e.Data.GetData("LightNote.GroupId");
+                if (target.Kind == NotebookKind.Group && target.Id is not null && target.Id != sourceGroupId)
+                {
+                    var pos = e.GetPosition(targetItem);
+                    var insertAfter = pos.Y > targetItem.ActualHeight / 2;
+                    await _viewModel.ReorderNotebookGroupsAsync(sourceGroupId, target.Id, insertAfter);
+                    e.Handled = true;
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to handle drop operation.", ex);
+        }
+    }
+
+    private void SetDropTargetIndicator(ListBoxItem item, DropIndicator indicator)
+    {
+        if (_lastDropTargetItem != null && _lastDropTargetItem != item)
+        {
+            DropHelper.SetIndicator(_lastDropTargetItem, DropIndicator.None);
+        }
+        _lastDropTargetItem = item;
+        DropHelper.SetIndicator(item, indicator);
+    }
+
+    private void ClearDropIndicators()
+    {
+        if (_lastDropTargetItem != null)
+        {
+            DropHelper.SetIndicator(_lastDropTargetItem, DropIndicator.None);
+            _lastDropTargetItem = null;
+        }
+    }
+
     private ContextMenu CreateNotebookContextMenu(NotebookListItem item)
     {
         var menu = new ContextMenu();

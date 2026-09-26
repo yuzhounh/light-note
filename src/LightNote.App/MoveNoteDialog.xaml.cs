@@ -25,4 +25,7 @@ public partial class MoveNoteDialog : Window
     }
 }
 
-public sealed record MoveDestination(string? Id, string Name);
+public sealed record MoveDestination(string? Id, string Name)
+{
+    public override string ToString() => Name;
+}

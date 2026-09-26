@@ -427,9 +427,62 @@
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <EventSetter Event="PreviewMouseRightButtonDown" Handler="OnNotebookPreviewMouseRightButtonDown" />
+                                <EventSetter Event="PreviewMouseLeftButtonDown" Handler="OnNotebookPreviewMouseLeftButtonDown" />
+                                <EventSetter Event="PreviewMouseMove" Handler="OnNotebookPreviewMouseMove" />
+                                <EventSetter Event="DragOver" Handler="OnNotebookDragOver" />
+                                <EventSetter Event="DragLeave" Handler="OnNotebookDragLeave" />
+                                <EventSetter Event="Drop" Handler="OnNotebookDrop" />
+                                <Setter Property="AllowDrop" Value="True" />
                                 <Setter Property="Padding" Value="7,6" />
                                 <Setter Property="Margin" Value="0,2" />
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Grid SnapsToDevicePixels="True">
+                                                <Border x:Name="ItemBackground"
+                                                        Background="{TemplateBinding Background}"
+                                                        BorderBrush="Transparent"
+                                                        BorderThickness="1"
+                                                        CornerRadius="6"
+                                                        Padding="{TemplateBinding Padding}"
+                                                        SnapsToDevicePixels="True">
+                                                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                                </Border>
+                                                <Border x:Name="TopLineIndicator" Height="2" Background="{DynamicResource AccentBrush}"
+                                                        VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="8,-1,8,0"
+                                                        CornerRadius="1" Visibility="Collapsed" IsHitTestVisible="False" />
+                                                <Border x:Name="BottomLineIndicator" Height="2" Background="{DynamicResource AccentBrush}"
+                                                        VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Margin="8,0,8,-1"
+                                                        CornerRadius="1" Visibility="Collapsed" IsHitTestVisible="False" />
+                                            </Grid>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ItemBackground" Property="Background"
+                                                            Value="{DynamicResource SecondaryPanelBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="ItemBackground" Property="Background"
+                                                            Value="{DynamicResource AccentLightBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="local:DropHelper.Indicator" Value="Highlight">
+                                                    <Setter TargetName="ItemBackground" Property="Background"
+                                                            Value="{DynamicResource AccentLightBrush}" />
+                                                    <Setter TargetName="ItemBackground" Property="BorderBrush"
+                                                            Value="{DynamicResource AccentBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="local:DropHelper.Indicator" Value="TopLine">
+                                                    <Setter TargetName="TopLineIndicator" Property="Visibility" Value="Visible" />
+                                                </Trigger>
+                                                <Trigger Property="local:DropHelper.Indicator" Value="BottomLine">
+                                                    <Setter TargetName="BottomLineIndicator" Property="Visibility" Value="Visible" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
                             </Style>
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
@@ -510,6 +563,8 @@
                              <ListBox.ItemContainerStyle>
                                  <Style TargetType="ListBoxItem">
                                      <EventSetter Event="PreviewMouseRightButtonDown" Handler="OnNotePreviewMouseRightButtonDown" />
+                                     <EventSetter Event="PreviewMouseLeftButtonDown" Handler="OnNotePreviewMouseLeftButtonDown" />
+                                     <EventSetter Event="PreviewMouseMove" Handler="OnNotePreviewMouseMove" />
                                      <EventSetter Event="MouseDoubleClick" Handler="OnNoteMouseDoubleClick" />
                                      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                      <Setter Property="VerticalContentAlignment" Value="Stretch" />

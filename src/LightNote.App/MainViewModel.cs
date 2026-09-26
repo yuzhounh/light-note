@@ -228,6 +228,122 @@ public sealed partial class MainViewModel(
         EditorStatus = groupId is null ? "笔记本已移出分组" : "笔记本分组已更新";
     }
 
+    public async Task ReorderNotebooksAsync(
+        string sourceNotebookId,
+        string targetNotebookId,
+        bool insertAfter,
+        CancellationToken cancellationToken = default)
+    {
+        if (sourceNotebookId == targetNotebookId)
+        {
+            return;
+        }
+
+        var notebooks = (await notebookRepository.ListAsync(cancellationToken)).ToList();
+        var assignments = (await notebookRepository.ListGroupAssignmentsAsync(cancellationToken)).ToDictionary(k => k.Key, v => v.Value);
+
+        var source = notebooks.FirstOrDefault(n => n.Id == sourceNotebookId);
+        var target = notebooks.FirstOrDefault(n => n.Id == targetNotebookId);
+        if (source is null || target is null)
+        {
+            return;
+        }
+
+        assignments.TryGetValue(sourceNotebookId, out var sourceGroupId);
+        assignments.TryGetValue(targetNotebookId, out var targetGroupId);
+
+        if (sourceGroupId != targetGroupId)
+        {
+            await notebookRepository.AssignToGroupAsync(sourceNotebookId, targetGroupId, cancellationToken);
+            if (targetGroupId is null)
+            {
+                assignments.Remove(sourceNotebookId);
+            }
+            else
+            {
+                assignments[sourceNotebookId] = targetGroupId;
+            }
+        }
+
+        var peers = notebooks
+            .Where(n => assignments.TryGetValue(n.Id, out var g) ? g == targetGroupId : targetGroupId == null)
+            .OrderBy(n => n.SortOrder)
+            .ThenBy(n => n.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        peers.RemoveAll(n => n.Id == sourceNotebookId);
+        var targetIndex = peers.FindIndex(n => n.Id == targetNotebookId);
+        if (targetIndex < 0)
+        {
+            peers.Add(source);
+        }
+        else
+        {
+            var insertIndex = insertAfter ? targetIndex + 1 : targetIndex;
+            if (insertIndex > peers.Count) insertIndex = peers.Count;
+            peers.Insert(insertIndex, source);
+        }
+
+        for (var i = 0; i < peers.Count; i++)
+        {
+            var item = peers[i];
+            if (item.SortOrder != i)
+            {
+                var updated = item with { SortOrder = i, UpdatedAt = DateTimeOffset.UtcNow };
+                await notebookRepository.UpsertAsync(updated, cancellationToken);
+            }
+        }
+
+        await ReloadNotebooksAsync(sourceNotebookId, cancellationToken);
+        EditorStatus = "笔记本排序已更新";
+    }
+
+    public async Task ReorderNotebookGroupsAsync(
+        string sourceGroupId,
+        string targetGroupId,
+        bool insertAfter,
+        CancellationToken cancellationToken = default)
+    {
+        if (sourceGroupId == targetGroupId)
+        {
+            return;
+        }
+
+        var groups = (await notebookRepository.ListGroupsAsync(cancellationToken)).ToList();
+        var source = groups.FirstOrDefault(g => g.Id == sourceGroupId);
+        var target = groups.FirstOrDefault(g => g.Id == targetGroupId);
+        if (source is null || target is null)
+        {
+            return;
+        }
+
+        groups.RemoveAll(g => g.Id == sourceGroupId);
+        var targetIndex = groups.FindIndex(g => g.Id == targetGroupId);
+        if (targetIndex < 0)
+        {
+            groups.Add(source);
+        }
+        else
+        {
+            var insertIndex = insertAfter ? targetIndex + 1 : targetIndex;
+            if (insertIndex > groups.Count) insertIndex = groups.Count;
+            groups.Insert(insertIndex, source);
+        }
+
+        for (var i = 0; i < groups.Count; i++)
+        {
+            var item = groups[i];
+            if (item.SortOrder != i)
+            {
+                var updated = item with { SortOrder = i, UpdatedAt = DateTimeOffset.UtcNow };
+                await notebookRepository.UpsertGroupAsync(updated, cancellationToken);
+            }
+        }
+
+        await ReloadNotebooksAsync(sourceGroupId, cancellationToken);
+        EditorStatus = "笔记本组排序已更新";
+    }
+
     public async Task RefreshAfterSyncAsync(CancellationToken cancellationToken = default)
     {
         var selectedNotebookId = SelectedNotebook?.Id;
@@ -317,17 +433,31 @@ public sealed partial class MainViewModel(
         EditorStatus = $"已恢复到版本 {version.Version}";
     }
 
-    public async Task MoveSelectedNoteAsync(
+    public async Task MoveNoteAsync(
+        string noteId,
         string? notebookId,
         CancellationToken cancellationToken = default)
     {
-        var noteId = SelectedNote?.Model.Id;
-        if (noteId is null || IsTrashSelected)
+        if (IsTrashSelected)
         {
             return;
         }
 
-        var current = GetLatestNote(noteId);
+        Note current;
+        if (TryGetLatestNote(noteId, out var existing))
+        {
+            current = existing;
+        }
+        else
+        {
+            var fromRepo = await noteRepository.GetAsync(noteId, cancellationToken);
+            if (fromRepo is null || fromRepo.DeletedAt is not null)
+            {
+                return;
+            }
+            current = fromRepo;
+        }
+
         if (current.NotebookId == notebookId)
         {
             return;
@@ -342,8 +472,21 @@ public sealed partial class MainViewModel(
         });
         CancelPendingDelay(noteId);
         await SavePendingAsync(noteId, cancellationToken: cancellationToken);
-        await ReloadNotesAsync(cancellationToken: cancellationToken);
-        EditorStatus = "笔记已移动";
+        await ReloadNotesAsync(noteId, cancellationToken: cancellationToken);
+        var targetName = notebookId is null
+            ? "未归档"
+            : Notebooks.FirstOrDefault(item => item.Id == notebookId)?.Name ?? "目标笔记本";
+        EditorStatus = $"笔记已移动到“{targetName}”";
+    }
+
+    public Task MoveSelectedNoteAsync(
+        string? notebookId,
+        CancellationToken cancellationToken = default)
+    {
+        var noteId = SelectedNote?.Model.Id;
+        return noteId is null
+            ? Task.CompletedTask
+            : MoveNoteAsync(noteId, notebookId, cancellationToken);
     }
 
     public void ApplyEditorChange(
