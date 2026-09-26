@@ -96,24 +96,8 @@ public partial class SettingsDialog : Window
         ExportNoteButton.IsEnabled = canExportCurrentNote;
         SyncStatusText.Text = syncStatus;
 
-        // 初始化侧边栏底部账户与版本
-        var isOnline = !string.IsNullOrWhiteSpace(accountEmail);
-        AccountEmailText.Text = isOnline ? accountEmail! : "本地离线模式";
-        if (isOnline)
-        {
-            AccountAvatarText.FontFamily = new FontFamily("Segoe UI, Microsoft YaHei");
-            AccountAvatarText.FontWeight = FontWeights.SemiBold;
-            AccountAvatarText.FontSize = 12;
-            AccountAvatarText.Text = accountEmail!.Substring(0, 1).ToUpperInvariant();
-        }
-        else
-        {
-            AccountAvatarText.FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets");
-            AccountAvatarText.FontWeight = FontWeights.Normal;
-            AccountAvatarText.FontSize = 13;
-            AccountAvatarText.Text = "\uE77B";
-        }
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.8";
+        // 初始化侧边栏底部软件与版本
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.8.0";
         AppVersionText.Text = $"LightNote v{version}";
 
         // 初始化存储路径

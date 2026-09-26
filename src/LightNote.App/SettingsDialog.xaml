@@ -262,32 +262,12 @@
                             </StackPanel>
                         </ScrollViewer>
 
-                        <!-- 底部账户与版本锚点 -->
+                        <!-- 底部软件与版本信息 -->
                         <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="0,1,0,0" Padding="12,10"
+                                BorderThickness="0,1,0,0" Padding="16,14"
                                 Background="{DynamicResource SecondaryPanelBrush}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="30" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Border Width="26" Height="26" CornerRadius="13"
-                                        Background="{DynamicResource AccentBrush}"
-                                        HorizontalAlignment="Left" VerticalAlignment="Center">
-                                    <TextBlock x:Name="AccountAvatarText" Text="&#xE77B;"
-                                               FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                               Foreground="#FFFFFFFF"
-                                               FontSize="13"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <StackPanel Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock x:Name="AccountEmailText" Text="本地离线模式" FontSize="12"
-                                               FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource TextBrush}" />
-                                    <TextBlock x:Name="AppVersionText" Text="LightNote v1.8" FontSize="11"
-                                               Foreground="{DynamicResource MutedTextBrush}" />
-                                </StackPanel>
-                            </Grid>
+                            <TextBlock x:Name="AppVersionText" Text="LightNote v1.8" FontSize="12"
+                                       Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center" />
                         </Border>
                     </Grid>
                 </Border>
