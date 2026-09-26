@@ -77,11 +77,52 @@ export function SettingsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs select-none">
       <div 
-        className="w-full max-w-xl h-[420px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-row animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-xl max-h-[85vh] sm:h-[420px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
-        {/* Left Column: Navigation Tabs & Version at bottom */}
-        <div className="w-44 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-between shrink-0">
+        {/* Mobile Header (Hidden on sm and above) */}
+        <div className="flex sm:hidden items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            设置
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+            title="关闭"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Mobile Tab Switcher (Hidden on sm and above) */}
+        <div className="flex sm:hidden items-center gap-1.5 p-2 bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+          <button
+            onClick={() => { setActiveTab('appearance'); setMsg('') }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+              activeTab === 'appearance'
+                ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50'
+            }`}
+          >
+            <Sun size={14} />
+            <span>外观主题</span>
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('data'); setMsg('') }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+              activeTab === 'data'
+                ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50'
+            }`}
+          >
+            <Database size={14} />
+            <span>数据与备份</span>
+          </button>
+        </div>
+
+        {/* Desktop Left Column: Navigation Tabs & Version at bottom (Hidden on mobile) */}
+        <div className="hidden sm:flex w-44 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex-col justify-between shrink-0">
           <div className="p-3">
             <h3 className="px-2 pt-1 pb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               设置
@@ -121,8 +162,8 @@ export function SettingsModal({
 
         {/* Right Column: Tab Content */}
         <div className="flex-1 flex flex-col bg-white dark:bg-zinc-900 min-w-0 overflow-hidden">
-          {/* Header with Close X button */}
-          <div className="flex items-center justify-end px-4 pt-3.5 pb-1">
+          {/* Header with Close X button (Desktop only, mobile has it in top bar) */}
+          <div className="hidden sm:flex items-center justify-end px-4 pt-3.5 pb-1">
             <button
               onClick={onClose}
               className="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
@@ -133,7 +174,7 @@ export function SettingsModal({
           </div>
 
           {/* Scrollable Tab Body */}
-          <div className="flex-1 overflow-y-auto px-6 pb-6 pt-1 text-xs text-zinc-700 dark:text-zinc-300 space-y-4">
+          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:pb-6 sm:pt-1 text-xs text-zinc-700 dark:text-zinc-300 space-y-4">
             {msg && (
               <div className="p-2.5 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-800 dark:text-zinc-200">
                 {msg}
@@ -144,7 +185,7 @@ export function SettingsModal({
             {activeTab === 'appearance' && (
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                  <h4 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100">
                     外观主题
                   </h4>
                   <p className="text-zinc-500 text-[11px] mt-0.5">
@@ -155,31 +196,31 @@ export function SettingsModal({
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <button
                     onClick={() => onChangeTheme('light')}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition cursor-pointer ${
+                    className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                       theme === 'light'
                         ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/90 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs ring-1 ring-zinc-300 dark:ring-zinc-600'
                         : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                     }`}
                   >
                     <Sun size={18} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                    <div>
-                      <div className="font-medium text-xs">浅色模式</div>
-                      <div className="text-[10px] text-zinc-400">标准明亮界面</div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-xs truncate">浅色模式</div>
+                      <div className="text-[10px] text-zinc-400 truncate">标准明亮界面</div>
                     </div>
                   </button>
 
                   <button
                     onClick={() => onChangeTheme('dark')}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition cursor-pointer ${
+                    className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                       theme === 'dark'
                         ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/90 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs ring-1 ring-zinc-300 dark:ring-zinc-600'
                         : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                     }`}
                   >
                     <Moon size={18} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                    <div>
-                      <div className="font-medium text-xs">深色模式</div>
-                      <div className="text-[10px] text-zinc-400">暗色护眼界面</div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-xs truncate">深色模式</div>
+                      <div className="text-[10px] text-zinc-400 truncate">暗色护眼界面</div>
                     </div>
                   </button>
                 </div>
@@ -190,7 +231,7 @@ export function SettingsModal({
             {activeTab === 'data' && (
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                  <h4 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100">
                     数据与备份
                   </h4>
                   <p className="text-zinc-500 text-[11px] mt-0.5">
@@ -207,13 +248,13 @@ export function SettingsModal({
                     <button
                       onClick={handleExport}
                       disabled={isExporting}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-800 dark:text-zinc-200 transition cursor-pointer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-800 dark:text-zinc-200 transition cursor-pointer text-xs"
                     >
                       <Download size={14} />
                       <span>导出全部笔记 (JSON)</span>
                     </button>
 
-                    <label className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-800 dark:text-zinc-200 transition cursor-pointer">
+                    <label className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-800 dark:text-zinc-200 transition cursor-pointer text-xs">
                       <Upload size={14} />
                       <span>导入备份文件</span>
                       <input type="file" accept=".json" onChange={handleImport} className="hidden" />
@@ -225,7 +266,7 @@ export function SettingsModal({
                   <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">存储清理</div>
                   <button
                     onClick={handleEmptyTrash}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg transition cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg transition cursor-pointer text-xs"
                   >
                     <Trash2 size={14} />
                     <span>清空回收站</span>
@@ -233,6 +274,11 @@ export function SettingsModal({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Mobile Version at bottom */}
+          <div className="sm:hidden border-t border-zinc-200 dark:border-zinc-800 py-2.5 text-center text-[11px] text-zinc-400 select-none">
+            {APP_DISPLAY_VERSION}
           </div>
         </div>
       </div>
