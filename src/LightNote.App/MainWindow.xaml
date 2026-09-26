@@ -624,14 +624,14 @@
                                                                         HighlightQuery="{Binding MatchQuery}"
                                                                         FontSize="15" FontWeight="Normal"
                                                                         TextTrimming="CharacterEllipsis" />
-                                            <local:HighlightedTextBlock Margin="0,5,0,0"
+                                            <local:HighlightedTextBlock Margin="0,4,0,0"
                                                                         HighlightText="{Binding Preview}"
                                                                         HighlightQuery="{Binding MatchQuery}"
                                                                         Foreground="{DynamicResource MutedTextBrush}"
-                                                                        FontSize="14"
+                                                                        FontSize="13"
                                                                         TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                                                                        LineHeight="18" MaxHeight="72" />
-                                             <TextBlock Margin="0,2,0,0" Text="{Binding UpdatedLabel}" FontSize="12"
+                                                                        LineHeight="18" LineStackingStrategy="BlockLineHeight" MaxHeight="36" />
+                                             <TextBlock Margin="0,4,0,0" Text="{Binding UpdatedLabel}" FontSize="12"
                                                         Foreground="{DynamicResource MutedTextBrush}" />
                                          </StackPanel>
                                          <Viewbox Width="16" Height="16" HorizontalAlignment="Right" VerticalAlignment="Top"
