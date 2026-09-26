@@ -8,6 +8,7 @@ import { Sidebar } from './components/layout/Sidebar'
 import { NoteList } from './components/layout/NoteList'
 import { NoteDetail } from './components/layout/NoteDetail'
 import { SettingsModal } from './components/modals/SettingsModal'
+import { AuthModal } from './components/modals/AuthModal'
 
 export function App() {
   const { isMobile, isTablet, isDesktop } = useResponsive()
@@ -21,6 +22,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [saveStatus, setSaveStatus] = useState('saved')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isAuthOpen, setIsAuthOpen] = useState(false)
   
   // Theme state
   const [theme, setTheme] = useState(() => {
@@ -231,23 +233,7 @@ export function App() {
   const currentNotebookName = notebooks.find(n => n.id === currentNotebookId)?.name
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
-      {/* Top Title Bar (Desktop Only) */}
-      {!isMobile && (
-        <div className="flex items-center justify-between px-3.5 py-1 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 select-none shrink-0">
-          <div className="flex items-center gap-2">
-            <img src="/favicon.svg" alt="LightNote" className="w-3.5 h-3.5" />
-            <span className="text-zinc-800 dark:text-zinc-200 font-medium text-[11px] tracking-wide">
-              LightNote
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-zinc-400">
-            <span className={`w-1.5 h-1.5 rounded-full ${saveStatus === 'saving' ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
-            <span>{saveStatus === 'saving' ? '保存中...' : '已保存在本地'}</span>
-          </div>
-        </div>
-      )}
-
+    <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
       {/* Main Multi-Column or Mobile Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* --- DESKTOP / TABLET (3-column / 2-column) --- */}
@@ -265,6 +251,7 @@ export function App() {
                 onDeleteNotebook={handleDeleteNotebook}
                 onCreateNote={handleCreateNote}
                 onOpenSettings={() => setIsSettingsOpen(true)}
+                onOpenAuth={() => setIsAuthOpen(true)}
                 theme={theme}
                 onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
                 isMobile={false}
@@ -319,6 +306,7 @@ export function App() {
                     onDeleteNotebook={handleDeleteNotebook}
                     onCreateNote={handleCreateNote}
                     onOpenSettings={() => setIsSettingsOpen(true)}
+                    onOpenAuth={() => setIsAuthOpen(true)}
                     theme={theme}
                     onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
                     onCloseMobile={() => setIsSidebarOpen(false)}
@@ -380,6 +368,12 @@ export function App() {
         theme={theme}
         onChangeTheme={setTheme}
         onDataImported={refreshData}
+      />
+
+      {/* Google / Account Auth Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
       />
     </div>
   )
