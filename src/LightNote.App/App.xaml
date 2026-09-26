@@ -11,6 +11,12 @@
         <SolidColorBrush x:Key="MutedTextBrush" Color="#FF68717D" />
         <SolidColorBrush x:Key="AccentBrush" Color="#FF246BFD" />
         <SolidColorBrush x:Key="AccentLightBrush" Color="#FFDCEEFF" />
+        <SolidColorBrush x:Key="ToolbarActiveBackgroundBrush" Color="#FFDCEEFF" />
+        <SolidColorBrush x:Key="ToolbarActiveForegroundBrush" Color="#FF1D4ED8" />
+        <SolidColorBrush x:Key="ToolbarActiveBorderBrush" Color="#FF93C5FD" />
+        <SolidColorBrush x:Key="ToolTipBackgroundBrush" Color="#FF1F2328" />
+        <SolidColorBrush x:Key="ToolTipForegroundBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#FF374151" />
         <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#FFE2E5E9" />
         <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#FFCBD0D6" />
         <SolidColorBrush x:Key="ScrollBarThumbDragBrush" Color="#FFAAB2BC" />
@@ -91,6 +97,36 @@
             </Setter>
         </Style>
 
+        <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="{DynamicResource ToolTipBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ToolTipForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ToolTipBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontFamily" Value="Microsoft YaHei, Segoe UI" />
+            <Setter Property="HasDropShadow" Value="False" />
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270"
+                                                  Color="#000000" Opacity="0.35" />
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="ToolbarButtonStyle" TargetType="Button"
                BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Width" Value="30" />
@@ -99,28 +135,37 @@
             <Setter Property="Margin" Value="1,0" />
             <Setter Property="Padding" Value="3" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="ButtonBorder"
-                                Padding="{TemplateBinding Padding}"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="5">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
+                        <Grid>
+                            <Border x:Name="ButtonBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="5"
+                                    SnapsToDevicePixels="True" />
+                            <Border x:Name="HoverOverlay"
+                                    Background="{DynamicResource SecondaryPanelBrush}"
+                                    CornerRadius="5"
+                                    Opacity="0"
+                                    SnapsToDevicePixels="True" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background"
-                                        Value="{DynamicResource SecondaryPanelBrush}" />
+                                <Setter TargetName="HoverOverlay" Property="Opacity" Value="0.6" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.72" />
+                                <Setter Property="Opacity" Value="0.75" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.45" />
+                                <Setter Property="Opacity" Value="0.45" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

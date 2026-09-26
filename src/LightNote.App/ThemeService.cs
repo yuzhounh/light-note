@@ -19,7 +19,13 @@ public sealed class ThemeService
         SetBrush("TextBrush", IsDark ? "#FFF2F4F7" : "#FF1F2328");
         SetBrush("MutedTextBrush", IsDark ? "#FFAAB2BC" : "#FF68717D");
         SetBrush("AccentBrush", IsDark ? "#FF3B82F6" : "#FF246BFD");
-        SetBrush("AccentLightBrush", IsDark ? "#FF22334D" : "#FFDCEEFF");
+        SetBrush("AccentLightBrush", IsDark ? "#FF2A374A" : "#FFDCEEFF");
+        SetBrush("ToolbarActiveBackgroundBrush", IsDark ? "#FF404B5C" : "#FFDCEEFF");
+        SetBrush("ToolbarActiveForegroundBrush", IsDark ? "#FFFFFFFF" : "#FF1D4ED8");
+        SetBrush("ToolbarActiveBorderBrush", IsDark ? "#FF64748B" : "#FF93C5FD");
+        SetBrush("ToolTipBackgroundBrush", IsDark ? "#FF2B3037" : "#FF1F2328");
+        SetBrush("ToolTipForegroundBrush", IsDark ? "#FFF3F4F6" : "#FFFFFFFF");
+        SetBrush("ToolTipBorderBrush", IsDark ? "#FF4B5563" : "#FF374151");
         SetBrush("ScrollBarThumbBrush", IsDark ? "#FF3B4148" : "#FFE2E5E9");
         SetBrush("ScrollBarThumbHoverBrush", IsDark ? "#FF4E555E" : "#FFCBD0D6");
         SetBrush("ScrollBarThumbDragBrush", IsDark ? "#FF656D78" : "#FFAAB2BC");

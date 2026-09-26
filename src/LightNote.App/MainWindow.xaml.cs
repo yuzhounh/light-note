@@ -495,12 +495,18 @@ public partial class MainWindow : Window
 
     private void SetFormattingButtonState(Button button, bool isActive)
     {
-        button.Background = isActive
-            ? (Brush)FindResource("AccentLightBrush")
-            : Brushes.Transparent;
-        button.Foreground = isActive
-            ? (Brush)FindResource("AccentBrush")
-            : (Brush)FindResource("TextBrush");
+        if (isActive)
+        {
+            button.SetResourceReference(Control.BackgroundProperty, "ToolbarActiveBackgroundBrush");
+            button.SetResourceReference(Control.ForegroundProperty, "ToolbarActiveForegroundBrush");
+            button.SetResourceReference(Control.BorderBrushProperty, "ToolbarActiveBorderBrush");
+        }
+        else
+        {
+            button.Background = Brushes.Transparent;
+            button.SetResourceReference(Control.ForegroundProperty, "TextBrush");
+            button.BorderBrush = Brushes.Transparent;
+        }
     }
 
     private static bool ReadBoolean(JsonElement element, string propertyName) =>
