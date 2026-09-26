@@ -6,7 +6,9 @@
         SizeToContent="Height"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
-        ShowInTaskbar="False">
+        ShowInTaskbar="False"
+        Background="{DynamicResource AppBackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}">
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -18,41 +20,45 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <TextBlock Text="登录 Firebase 同步" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="登录 Firebase 同步" FontSize="18" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextBrush}" />
 
         <!-- Google Sign-In Section -->
-        <Border Grid.Row="1" Margin="0,16,0,0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="14">
+        <Border Grid.Row="1" Margin="0,16,0,0" Background="{DynamicResource SecondaryPanelBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
             <StackPanel>
                 <Button x:Name="GoogleSignInButton"
                         Height="40"
-                        Background="#FFFFFF"
-                        BorderBrush="#CBD5E1"
+                        Background="{DynamicResource PanelBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         Cursor="Hand"
                         Click="OnGoogleSignInClick">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <TextBlock Text="G" FontWeight="Bold" FontSize="16" Foreground="#4285F4" Margin="0,0,8,0" VerticalAlignment="Center" />
-                        <TextBlock Text="使用 Google 账号登录" FontSize="14" FontWeight="Medium" Foreground="#1E293B" VerticalAlignment="Center" />
+                        <TextBlock Text="使用 Google 账号登录" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
 
                 <!-- Google Client ID Configuration (Expanded when needed) -->
                 <StackPanel x:Name="GoogleConfigPanel" Margin="0,12,0,0">
-                    <TextBlock Text="Google OAuth 客户端 ID (Desktop app)：" FontSize="12" Foreground="#475569" Margin="0,0,0,4" />
+                    <TextBlock Text="Google OAuth 客户端 ID (Desktop app)：" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" Margin="0,0,0,4" />
                     <TextBox x:Name="GoogleClientIdBox" Padding="8,5" FontSize="12" />
-                    <TextBlock Text="请在 Google Cloud 凭据中创建类型为「桌面应用」的客户端 ID" FontSize="11" Foreground="#94A3B8" Margin="0,3,0,6" />
+                    <TextBlock Text="请在 Google Cloud 凭据中创建类型为「桌面应用」的客户端 ID" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,3,0,6" />
 
-                    <TextBlock Text="客户端密钥 Client Secret (可选)：" FontSize="12" Foreground="#475569" Margin="0,0,0,4" />
+                    <TextBlock Text="客户端密钥 Client Secret (可选)：" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" Margin="0,0,0,4" />
                     <PasswordBox x:Name="GoogleClientSecretBox" Padding="8,5" FontSize="12" />
                 </StackPanel>
             </StackPanel>
         </Border>
 
         <!-- Status / Waiting panel -->
-        <Border x:Name="ProgressPanel" Grid.Row="2" Margin="0,12,0,0" Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="6" Padding="10" Visibility="Collapsed">
+        <Border x:Name="ProgressPanel" Grid.Row="2" Margin="0,12,0,0"
+                Background="{DynamicResource SecondaryPanelBrush}"
+                BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Visibility="Collapsed">
             <StackPanel>
-                <TextBlock x:Name="ProgressText" Text="正在等待浏览器授权…" Foreground="#1D4ED8" FontWeight="Medium" TextWrapping="Wrap" />
-                <TextBlock Text="已拉起浏览器，请在 Google 官方页面选择账号并授权。" FontSize="11" Foreground="#3B82F6" Margin="0,2,0,0" />
+                <TextBlock x:Name="ProgressText" Text="正在等待浏览器授权…" Foreground="{DynamicResource AccentBrush}" FontWeight="Medium" TextWrapping="Wrap" />
+                <TextBlock Text="已拉起浏览器，请在 Google 官方页面选择账号并授权。" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0" />
             </StackPanel>
         </Border>
 
@@ -63,25 +69,27 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Separator VerticalAlignment="Center" Margin="0,0,10,0" />
-            <TextBlock Grid.Column="1" Text="或使用邮箱密码" FontSize="12" Foreground="#94A3B8" />
-            <Separator Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0" />
+            <Separator VerticalAlignment="Center" Margin="0,0,10,0" Style="{StaticResource MenuSeparatorStyle}" />
+            <TextBlock Grid.Column="1" Text="或使用邮箱密码" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" />
+            <Separator Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource MenuSeparatorStyle}" />
         </Grid>
 
         <!-- Email & Password Form -->
         <StackPanel Grid.Row="4">
-            <TextBlock Text="邮箱" FontSize="12" Foreground="#475569" />
+            <TextBlock Text="邮箱" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" />
             <TextBox x:Name="EmailBox" Margin="0,4,0,10" Padding="8,6" />
-            <TextBlock Text="密码" FontSize="12" Foreground="#475569" />
+            <TextBlock Text="密码" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" />
             <PasswordBox x:Name="PasswordBox" Margin="0,4,0,12" Padding="8,6" />
         </StackPanel>
 
         <!-- Action Buttons -->
         <Grid Grid.Row="5" Margin="0,6,0,0">
-            <TextBlock VerticalAlignment="Center" Text="令牌保存在本机 DPAPI" FontSize="11" Foreground="#94A3B8" />
+            <TextBlock VerticalAlignment="Center" Text="令牌保存在本机 DPAPI" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="CancelButton" Margin="0,0,8,0" Padding="16,6" Content="取消" IsCancel="True" Click="OnCancelClick" />
-                <Button x:Name="EmailSignInButton" Padding="16,6" Content="邮箱登录" Click="OnEmailSignInClick" />
+                <Button x:Name="CancelButton" Margin="0,0,8,0" Padding="16,6" Content="取消" IsCancel="True"
+                        Style="{StaticResource DialogButtonStyle}" Click="OnCancelClick" />
+                <Button x:Name="EmailSignInButton" Padding="16,6" Content="邮箱登录"
+                        Style="{StaticResource DialogPrimaryButtonStyle}" Click="OnEmailSignInClick" />
             </StackPanel>
         </Grid>
     </Grid>
