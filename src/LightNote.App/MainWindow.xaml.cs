@@ -2307,5 +2307,23 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void OnSearchBoxPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!SearchBox.IsKeyboardFocused && string.IsNullOrEmpty(SearchBox.Text))
+        {
+            SearchBox.Focus();
+            SearchBox.CaretIndex = 0;
+            e.Handled = true;
+        }
+    }
+
+    private void OnSearchBoxGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(SearchBox.Text))
+        {
+            SearchBox.CaretIndex = 0;
+        }
+    }
+
     private sealed record NotebookGroupAssignment(string NotebookId, string? GroupId);
 }

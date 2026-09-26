@@ -525,21 +525,28 @@
                     <Border DockPanel.Dock="Top" Padding="14,12" BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,0,0,1">
                         <StackPanel>
-                            <Border CornerRadius="6" Background="{DynamicResource SecondaryPanelBrush}"
+                            <Border Height="46" CornerRadius="6" Background="{DynamicResource SecondaryPanelBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                 <Grid>
-                                    <TextBox x:Name="SearchBox" Margin="10,7" BorderThickness="0" Background="Transparent"
-                                             FontSize="14" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                    <TextBox x:Name="SearchBox" Margin="12,0" BorderThickness="0" Background="Transparent"
+                                             FontSize="14" VerticalAlignment="Center"
+                                             PreviewMouseLeftButtonDown="OnSearchBoxPreviewMouseLeftButtonDown"
+                                             GotKeyboardFocus="OnSearchBoxGotKeyboardFocus"
+                                             Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
                                              ToolTip="搜索标题和正文（Ctrl+F）" />
-                                    <TextBlock Margin="12,0" Text="搜索标题和正文" VerticalAlignment="Center"
+                                    <TextBlock Margin="14,0" Text="搜索标题和正文" VerticalAlignment="Center"
                                                Foreground="{DynamicResource MutedTextBrush}" IsHitTestVisible="False">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Visibility" Value="Collapsed" />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding SearchQuery}" Value="">
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding SearchQuery}" Value="" />
+                                                            <Condition Binding="{Binding IsKeyboardFocused, ElementName=SearchBox}" Value="False" />
+                                                        </MultiDataTrigger.Conditions>
                                                         <Setter Property="Visibility" Value="Visible" />
-                                                    </DataTrigger>
+                                                    </MultiDataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </TextBlock.Style>
@@ -765,7 +772,7 @@
                             <Button x:Name="CodeBlockButton" Tag="codeBlock"
                                     Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="代码块">
-                                <TextBlock Text="{}{ }" FontFamily="Consolas, Cascadia Code, monospace"
+                                <TextBlock Text="{}{}" FontFamily="Consolas, Cascadia Code, monospace"
                                            FontWeight="SemiBold" FontSize="13"
                                            VerticalAlignment="Center" Margin="0,-2,0,0" />
                             </Button>

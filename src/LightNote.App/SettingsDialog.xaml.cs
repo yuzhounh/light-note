@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using LightNote.Core.Abstractions;
 using LightNote.Core.Models;
@@ -233,10 +234,41 @@ public partial class SettingsDialog : Window
         }
     }
 
+    private void UpdateSearchPlaceholderVisibility()
+    {
+        var isEmpty = string.IsNullOrEmpty(SearchBox.Text);
+        SearchPlaceholder.Visibility = (isEmpty && !SearchBox.IsKeyboardFocused) ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnSearchBoxGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        UpdateSearchPlaceholderVisibility();
+        if (string.IsNullOrEmpty(SearchBox.Text))
+        {
+            SearchBox.CaretIndex = 0;
+        }
+    }
+
+    private void OnSearchBoxLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        UpdateSearchPlaceholderVisibility();
+    }
+
+    private void OnSearchBoxPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!SearchBox.IsKeyboardFocused && string.IsNullOrEmpty(SearchBox.Text))
+        {
+            SearchBox.Focus();
+            SearchBox.CaretIndex = 0;
+            UpdateSearchPlaceholderVisibility();
+            e.Handled = true;
+        }
+    }
+
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
+        UpdateSearchPlaceholderVisibility();
         var query = SearchBox.Text?.Trim() ?? string.Empty;
-        SearchPlaceholder.Visibility = string.IsNullOrEmpty(query) ? Visibility.Visible : Visibility.Collapsed;
 
         if (string.IsNullOrEmpty(query))
         {

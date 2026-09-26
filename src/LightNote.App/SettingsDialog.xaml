@@ -188,7 +188,7 @@
                         <Border Grid.Row="0" Margin="12,12,12,8" CornerRadius="7"
                                 Background="{DynamicResource SecondaryPanelBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                                Padding="8,5">
+                                Height="34" Padding="8,0">
                             <Grid>
                                 <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="12"
                                            Foreground="{DynamicResource MutedTextBrush}"
@@ -196,6 +196,9 @@
                                 <TextBox x:Name="SearchBox" Margin="20,0,0,0" BorderThickness="0"
                                          Background="Transparent" FontSize="12.5"
                                          VerticalAlignment="Center" TextChanged="OnSearchTextChanged"
+                                         GotKeyboardFocus="OnSearchBoxGotKeyboardFocus"
+                                         LostKeyboardFocus="OnSearchBoxLostKeyboardFocus"
+                                         PreviewMouseLeftButtonDown="OnSearchBoxPreviewMouseLeftButtonDown"
                                          Foreground="{DynamicResource TextBrush}" />
                                 <TextBlock x:Name="SearchPlaceholder" Margin="22,0,0,0" Text="搜索设置…"
                                            IsHitTestVisible="False" FontSize="12.5"
