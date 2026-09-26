@@ -143,7 +143,7 @@ const FONT_FAMILIES = [
 const FONT_SIZES = ['11', '12', '13', '14', '15', '16', '18', '20', '24']
 
 export const LightEditor = forwardRef(function LightEditor(
-  { content, onChange, isMobile = false },
+  { title, onUpdateTitle, content, onChange, isMobile = false },
   ref
 ) {
   const [selectedFont, setSelectedFont] = useState('微软雅黑')
@@ -259,7 +259,7 @@ export const LightEditor = forwardRef(function LightEditor(
   return (
     <div className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden">
       {/* 1:1 Parity Desktop Toolbar */}
-      <div className="flex items-center gap-1.5 px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs select-none overflow-x-auto">
+      <div className="flex items-center gap-1.5 px-6 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs select-none overflow-x-auto shrink-0">
         {/* Font Family Dropdown */}
         <select
           value={selectedFont}
@@ -438,8 +438,21 @@ export const LightEditor = forwardRef(function LightEditor(
         </button>
       </div>
 
-      {/* Editor Content Area */}
-      <div className="flex-1 overflow-y-auto px-10 py-6">
+      {/* Editor Content Area: Title is directly below toolbar, strictly left-aligned at px-6 */}
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        <input
+          type="text"
+          placeholder="无标题"
+          value={title || ''}
+          onChange={e => onUpdateTitle && onUpdateTitle(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === 'Tab') {
+              e.preventDefault()
+              editor?.commands.focus()
+            }
+          }}
+          className="w-full text-2xl font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-4 tracking-tight"
+        />
         <EditorContent editor={editor} />
       </div>
     </div>
