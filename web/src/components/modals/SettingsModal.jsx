@@ -91,8 +91,8 @@ export function SettingsModal({
                 onClick={() => { setActiveTab('appearance'); setMsg('') }}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer text-left ${
                   activeTab === 'appearance'
-                    ? 'bg-amber-100/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-semibold'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-900'
+                    ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-900'
                 }`}
               >
                 <Sun size={15} />
@@ -103,8 +103,8 @@ export function SettingsModal({
                 onClick={() => { setActiveTab('data'); setMsg('') }}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer text-left ${
                   activeTab === 'data'
-                    ? 'bg-amber-100/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-semibold'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-900'
+                    ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-900'
                 }`}
               >
                 <Database size={15} />
@@ -135,7 +135,7 @@ export function SettingsModal({
           {/* Scrollable Tab Body */}
           <div className="flex-1 overflow-y-auto px-6 pb-6 pt-1 text-xs text-zinc-700 dark:text-zinc-300 space-y-4">
             {msg && (
-              <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-md text-amber-800 dark:text-amber-300">
+              <div className="p-2.5 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-800 dark:text-zinc-200">
                 {msg}
               </div>
             )}
@@ -157,11 +157,11 @@ export function SettingsModal({
                     onClick={() => onChangeTheme('light')}
                     className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition cursor-pointer ${
                       theme === 'light'
-                        ? 'border-amber-500 bg-amber-50/40 dark:bg-amber-950/20 text-zinc-900 dark:text-zinc-100 shadow-xs'
-                        : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                        ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/90 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs ring-1 ring-zinc-300 dark:ring-zinc-600'
+                        : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                     }`}
                   >
-                    <Sun size={18} className="text-amber-500 shrink-0" />
+                    <Sun size={18} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
                     <div>
                       <div className="font-medium text-xs">浅色模式</div>
                       <div className="text-[10px] text-zinc-400">标准明亮界面</div>
@@ -172,11 +172,11 @@ export function SettingsModal({
                     onClick={() => onChangeTheme('dark')}
                     className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition cursor-pointer ${
                       theme === 'dark'
-                        ? 'border-amber-500 bg-amber-50/40 dark:bg-amber-950/20 text-zinc-900 dark:text-zinc-100 shadow-xs'
-                        : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                        ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/90 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs ring-1 ring-zinc-300 dark:ring-zinc-600'
+                        : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                     }`}
                   >
-                    <Moon size={18} className="text-amber-500 shrink-0" />
+                    <Moon size={18} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
                     <div>
                       <div className="font-medium text-xs">深色模式</div>
                       <div className="text-[10px] text-zinc-400">暗色护眼界面</div>
