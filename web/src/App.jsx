@@ -364,10 +364,10 @@ export function App() {
                 {currentView !== 'trash' && (
                   <button
                     onClick={handleCreateNote}
-                    className="fixed right-5 bottom-6 w-14 h-14 rounded-full bg-emerald-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition z-40 cursor-pointer"
+                    className="fixed right-5 bottom-6 w-11 h-11 rounded-full bg-[#00b87a] text-white shadow-md hover:shadow-lg flex items-center justify-center active:scale-90 transition z-40 cursor-pointer"
                     title="新建笔记"
                   >
-                    <Plus size={28} />
+                    <Plus size={22} strokeWidth={2.5} />
                   </button>
                 )}
               </div>

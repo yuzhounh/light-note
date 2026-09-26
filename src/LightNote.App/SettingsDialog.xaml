@@ -59,6 +59,7 @@
                     <ControlTemplate TargetType="ListBoxItem">
                         <Border x:Name="NavBorder" Padding="{TemplateBinding Padding}"
                                 Background="{TemplateBinding Background}" CornerRadius="7"
+                                BorderThickness="1" BorderBrush="Transparent"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter />
                         </Border>
@@ -70,6 +71,8 @@
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="NavBorder" Property="Background"
                                         Value="{DynamicResource AccentLightBrush}" />
+                                <Setter TargetName="NavBorder" Property="BorderBrush"
+                                        Value="{DynamicResource AccentBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

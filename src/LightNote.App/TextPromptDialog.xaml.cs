@@ -17,8 +17,11 @@ public partial class TextPromptDialog : Window
         Title = title;
         PromptText.Text = prompt;
         ValueTextBox.Text = initialValue;
+        SourceInitialized += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+        Activated += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
         Loaded += (_, _) =>
         {
+            WindowNativeHelper.ApplyNativeFrame(this);
             ValueTextBox.Focus();
             ValueTextBox.SelectAll();
         };
