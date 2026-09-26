@@ -80,6 +80,51 @@ public sealed class MainViewModelSaveTests : IDisposable
         Assert.StartsWith("已保存", viewModel.EditorStatus);
     }
 
+    [Fact]
+    public async Task NewNoteCreatesTimestampOnFirstLineAndTwoBlankLines()
+    {
+        var paths = new AppDataPaths(_testDirectory);
+        var connectionFactory = new SqliteConnectionFactory(paths);
+        var logger = new NullLogger();
+        var initializer = new SqliteDatabaseInitializer(connectionFactory, logger);
+        var notes = new SqliteNoteRepository(connectionFactory);
+        var notebooks = new SqliteNotebookRepository(connectionFactory);
+        await initializer.InitializeAsync();
+
+        var viewModel = new MainViewModel(notes, notebooks, logger);
+        await viewModel.InitializeAsync();
+
+        await viewModel.NewNoteCommand.ExecuteAsync(null);
+
+        Assert.NotNull(viewModel.SelectedNote);
+        var created = viewModel.SelectedNote.Model;
+        var pattern = @"^<p>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}</p><p></p><p></p>$";
+        Assert.Matches(pattern, created.BodyHtml);
+        Assert.Matches(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n\n$", created.BodyText);
+    }
+
+    [Fact]
+    public async Task TitleEndingWithPeriodAutomaticallyStripsPeriod()
+    {
+        var paths = new AppDataPaths(_testDirectory);
+        var connectionFactory = new SqliteConnectionFactory(paths);
+        var logger = new NullLogger();
+        var initializer = new SqliteDatabaseInitializer(connectionFactory, logger);
+        var notes = new SqliteNoteRepository(connectionFactory);
+        var notebooks = new SqliteNotebookRepository(connectionFactory);
+        await initializer.InitializeAsync();
+
+        var viewModel = new MainViewModel(notes, notebooks, logger);
+        await viewModel.InitializeAsync();
+        await viewModel.NewNoteCommand.ExecuteAsync(null);
+
+        viewModel.EditableTitle = "新计划。";
+        Assert.True(await viewModel.FlushAllAsync());
+
+        var saved = await notes.GetAsync(viewModel.SelectedNote!.Model.Id);
+        Assert.Equal("新计划", saved?.Title);
+    }
+
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();

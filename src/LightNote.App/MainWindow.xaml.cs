@@ -194,6 +194,8 @@ public partial class MainWindow : Window
             _paths.AttachmentsDirectory,
             CoreWebView2HostResourceAccessKind.DenyCors);
         EditorWebView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+        EditorWebView.CoreWebView2.NewWindowRequested += OnNewWindowRequested;
+        EditorWebView.CoreWebView2.NavigationStarting += OnNavigationStarting;
         EditorWebView.CoreWebView2.NavigationCompleted += (_, args) =>
         {
             if (args.IsSuccess)
@@ -468,7 +470,74 @@ public partial class MainWindow : Window
         if ((e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None) || e.Key == Key.Enter)
         {
             e.Handled = true;
-            FocusEditor();
+            SanitizeTitleBox();
+            FocusEditor("end");
+        }
+    }
+
+    private void OnTitleLostFocus(object sender, RoutedEventArgs e)
+    {
+        SanitizeTitleBox();
+    }
+
+    private void SanitizeTitleBox()
+    {
+        var text = TitleBox.Text;
+        var sanitized = MainViewModel.TrimTrailingPeriods(text);
+        if (!string.Equals(text, sanitized, StringComparison.Ordinal))
+        {
+            TitleBox.Text = sanitized;
+        }
+    }
+
+    private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
+    {
+        if (string.Equals(_settings.LinkOpenMode, "external", StringComparison.OrdinalIgnoreCase))
+        {
+            e.Handled = true;
+            OpenUriInExternalBrowser(e.Uri);
+        }
+        else
+        {
+            e.Handled = false;
+        }
+    }
+
+    private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
+    {
+        if (string.IsNullOrEmpty(e.Uri) ||
+            e.Uri.StartsWith($"https://{EditorHostName}/", StringComparison.OrdinalIgnoreCase) ||
+            e.Uri.StartsWith($"https://{AttachmentHostName}/", StringComparison.OrdinalIgnoreCase) ||
+            e.Uri.Equals("about:blank", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        if (string.Equals(_settings.LinkOpenMode, "external", StringComparison.OrdinalIgnoreCase))
+        {
+            OpenUriInExternalBrowser(e.Uri);
+        }
+        else
+        {
+            _ = EditorWebView.CoreWebView2?.ExecuteScriptAsync(
+                $"window.open({JsonSerializer.Serialize(e.Uri)}, '_blank')");
+        }
+    }
+
+    private void OpenUriInExternalBrowser(string uri)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = uri,
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.Error($"Failed to open external link: {uri}", exception);
         }
     }
 
@@ -1541,7 +1610,8 @@ public partial class MainWindow : Window
                 _paths,
                 _logger,
                 _attachmentService,
-                _themeService);
+                _themeService,
+                _settingsService);
             window.Show();
         }
         catch (Exception exception)

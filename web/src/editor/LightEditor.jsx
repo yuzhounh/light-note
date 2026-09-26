@@ -6,6 +6,24 @@ import { Node, Mark, mergeAttributes } from '@tiptap/core'
 import katex from 'katex'
 import { LatexModal } from '../components/modals/LatexModal'
 import { syncService } from '../core/sync/syncService'
+import { stripTrailingPeriod } from '../core/db/notesRepository'
+
+export function isInitialTimestampNote(editor) {
+  if (!editor || !editor.state) return false
+  const doc = editor.state.doc
+  if (doc.childCount === 3) {
+    const p1 = doc.child(0)
+    const p2 = doc.child(1)
+    const p3 = doc.child(2)
+    if (p1.type?.name === 'paragraph' && p2.type?.name === 'paragraph' && p3.type?.name === 'paragraph') {
+      if (p2.content.size === 0 && p3.content.size === 0) {
+        const text = p1.textContent.trim()
+        return /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(text)
+      }
+    }
+  }
+  return false
+}
 
 // 1. Underline Mark
 const Underline = Mark.create({
@@ -255,6 +273,20 @@ export const LightEditor = forwardRef(function LightEditor(
         }
         return false
       },
+      handleDOMEvents: {
+        click(view, event) {
+          const target = event.target
+          if (target?.closest?.('a')) return false
+          if (editor && isInitialTimestampNote(editor)) {
+            setTimeout(() => {
+              if (editor && isInitialTimestampNote(editor)) {
+                editor.commands.focus('end')
+              }
+            }, 0)
+          }
+          return false
+        },
+      },
     },
     onUpdate: ({ editor }) => {
       if (onChange) {
@@ -267,8 +299,14 @@ export const LightEditor = forwardRef(function LightEditor(
   })
 
   useImperativeHandle(ref, () => ({
-    focus: () => {
-      editor?.commands.focus()
+    focus: (position = 'start') => {
+      if (position === 'start' || position === 'end' || position === 'all') {
+        editor?.commands.focus(position)
+      } else if (isInitialTimestampNote(editor)) {
+        editor?.commands.focus('end')
+      } else {
+        editor?.commands.focus()
+      }
     },
     getEditor: () => editor,
   }))
@@ -551,7 +589,18 @@ export const LightEditor = forwardRef(function LightEditor(
       </div>
 
       {/* Editor Content Area: Title is directly below toolbar, strictly left-aligned at px-6 */}
-      <div className="flex-1 overflow-y-auto px-6 py-5">
+      <div
+        className="flex-1 overflow-y-auto px-6 py-5"
+        onClick={e => {
+          if (e.target === e.currentTarget && editor) {
+            if (isInitialTimestampNote(editor)) {
+              editor.commands.focus('end')
+            } else {
+              editor.commands.focus()
+            }
+          }
+        }}
+      >
         <input
           type="text"
           placeholder="无标题"
@@ -560,7 +609,21 @@ export const LightEditor = forwardRef(function LightEditor(
           onKeyDown={e => {
             if (e.key === 'Enter' || e.key === 'Tab') {
               e.preventDefault()
-              editor?.commands.focus()
+              const clean = stripTrailingPeriod(title)
+              if (clean !== title && onUpdateTitle) {
+                onUpdateTitle(clean)
+              }
+              if (isInitialTimestampNote(editor)) {
+                editor?.commands.focus('end')
+              } else {
+                editor?.commands.focus('end')
+              }
+            }
+          }}
+          onBlur={() => {
+            const clean = stripTrailingPeriod(title)
+            if (clean !== title && onUpdateTitle) {
+              onUpdateTitle(clean)
             }
           }}
           className="w-full text-[21px] font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-3 tracking-tight"

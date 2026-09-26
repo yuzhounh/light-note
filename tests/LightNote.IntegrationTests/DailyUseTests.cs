@@ -54,6 +54,34 @@ public sealed class DailyUseTests : IDisposable
         Assert.Equal("system", loaded.Theme);
         Assert.True(loaded.ShowRecentNavigation);
         Assert.Equal(100, loaded.BackupRetentionCount);
+        Assert.Equal("internal", loaded.LinkOpenMode);
+    }
+
+    [Fact]
+    public void LinkOpenModePersistsAndNormalizes()
+    {
+        var paths = new AppDataPaths(_testDirectory);
+        var service = new AppSettingsService(paths);
+        service.Save(new AppSettings { LinkOpenMode = "external" });
+        Assert.Equal("external", service.Load().LinkOpenMode);
+
+        service.Save(new AppSettings { LinkOpenMode = "invalid" });
+        Assert.Equal("internal", service.Load().LinkOpenMode);
+    }
+
+    [Fact]
+    public void TrimTrailingPeriodsRemovesChineseAndEnglishPeriods()
+    {
+        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结。"));
+        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结."));
+        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结．"));
+        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结。。。"));
+        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结..."));
+        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结。 "));
+        Assert.Equal("版本 1.2", MainViewModel.TrimTrailingPeriods("版本 1.2."));
+        Assert.Equal("无句号标题", MainViewModel.TrimTrailingPeriods("无句号标题"));
+        Assert.Equal(string.Empty, MainViewModel.TrimTrailingPeriods("。"));
+        Assert.Equal(string.Empty, MainViewModel.TrimTrailingPeriods(""));
     }
 
     [Fact]

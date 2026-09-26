@@ -54,6 +54,32 @@ const Underline = Mark.create({
   },
 })
 
+const Link = Mark.create({
+  name: 'link',
+  priority: 1000,
+  keepOnSplit: false,
+  inclusive: false,
+  addAttributes() {
+    return {
+      href: {
+        default: null,
+      },
+      target: {
+        default: '_blank',
+      },
+      rel: {
+        default: 'noopener noreferrer',
+      },
+    }
+  },
+  parseHTML() {
+    return [{ tag: 'a[href]' }]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['a', mergeAttributes({ target: '_blank', rel: 'noopener noreferrer' }, HTMLAttributes), 0]
+  },
+})
+
 const TextAppearance = Mark.create({
   name: 'textAppearance',
   addAttributes() {
@@ -490,8 +516,8 @@ function removeRedundantEmptyElements(root) {
   let changed = true
   while (changed) {
     changed = false
-    for (const el of [...root.querySelectorAll('p, div')]) {
-      if (el.querySelector('img, [data-type="inline-math"], [data-type="block-math"], hr, pre, table')) {
+    for (const el of [...root.querySelectorAll('div, span')]) {
+      if (el.querySelector('img, [data-type="inline-math"], [data-type="block-math"], hr, pre, table, p')) {
         continue
       }
       const text = el.textContent?.replace(/[\s\u00a0\u200b]+/g, '') || ''
@@ -613,6 +639,23 @@ function markdownToCleanHtml(raw) {
   return cleanAndConvertHtml(rawHtml)
 }
 
+function isInitialTimestampNote(editor) {
+  if (!editor || !editor.state) return false
+  const doc = editor.state.doc
+  if (doc.childCount === 3) {
+    const p1 = doc.child(0)
+    const p2 = doc.child(1)
+    const p3 = doc.child(2)
+    if (p1.type?.name === 'paragraph' && p2.type?.name === 'paragraph' && p3.type?.name === 'paragraph') {
+      if (p2.content.size === 0 && p3.content.size === 0) {
+        const text = p1.textContent.trim()
+        return /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(text)
+      }
+    }
+  }
+  return false
+}
+
 function EditorApp() {
   const [, setStatus] = useState('编辑器桥接初始化中')
   const [mathModal, setMathModal] = useState(null)
@@ -707,7 +750,7 @@ function EditorApp() {
   }
 
   const editor = useEditor({
-    extensions: [StarterKit, Underline, TextAppearance, LocalImage, InlineMath, BlockMath],
+    extensions: [StarterKit, Underline, TextAppearance, Link, LocalImage, InlineMath, BlockMath],
     content: '<p></p>',
     editable: false,
     immediatelyRender: true,
@@ -790,6 +833,29 @@ function EditorApp() {
           ?? view.state.selection.from
         files.forEach((file, index) => importImage(file, position + index))
         return true
+      },
+      handleClick(view, pos, event) {
+        const link = event.target?.closest?.('a')
+        if (link && link.href) {
+          event.preventDefault()
+          window.open(link.href, '_blank')
+          return true
+        }
+        return false
+      },
+      handleDOMEvents: {
+        click(view, event) {
+          const target = event.target
+          if (target?.closest?.('a')) return false
+          if (editorRef.current && isInitialTimestampNote(editorRef.current)) {
+            setTimeout(() => {
+              if (editorRef.current && isInitialTimestampNote(editorRef.current)) {
+                editorRef.current.commands.focus('end')
+              }
+            }, 0)
+          }
+          return false
+        },
       },
     },
     onUpdate: ({ editor: currentEditor }) => {
@@ -997,13 +1063,21 @@ function EditorApp() {
       editor.setEditable(true)
       setStatus(`已载入：${message.payload.title}`)
       post('note.loaded', { id: noteIdRef.current })
-      editor.commands.focus('start')
+      if (isInitialTimestampNote(editor)) {
+        editor.commands.focus('end')
+      } else {
+        editor.commands.focus('start')
+      }
       emitState(editor)
     }
 
     const onWindowFocus = () => {
       if (editor && !editor.isFocused && noteIdRef.current) {
-        editor.commands.focus()
+        if (isInitialTimestampNote(editor)) {
+          editor.commands.focus('end')
+        } else {
+          editor.commands.focus()
+        }
       }
     }
     window.addEventListener('focus', onWindowFocus)
@@ -1013,6 +1087,8 @@ function EditorApp() {
       focus: (position = 'start') => {
         if (position === 'start' || position === 'end' || position === 'all') {
           editor.commands.focus(position)
+        } else if (isInitialTimestampNote(editor)) {
+          editor.commands.focus('end')
         } else {
           editor.commands.focus()
         }

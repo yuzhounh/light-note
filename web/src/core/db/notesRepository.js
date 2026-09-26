@@ -1,6 +1,21 @@
 import { db } from './database'
 import { syncService } from '../sync/syncService'
 
+export function getFormattedLocalTimestamp() {
+  const now = new Date()
+  const pad = n => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+}
+
+export function stripTrailingPeriod(title) {
+  if (!title) return ''
+  let trimmed = title.trimEnd()
+  while (trimmed.endsWith('.') || trimmed.endsWith('。') || trimmed.endsWith('．')) {
+    trimmed = trimmed.slice(0, -1).trimEnd()
+  }
+  return trimmed
+}
+
 export const NotesRepository = {
   // --- Notebooks ---
   async getAllNotebooks() {
@@ -78,12 +93,18 @@ export const NotesRepository = {
   },
 
   async createNote({ notebookId, title = '', bodyHtml = '', bodyText = '' }) {
+    if (!bodyHtml) {
+      const timestamp = getFormattedLocalTimestamp()
+      bodyHtml = `<p>${timestamp}</p><p></p><p></p>`
+      bodyText = `${timestamp}\n\n`
+    }
+    const cleanTitle = stripTrailingPeriod(title)
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
     const note = {
       id,
       notebook_id: notebookId,
-      title: title.trim(),
+      title: cleanTitle,
       body_html: bodyHtml,
       body_text: bodyText,
       is_pinned: 0,
@@ -100,8 +121,9 @@ export const NotesRepository = {
 
   async saveNote(id, { title, bodyHtml, bodyText }) {
     const now = new Date().toISOString()
+    const cleanTitle = stripTrailingPeriod(title)
     await db.notes.update(id, {
-      title,
+      title: cleanTitle,
       body_html: bodyHtml,
       body_text: bodyText,
       updated_at: now,

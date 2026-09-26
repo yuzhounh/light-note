@@ -774,7 +774,8 @@
                                  Text="{Binding EditableTitle, UpdateSourceTrigger=PropertyChanged}"
                                  FontSize="22" FontWeight="SemiBold" BorderThickness="0" Padding="0"
                                  Background="Transparent" TextWrapping="NoWrap"
-                                 PreviewKeyDown="OnTitlePreviewKeyDown" />
+                                 PreviewKeyDown="OnTitlePreviewKeyDown"
+                                 LostFocus="OnTitleLostFocus" />
                         <TextBlock Margin="0,6,0,0" Text="{Binding SelectedTagsDisplay}"
                                     Foreground="{DynamicResource AccentBrush}" TextTrimming="CharacterEllipsis">
                             <TextBlock.Style>

@@ -314,6 +314,34 @@
                                 </Grid>
                             </Border>
 
+                            <TextBlock Text="链接设置" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="链接打开方式" Style="{StaticResource CardTitleStyle}" />
+                                        <TextBlock Margin="0,4,12,0" Text="在笔记中点击网页链接时，选用内置浏览器或使用外部浏览器打开。"
+                                                   Style="{StaticResource CardDescriptionStyle}" />
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Background="{DynamicResource SecondaryPanelBrush}"
+                                            CornerRadius="7" Padding="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton x:Name="LinkInternalRadio" Content="内置浏览器"
+                                                         GroupName="LinkOpenModeGroup"
+                                                         Style="{StaticResource SegmentedRadioButtonStyle}"
+                                                         Checked="OnLinkModeRadioChecked" />
+                                            <RadioButton x:Name="LinkExternalRadio" Content="外部浏览器"
+                                                         GroupName="LinkOpenModeGroup"
+                                                         Style="{StaticResource SegmentedRadioButtonStyle}"
+                                                         Checked="OnLinkModeRadioChecked" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
                             <TextBlock Text="侧边栏快捷导航" Style="{StaticResource SectionTitleStyle}" />
                             <Border Style="{StaticResource SettingsCardStyle}">
                                 <StackPanel>

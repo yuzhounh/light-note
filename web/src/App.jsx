@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Plus } from 'lucide-react'
-import { seedInitialData } from './core/db/database'
-import { NotesRepository } from './core/db/notesRepository'
+import { NotesRepository, getFormattedLocalTimestamp, stripTrailingPeriod } from './core/db/notesRepository'
 import { syncService, subscribeSyncState } from './core/sync/syncService'
 import { useResponsive } from './hooks/useResponsive'
 import { useBackButton } from './hooks/useBackButton'
@@ -174,11 +173,12 @@ export function App() {
   // Create New Note
   async function handleCreateNote() {
     const targetNotebookId = currentNotebookId || (notebooks[0] ? notebooks[0].id : null)
+    const timestamp = getFormattedLocalTimestamp()
     const newNote = await NotesRepository.createNote({
       notebookId: targetNotebookId,
       title: '',
-      bodyHtml: '',
-      bodyText: '',
+      bodyHtml: `<p>${timestamp}</p><p></p><p></p>`,
+      bodyText: `${timestamp}\n\n`,
     })
 
     setNotes(prev => [newNote, ...prev])
@@ -214,8 +214,9 @@ export function App() {
     }
 
     saveTimeoutRef.current = setTimeout(async () => {
+      const cleanTitle = stripTrailingPeriod(noteToSave.title)
       await NotesRepository.saveNote(noteToSave.id, {
-        title: noteToSave.title,
+        title: cleanTitle,
         bodyHtml: noteToSave.body_html,
         bodyText: noteToSave.body_text,
       })

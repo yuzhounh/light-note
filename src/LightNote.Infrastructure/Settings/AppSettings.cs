@@ -27,4 +27,6 @@ public sealed record AppSettings
     public bool AutomaticBackups { get; init; } = true;
 
     public int BackupRetentionCount { get; init; } = 10;
+
+    public string LinkOpenMode { get; init; } = "internal";
 }

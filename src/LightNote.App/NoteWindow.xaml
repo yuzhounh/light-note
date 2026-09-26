@@ -99,7 +99,8 @@
                 <TextBox x:Name="TitleBox" FontSize="22" FontWeight="SemiBold" BorderThickness="0"
                          Padding="0" Background="Transparent" TextWrapping="NoWrap"
                          TextChanged="OnTitleChanged"
-                         PreviewKeyDown="OnTitlePreviewKeyDown" />
+                         PreviewKeyDown="OnTitlePreviewKeyDown"
+                         LostFocus="OnTitleLostFocus" />
                 <TextBlock x:Name="TagsText" Margin="0,6,0,0" Foreground="{DynamicResource AccentBrush}"
                            TextTrimming="CharacterEllipsis" />
             </StackPanel>
