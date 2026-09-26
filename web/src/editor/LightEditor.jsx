@@ -165,7 +165,7 @@ export const LightEditor = forwardRef(function LightEditor(
     content: content || '',
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none focus:outline-none min-h-[400px] text-zinc-900 dark:text-zinc-100 leading-relaxed text-[15px]',
+        class: 'focus:outline-none min-h-[400px] text-zinc-900 dark:text-zinc-100 text-[14.5px] leading-[1.65]',
       },
       handlePaste: (view, event) => {
         const items = event.clipboardData?.items
@@ -453,7 +453,7 @@ export const LightEditor = forwardRef(function LightEditor(
               editor?.commands.focus()
             }
           }}
-          className="w-full text-2xl font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-4 tracking-tight"
+          className="w-full text-[21px] font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-3 tracking-tight"
         />
         <EditorContent editor={editor} />
       </div>
