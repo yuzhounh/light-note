@@ -243,6 +243,7 @@ export function App() {
               onSelectView={view => { setCurrentView(view); setCurrentNotebookId(null) }}
               onCreateNotebook={handleCreateNotebook}
               onDeleteNotebook={handleDeleteNotebook}
+              onCreateNote={handleCreateNote}
               theme={theme}
               onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
               isMobile={false}
@@ -303,6 +304,7 @@ export function App() {
                   onSelectView={view => { setCurrentView(view); setCurrentNotebookId(null); setIsSidebarOpen(false) }}
                   onCreateNotebook={handleCreateNotebook}
                   onDeleteNotebook={handleDeleteNotebook}
+                  onCreateNote={handleCreateNote}
                   theme={theme}
                   onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
                   onCloseMobile={() => setIsSidebarOpen(false)}
