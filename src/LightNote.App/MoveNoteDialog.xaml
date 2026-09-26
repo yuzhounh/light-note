@@ -17,7 +17,7 @@
 
         <TextBlock Text="选择目标笔记本：" FontSize="14" Foreground="{DynamicResource TextBrush}" />
         <ComboBox x:Name="DestinationBox" Grid.Row="1" Margin="0,14,0,18" Height="36"
-                  Style="{StaticResource ToolbarComboBoxStyle}">
+                  Style="{DynamicResource ToolbarComboBoxStyle}">
             <ComboBox.ItemTemplate>
                 <DataTemplate>
                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
@@ -25,9 +25,9 @@
             </ComboBox.ItemTemplate>
         </ComboBox>
         <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Margin="0,4,0,0">
-            <Button Content="取消" IsCancel="True" Style="{StaticResource DialogButtonStyle}" />
+            <Button Content="取消" IsCancel="True" Style="{DynamicResource DialogButtonStyle}" />
             <Button Content="移动" IsDefault="True" Click="OnMoveClick"
-                    Style="{StaticResource DialogPrimaryButtonStyle}" />
+                    Style="{DynamicResource DialogPrimaryButtonStyle}" />
         </StackPanel>
     </Grid>
 </Window>

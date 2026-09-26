@@ -189,6 +189,32 @@ public sealed class DailyUseTests : IDisposable
         thread.Join();
     }
 
+    [Fact]
+    public void MoveNoteDialogAndTextPromptDialogCanInitializeAndLayoutCleanly()
+    {
+        var thread = new System.Threading.Thread(() =>
+        {
+            var destinations = new[]
+            {
+                new MoveDestination(null, "未归档"),
+                new MoveDestination("nb-1", "工作笔记本"),
+            };
+
+            var moveDialog = new MoveNoteDialog(destinations, "nb-1");
+            Assert.Equal("nb-1", moveDialog.SelectedNotebookId);
+
+            var promptDialog = new TextPromptDialog(
+                "编辑标签",
+                "用中文或英文逗号分隔标签名称；清空输入可移除全部标签：",
+                "tag1, tag2",
+                allowEmpty: true);
+            Assert.Equal("tag1, tag2", promptDialog.Value);
+        });
+        thread.SetApartmentState(System.Threading.ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+    }
+
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
