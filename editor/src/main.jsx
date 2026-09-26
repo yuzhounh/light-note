@@ -531,11 +531,31 @@ function removeRedundantEmptyElements(root) {
   }
 }
 
+function mergeTitleAndUrlParagraphs(root) {
+  const paragraphs = [...root.querySelectorAll(':scope > p, :scope > div')]
+  if (paragraphs.length === 2) {
+    const p1 = paragraphs[0]
+    const p2 = paragraphs[1]
+    const t1 = p1.textContent?.trim() || ''
+    const t2 = p2.textContent?.trim() || ''
+    const isUrl = str => /^https?:\/\/\S+$/i.test(str)
+    if (t1 && !isUrl(t1) && isUrl(t2) && !p1.querySelector('img, pre, table') && !p2.querySelector('img, pre, table')) {
+      const br = document.createElement('br')
+      p1.appendChild(br)
+      while (p2.firstChild) {
+        p1.appendChild(p2.firstChild)
+      }
+      p2.remove()
+    }
+  }
+}
+
 function cleanAndConvertHtml(html) {
   const doc = new DOMParser().parseFromString(html || '<p></p>', 'text/html')
   extractExistingKatex(doc.body)
   convertMathInTextNodes(doc.body)
   removeRedundantEmptyElements(doc.body)
+  mergeTitleAndUrlParagraphs(doc.body)
 
   for (const image of doc.querySelectorAll('img')) {
     try {
@@ -709,6 +729,28 @@ function EditorApp() {
 
         const clipboardHtml = event.clipboardData?.getData('text/html')
         const clipboardText = event.clipboardData?.getData('text/plain')
+
+        if (clipboardText) {
+          const lines = clipboardText
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .split('\n')
+            .map(line => line.trim())
+            .filter(Boolean)
+
+          if (
+            lines.length === 2 &&
+            !/^https?:\/\//i.test(lines[0]) &&
+            /^https?:\/\/\S+$/i.test(lines[1])
+          ) {
+            event.preventDefault()
+            const title = escapeHtml(lines[0])
+            const url = escapeHtml(lines[1])
+            const html = `<p>${title}<br><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></p>`
+            editor?.commands?.insertContent(html)
+            return true
+          }
+        }
 
         if (clipboardText && (!clipboardHtml || hasMarkdownSyntax(clipboardText))) {
           if (hasMarkdownSyntax(clipboardText)) {
