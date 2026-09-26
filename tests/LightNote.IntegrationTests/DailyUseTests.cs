@@ -132,7 +132,7 @@ public sealed class DailyUseTests : IDisposable
                     return;
                 }
 
-                if ((e.Key == System.Windows.Input.Key.Tab && System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.None) ||
+                if ((e.Key == System.Windows.Input.Key.Tab && (e.KeyboardDevice.Modifiers == System.Windows.Input.ModifierKeys.None || System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.None)) ||
                     e.Key == System.Windows.Input.Key.Enter)
                 {
                     e.Handled = true;
