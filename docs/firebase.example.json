@@ -2,5 +2,7 @@
   "projectId": "your-firebase-project-id",
   "apiKey": "your-firebase-web-api-key",
   "storageBucket": "your-firebase-storage-bucket.firebasestorage.app",
-  "databaseId": "(default)"
+  "databaseId": "(default)",
+  "googleClientId": "your-client-id.apps.googleusercontent.com",
+  "googleClientSecret": "your-client-secret"
 }

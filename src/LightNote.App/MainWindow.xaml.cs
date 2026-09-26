@@ -1553,17 +1553,46 @@ public partial class MainWindow : Window
 
         if (_syncService.CurrentAccount is null)
         {
-            var dialog = new FirebaseSignInDialog(_syncService, _logger) { Owner = this };
-            if (dialog.ShowDialog() != true)
+            if (string.IsNullOrWhiteSpace(_syncService.GoogleClientId))
             {
-                return;
+                var dialog = new FirebaseSignInDialog(_syncService, _logger) { Owner = this };
+                if (dialog.ShowDialog() != true)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                try
+                {
+                    _viewModel.SyncStatus = "正在打开 Google 登录…";
+                    var account = await _syncService.SignInWithGoogleAsync();
+                    _viewModel.SyncStatus = $"同步：{account.Email}";
+                    UpdateAccountDisplay(account);
+                    _syncTimer.Start();
+                    Activate();
+                    Focus();
+                }
+                catch (OperationCanceledException)
+                {
+                    _viewModel.SyncStatus = "Google 登录";
+                    return;
+                }
+                catch (Exception exception)
+                {
+                    _logger.Error("Google sign-in failed.", exception);
+                    _viewModel.SyncStatus = "登录未完成";
+                    MessageBox.Show(this, $"Google 登录失败：{exception.Message}", "LightNote",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
             }
 
-            var account = _syncService.CurrentAccount;
-            if (account is not null)
+            var activeAccount = _syncService.CurrentAccount;
+            if (activeAccount is not null)
             {
-                _viewModel.SyncStatus = $"同步：{account.Email}";
-                UpdateAccountDisplay(account);
+                _viewModel.SyncStatus = $"同步：{activeAccount.Email}";
+                UpdateAccountDisplay(activeAccount);
                 _syncTimer.Start();
             }
         }
