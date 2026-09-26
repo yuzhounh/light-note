@@ -1,0 +1,8 @@
+{
+  "appId": "com.lightnote.app",
+  "appName": "LightNote",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

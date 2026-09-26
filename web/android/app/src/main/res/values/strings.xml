@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LightNote</string>
+    <string name="title_activity_main">LightNote</string>
+    <string name="package_name">com.lightnote.app</string>
+    <string name="custom_url_scheme">com.lightnote.app</string>
+</resources>
