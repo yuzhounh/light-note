@@ -17,9 +17,9 @@
         <SolidColorBrush x:Key="ToolbarActiveBackgroundBrush" Color="#FFDCEEFF" />
         <SolidColorBrush x:Key="ToolbarActiveForegroundBrush" Color="#FF1D4ED8" />
         <SolidColorBrush x:Key="ToolbarActiveBorderBrush" Color="#FF93C5FD" />
-        <SolidColorBrush x:Key="ToolTipBackgroundBrush" Color="#FF1F2328" />
-        <SolidColorBrush x:Key="ToolTipForegroundBrush" Color="#FFFFFFFF" />
-        <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#FF374151" />
+        <SolidColorBrush x:Key="ToolTipBackgroundBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="ToolTipForegroundBrush" Color="#FF1F2328" />
+        <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#FFE2E5E9" />
         <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#FFE2E5E9" />
         <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#FFCBD0D6" />
         <SolidColorBrush x:Key="ScrollBarThumbDragBrush" Color="#FFAAB2BC" />
@@ -116,12 +116,13 @@
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
+                                TextElement.Foreground="{TemplateBinding Foreground}"
                                 CornerRadius="4"
                                 Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
                             <Border.Effect>
                                 <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270"
-                                                  Color="#000000" Opacity="0.35" />
+                                                  Color="#000000" Opacity="0.15" />
                             </Border.Effect>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
