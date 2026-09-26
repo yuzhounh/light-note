@@ -75,9 +75,9 @@ export function SettingsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/60 backdrop-blur-xs select-none">
       <div 
-        className="w-full max-w-xl max-h-[85vh] sm:h-[420px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-xl max-h-[85vh] sm:h-[420px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Mobile Header (Hidden on sm and above) */}
@@ -198,8 +198,8 @@ export function SettingsModal({
                     onClick={() => onChangeTheme('light')}
                     className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                       theme === 'light'
-                        ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/90 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs ring-1 ring-zinc-300 dark:ring-zinc-600'
-                        : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                        ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
+                        : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                     }`}
                   >
                     <Sun size={18} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
@@ -213,8 +213,8 @@ export function SettingsModal({
                     onClick={() => onChangeTheme('dark')}
                     className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                       theme === 'dark'
-                        ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/90 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs ring-1 ring-zinc-300 dark:ring-zinc-600'
-                        : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                        ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
+                        : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                     }`}
                   >
                     <Moon size={18} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />

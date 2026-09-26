@@ -229,7 +229,7 @@ export function Sidebar({
             />
 
             <div 
-              className="absolute bottom-full left-2.5 right-2.5 mb-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl p-3 z-50 flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-150 select-none"
+              className="absolute bottom-full left-2.5 right-2.5 mb-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl p-3 z-50 flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-150 select-none"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center gap-2.5">
