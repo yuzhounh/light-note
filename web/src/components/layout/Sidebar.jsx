@@ -41,12 +41,16 @@ export function Sidebar({
             onCreateNote()
             if (isMobile) onCloseMobile()
           }}
-          className="w-full flex items-center gap-2.5 px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-full shadow-sm hover:shadow hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.98] transition cursor-pointer"
+          className="w-full h-[42px] relative flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-full shadow-xs hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.98] transition cursor-pointer"
         >
-          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
-            +
+          {/* Green circle: outer cap radius is 21px. Circle is 30px, left margin is 6px. Center = (21, 21). 100% concentric */}
+          <div className="w-[30px] h-[30px] rounded-full bg-[#00b87a] flex items-center justify-center shrink-0 ml-[6px]">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" stroke="currentColor" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
           </div>
-          <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 tracking-wide">
+          <span className="ml-2.5 text-xs font-medium text-zinc-800 dark:text-zinc-200 tracking-wide">
             新建笔记
           </span>
         </button>

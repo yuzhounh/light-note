@@ -144,7 +144,7 @@
                 </Border.ContextMenu>
                 <DockPanel>
                     <Button DockPanel.Dock="Top" Height="46" Margin="0,0,0,14"
-                            Padding="7,5" HorizontalContentAlignment="Stretch"
+                            Padding="0" HorizontalContentAlignment="Stretch"
                             Background="{DynamicResource PanelBrush}" BorderThickness="0"
                             Command="{Binding NewNoteCommand}" ToolTip="新建笔记（Ctrl+N）"
                             AutomationProperties.Name="新建笔记">
@@ -153,8 +153,7 @@
                                 <Border x:Name="NewNoteButtonBorder" CornerRadius="23"
                                         Background="{TemplateBinding Background}"
                                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
-                                    <ContentPresenter Margin="{TemplateBinding Padding}"
-                                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                       VerticalAlignment="Center" />
                                 </Border>
                                 <ControlTemplate.Triggers>
@@ -168,15 +167,17 @@
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
                         </Button.Template>
-                        <Grid>
+                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="36" />
+                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Width="32" Height="32" CornerRadius="16" Background="#FF00B87A"
-                                    HorizontalAlignment="Left">
-                                <TextBlock Text="＋" FontSize="22" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    Margin="7,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Path Data="M 7,0 V 14 M 0,7 H 14" Width="14" Height="14"
+                                      Stroke="White" StrokeThickness="2.6"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <TextBlock Grid.Column="1" Margin="10,0,0,0" Text="新建笔记"
                                        FontSize="16" VerticalAlignment="Center" />
