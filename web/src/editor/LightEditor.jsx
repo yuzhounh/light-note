@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import { Node, Mark, mergeAttributes } from '@tiptap/core'
 import katex from 'katex'
+import { LatexModal } from '../components/modals/LatexModal'
 
 // 1. Underline Mark
 const Underline = Mark.create({
@@ -88,7 +89,15 @@ export const MathNode = Node.create({
         parseHTML: element => element.getAttribute('data-latex') || element.textContent,
         renderHTML: attributes => ({
           'data-latex': attributes.latex,
-          class: 'math-node'
+          'data-block': attributes.isBlock ? 'true' : 'false',
+          class: attributes.isBlock ? 'math-node math-node-block' : 'math-node'
+        })
+      },
+      isBlock: {
+        default: false,
+        parseHTML: element => element.getAttribute('data-block') === 'true',
+        renderHTML: attributes => ({
+          'data-block': attributes.isBlock ? 'true' : 'false'
         })
       }
     }
@@ -103,25 +112,30 @@ export const MathNode = Node.create({
   },
 
   addNodeView() {
-    return ({ node, getPos, editor }) => {
+    return ({ node, getPos }) => {
       const dom = document.createElement('span')
-      dom.className = 'math-node'
-      dom.setAttribute('data-latex', node.attrs.latex)
+      const isBlock = !!node.attrs.isBlock
+      dom.className = isBlock
+        ? 'math-node block my-2 py-1 px-2 text-center overflow-x-auto select-none cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 rounded-lg transition'
+        : 'math-node inline-block px-1 py-0.5 align-middle select-none cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 rounded transition'
+      dom.setAttribute('data-latex', node.attrs.latex || '')
+      dom.setAttribute('data-block', isBlock ? 'true' : 'false')
       dom.title = '点击编辑数学公式'
       
       try {
-        katex.render(node.attrs.latex || '', dom, { throwOnError: false, displayMode: false })
+        katex.render(node.attrs.latex || '', dom, { throwOnError: false, displayMode: isBlock })
       } catch (err) {
         dom.textContent = node.attrs.latex
       }
 
       dom.addEventListener('click', (e) => {
         e.stopPropagation()
-        const newLatex = window.prompt('编辑 LaTeX 数学公式:', node.attrs.latex)
-        if (newLatex !== null && typeof getPos === 'function') {
-          editor.commands.command(({ tr }) => {
-            tr.setNodeMarkup(getPos(), undefined, { latex: newLatex })
-            return true
+        if (typeof window.__openMathDialog === 'function') {
+          window.__openMathDialog({
+            latex: node.attrs.latex || '',
+            isBlock,
+            pos: typeof getPos === 'function' ? getPos() : null,
+            isExisting: true,
           })
         }
       })
@@ -246,14 +260,72 @@ export const LightEditor = forwardRef(function LightEditor(
     editor.chain().focus().setFontSize(`${val}pt`).run()
   }
 
+  const [mathModal, setMathModal] = useState({
+    isOpen: false,
+    latex: '',
+    isBlock: false,
+    pos: null,
+    isExisting: false,
+  })
+
+  useEffect(() => {
+    window.__openMathDialog = (payload) => {
+      setMathModal({
+        isOpen: true,
+        latex: payload.latex || '',
+        isBlock: !!payload.isBlock,
+        pos: payload.pos ?? null,
+        isExisting: !!payload.isExisting,
+      })
+    }
+    return () => {
+      delete window.__openMathDialog
+    }
+  }, [])
+
   function handleInsertMath() {
-    const input = window.prompt('输入 LaTeX 数学公式 (例如: E = mc^2 或 \\sqrt{x^2+y^2}):', 'E = mc^2')
-    if (input) {
+    if (!editor) return
+    const { from, to } = editor.state.selection
+    const selectedText = from < to ? editor.state.doc.textBetween(from, to) : ''
+    setMathModal({
+      isOpen: true,
+      latex: selectedText || 'E = mc^2',
+      isBlock: false,
+      pos: null,
+      isExisting: false,
+    })
+  }
+
+  function handleSaveMath({ latex, isBlock }) {
+    if (!editor) return
+    if (mathModal.isExisting && typeof mathModal.pos === 'number') {
+      editor.commands.command(({ tr }) => {
+        tr.setNodeMarkup(mathModal.pos, undefined, { latex, isBlock })
+        return true
+      })
+    } else {
       editor.chain().focus().insertContent({
         type: 'mathNode',
-        attrs: { latex: input }
+        attrs: { latex, isBlock }
       }).run()
     }
+    setMathModal(prev => ({ ...prev, isOpen: false }))
+    editor.commands.focus()
+  }
+
+  function handleDeleteMath() {
+    if (!editor) return
+    if (mathModal.isExisting && typeof mathModal.pos === 'number') {
+      editor.commands.command(({ tr }) => {
+        const node = tr.doc.nodeAt(mathModal.pos)
+        if (node) {
+          tr.delete(mathModal.pos, mathModal.pos + node.nodeSize)
+        }
+        return true
+      })
+    }
+    setMathModal(prev => ({ ...prev, isOpen: false }))
+    editor.commands.focus()
   }
 
   return (
@@ -457,6 +529,20 @@ export const LightEditor = forwardRef(function LightEditor(
         />
         <EditorContent editor={editor} />
       </div>
+
+      {/* Interactive LaTeX Formula Modal with Left Code & Right Live Preview */}
+      <LatexModal
+        isOpen={mathModal.isOpen}
+        initialLatex={mathModal.latex}
+        initialIsBlock={mathModal.isBlock}
+        isExisting={mathModal.isExisting}
+        onClose={() => {
+          setMathModal(prev => ({ ...prev, isOpen: false }))
+          editor?.commands.focus()
+        }}
+        onSave={handleSaveMath}
+        onDelete={handleDeleteMath}
+      />
     </div>
   )
 })
