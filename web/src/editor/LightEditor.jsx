@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useImperativeHandle, forwardRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import Image from '@tiptap/extension-image'
 import { Node, Mark, mergeAttributes } from '@tiptap/core'
 import katex from 'katex'
 
@@ -141,7 +142,10 @@ const FONT_FAMILIES = [
 
 const FONT_SIZES = ['11', '12', '13', '14', '15', '16', '18', '20', '24']
 
-export function LightEditor({ content, onChange, isMobile = false }) {
+export const LightEditor = forwardRef(function LightEditor(
+  { content, onChange, isMobile = false },
+  ref
+) {
   const [selectedFont, setSelectedFont] = useState('微软雅黑')
   const [selectedSize, setSelectedSize] = useState('12')
 
@@ -153,11 +157,55 @@ export function LightEditor({ content, onChange, isMobile = false }) {
       Underline,
       TextAppearance,
       MathNode,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+      }),
     ],
     content: content || '',
     editorProps: {
       attributes: {
         class: 'prose dark:prose-invert max-w-none focus:outline-none min-h-[400px] text-zinc-900 dark:text-zinc-100 leading-relaxed text-[15px]',
+      },
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.items
+        if (!items) return false
+        for (const item of items) {
+          if (item.type.startsWith('image/')) {
+            const file = item.getAsFile()
+            if (file) {
+              const reader = new FileReader()
+              reader.onload = e => {
+                const src = e.target.result
+                view.dispatch(
+                  view.state.tr.replaceSelectionWith(
+                    view.state.schema.nodes.image.create({ src })
+                  )
+                )
+              }
+              reader.readAsDataURL(file)
+              return true
+            }
+          }
+        }
+        return false
+      },
+      handleDrop: (view, event) => {
+        const files = event.dataTransfer?.files
+        if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+          const reader = new FileReader()
+          reader.onload = e => {
+            const src = e.target.result
+            view.dispatch(
+              view.state.tr.replaceSelectionWith(
+                view.state.schema.nodes.image.create({ src })
+              )
+            )
+          }
+          reader.readAsDataURL(files[0])
+          return true
+        }
+        return false
       },
     },
     onUpdate: ({ editor }) => {
@@ -169,6 +217,13 @@ export function LightEditor({ content, onChange, isMobile = false }) {
       }
     },
   })
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      editor?.commands.focus()
+    },
+    getEditor: () => editor,
+  }))
 
   useEffect(() => {
     if (editor && content !== undefined && editor.getHTML() !== content) {
@@ -232,7 +287,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
         {/* Paragraph & Headings */}
         <button
           onClick={() => editor.chain().focus().setParagraph().run()}
-          className={`px-2 py-1 rounded transition text-xs font-normal ${
+          className={`px-2 py-1 rounded transition text-xs font-normal cursor-pointer ${
             editor.isActive('paragraph') && !editor.isActive('heading')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -243,7 +298,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`px-2 py-1 rounded transition text-xs font-normal ${
+          className={`px-2 py-1 rounded transition text-xs font-normal cursor-pointer ${
             editor.isActive('heading', { level: 1 })
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -254,7 +309,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`px-2 py-1 rounded transition text-xs font-normal ${
+          className={`px-2 py-1 rounded transition text-xs font-normal cursor-pointer ${
             editor.isActive('heading', { level: 2 })
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -268,7 +323,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
         {/* B, I, U, Strike, Highlight, fx */}
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs transition ${
+          className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs transition cursor-pointer ${
             editor.isActive('bold')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -280,7 +335,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
         <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`w-6 h-6 rounded flex items-center justify-center italic text-xs transition ${
+          className={`w-6 h-6 rounded flex items-center justify-center italic text-xs transition cursor-pointer ${
             editor.isActive('italic')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -292,7 +347,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
         <button
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={`w-6 h-6 rounded flex items-center justify-center underline text-xs transition ${
+          className={`w-6 h-6 rounded flex items-center justify-center underline text-xs transition cursor-pointer ${
             editor.isActive('underline')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -304,7 +359,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
         <button
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center line-through text-xs transition ${
+          className={`px-1.5 h-6 rounded flex items-center justify-center line-through text-xs transition cursor-pointer ${
             editor.isActive('strike')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -316,7 +371,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
         <button
           onClick={() => editor.chain().focus().toggleHighlight().run()}
-          className="relative px-1.5 h-6 rounded flex flex-col items-center justify-center text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition"
+          className="relative px-1.5 h-6 rounded flex flex-col items-center justify-center text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
           title="文本荧光高亮"
         >
           <span>ab</span>
@@ -325,7 +380,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
         <button
           onClick={handleInsertMath}
-          className="px-1.5 h-6 rounded flex items-center justify-center italic font-serif text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition"
+          className="px-1.5 h-6 rounded flex items-center justify-center italic font-serif text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
           title="插入数学公式 (KaTeX)"
         >
           fx
@@ -336,7 +391,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
         {/* Lists, Quote, Code block */}
         <button
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs transition ${
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs transition cursor-pointer ${
             editor.isActive('bulletList')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -348,7 +403,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
         <button
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs transition ${
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs transition cursor-pointer ${
             editor.isActive('orderedList')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -360,7 +415,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
         <button
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs font-serif transition ${
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs font-serif transition cursor-pointer ${
             editor.isActive('blockquote')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -372,7 +427,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs font-mono transition ${
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs font-mono transition cursor-pointer ${
             editor.isActive('codeBlock')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -389,4 +444,4 @@ export function LightEditor({ content, onChange, isMobile = false }) {
       </div>
     </div>
   )
-}
+})

@@ -12,6 +12,8 @@ export function Sidebar({
   onCreateNotebook,
   onDeleteNotebook,
   onCreateNote,
+  onOpenSettings,
+  onOpenAuth,
   theme,
   onToggleTheme,
   onCloseMobile,
@@ -163,7 +165,7 @@ export function Sidebar({
       {/* Bottom Footer: 'Google 登录' and Settings gear icon */}
       <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
         <button
-          onClick={() => alert('轻量版网页端已开启本地存储；可在后续直接接入 Firebase Google OAuth 登录')}
+          onClick={onOpenAuth || onOpenSettings}
           className="hover:text-zinc-900 dark:hover:text-white transition cursor-pointer"
         >
           Google 登录
@@ -171,9 +173,9 @@ export function Sidebar({
 
         <div className="flex items-center gap-1">
           <button
-            onClick={onToggleTheme}
+            onClick={onOpenSettings}
             className="p-1 hover:text-zinc-900 dark:hover:text-white transition rounded cursor-pointer"
-            title="切换明暗主题"
+            title="设置中心"
           >
             <Settings size={16} />
           </button>

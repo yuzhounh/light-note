@@ -7,6 +7,7 @@ import { useBackButton } from './hooks/useBackButton'
 import { Sidebar } from './components/layout/Sidebar'
 import { NoteList } from './components/layout/NoteList'
 import { NoteDetail } from './components/layout/NoteDetail'
+import { SettingsModal } from './components/modals/SettingsModal'
 
 export function App() {
   const { isMobile, isTablet, isDesktop } = useResponsive()
@@ -19,6 +20,7 @@ export function App() {
   const [currentView, setCurrentView] = useState('all') // 'all' | 'pinned' | 'trash'
   const [searchQuery, setSearchQuery] = useState('')
   const [saveStatus, setSaveStatus] = useState('saved')
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   
   // Theme state
   const [theme, setTheme] = useState(() => {
@@ -229,142 +231,156 @@ export function App() {
   const currentNotebookName = notebooks.find(n => n.id === currentNotebookId)?.name
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
-      {/* --- DESKTOP / TABLET (3-column / 2-column) --- */}
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
+      {/* Top Title Bar (Desktop Only) */}
       {!isMobile && (
-        <>
-          {/* Column 1: Sidebar (240px) */}
-          <div className="w-56 shrink-0 h-full">
-            <Sidebar
-              notebooks={notebooks}
-              currentNotebookId={currentNotebookId}
-              currentView={currentView}
-              onSelectNotebook={id => { setCurrentNotebookId(id); setCurrentView('all') }}
-              onSelectView={view => { setCurrentView(view); setCurrentNotebookId(null) }}
-              onCreateNotebook={handleCreateNotebook}
-              onDeleteNotebook={handleDeleteNotebook}
-              onCreateNote={handleCreateNote}
-              theme={theme}
-              onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-              isMobile={false}
-            />
+        <div className="flex items-center justify-between px-3.5 py-1 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 select-none shrink-0">
+          <div className="flex items-center gap-2">
+            <img src="/favicon.svg" alt="LightNote" className="w-3.5 h-3.5" />
+            <span className="text-zinc-800 dark:text-zinc-200 font-medium text-[11px] tracking-wide">
+              LightNote
+            </span>
           </div>
-
-          {/* Column 2: Note List (300px) */}
-          <div className="w-72 shrink-0 h-full">
-            <NoteList
-              notes={notes}
-              activeNoteId={activeNote?.id}
-              onSelectNote={handleSelectNote}
-              onCreateNote={handleCreateNote}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              currentView={currentView}
-              currentNotebookName={currentNotebookName}
-              onTogglePin={handleTogglePin}
-              onSoftDelete={handleSoftDelete}
-              onRestoreNote={handleRestoreNote}
-              onPermanentDelete={handlePermanentDelete}
-              isMobile={false}
-            />
+          <div className="flex items-center gap-1.5 text-[11px] text-zinc-400">
+            <span className={`w-1.5 h-1.5 rounded-full ${saveStatus === 'saving' ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
+            <span>{saveStatus === 'saving' ? '保存中...' : '已保存在本地'}</span>
           </div>
-
-          {/* Column 3: Note Detail & Editor (Flexible) */}
-          <div className="flex-1 h-full overflow-hidden">
-            <NoteDetail
-              note={activeNote}
-              notebookName={currentNotebookName}
-              onUpdateTitle={handleUpdateTitle}
-              onUpdateContent={handleUpdateContent}
-              onTogglePin={handleTogglePin}
-              onDeleteNote={handleSoftDelete}
-              saveStatus={saveStatus}
-              isMobile={false}
-            />
-          </div>
-        </>
+        </div>
       )}
 
-      {/* --- MOBILE VIEW (< 768px, Navigation Stack & Drawer) --- */}
-      {isMobile && (
-        <div className="relative w-full h-full flex flex-col overflow-hidden">
-          {/* Drawer Sidebar Overlay */}
-          {isSidebarOpen && (
-            <div className="fixed inset-0 z-50 flex">
-              <div 
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-                onClick={() => setIsSidebarOpen(false)}
+      {/* Main Multi-Column or Mobile Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* --- DESKTOP / TABLET (3-column / 2-column) --- */}
+        {!isMobile && (
+          <>
+            {/* Column 1: Sidebar (200px) */}
+            <div className="w-52 shrink-0 h-full">
+              <Sidebar
+                notebooks={notebooks}
+                currentNotebookId={currentNotebookId}
+                currentView={currentView}
+                onSelectNotebook={id => { setCurrentNotebookId(id); setCurrentView('all') }}
+                onSelectView={view => { setCurrentView(view); setCurrentNotebookId(null) }}
+                onCreateNotebook={handleCreateNotebook}
+                onDeleteNotebook={handleDeleteNotebook}
+                onCreateNote={handleCreateNote}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+                theme={theme}
+                onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+                isMobile={false}
               />
-              <div className="relative z-10 w-72 h-full shadow-2xl animate-in slide-in-from-left duration-200">
-                <Sidebar
-                  notebooks={notebooks}
-                  currentNotebookId={currentNotebookId}
-                  currentView={currentView}
-                  onSelectNotebook={id => { setCurrentNotebookId(id); setCurrentView('all'); setIsSidebarOpen(false) }}
-                  onSelectView={view => { setCurrentView(view); setCurrentNotebookId(null); setIsSidebarOpen(false) }}
-                  onCreateNotebook={handleCreateNotebook}
-                  onDeleteNotebook={handleDeleteNotebook}
-                  onCreateNote={handleCreateNote}
-                  theme={theme}
-                  onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-                  onCloseMobile={() => setIsSidebarOpen(false)}
-                  isMobile={true}
-                />
-              </div>
             </div>
-          )}
 
-          {/* Mobile Screen: List View */}
-          {mobileView === 'list' && (
-            <div className="relative w-full h-full flex flex-col">
+            {/* Column 2: Note List (280px) */}
+            <div className="w-72 shrink-0 h-full">
               <NoteList
                 notes={notes}
                 activeNoteId={activeNote?.id}
                 onSelectNote={handleSelectNote}
-                onCreateNote={handleCreateNote}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                currentView={currentView}
                 currentNotebookName={currentNotebookName}
-                onOpenSidebar={() => setIsSidebarOpen(true)}
                 onTogglePin={handleTogglePin}
                 onSoftDelete={handleSoftDelete}
-                onRestoreNote={handleRestoreNote}
-                onPermanentDelete={handlePermanentDelete}
-                isMobile={true}
+                isMobile={false}
               />
-
-              {/* Floating Action Button (FAB) for mobile new note */}
-              {currentView !== 'trash' && (
-                <button
-                  onClick={handleCreateNote}
-                  className="fixed right-5 bottom-6 w-14 h-14 rounded-full bg-amber-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition z-40"
-                  title="新建笔记"
-                >
-                  <Plus size={28} />
-                </button>
-              )}
             </div>
-          )}
 
-          {/* Mobile Screen: Detail View */}
-          {mobileView === 'detail' && (
-            <div className="w-full h-full flex flex-col">
+            {/* Column 3: Note Detail & Editor (Flexible) */}
+            <div className="flex-1 h-full overflow-hidden">
               <NoteDetail
                 note={activeNote}
-                notebookName={currentNotebookName}
                 onUpdateTitle={handleUpdateTitle}
                 onUpdateContent={handleUpdateContent}
-                onTogglePin={handleTogglePin}
-                onDeleteNote={handleSoftDelete}
-                saveStatus={saveStatus}
-                onBackMobile={() => setMobileView('list')}
-                isMobile={true}
+                isMobile={false}
               />
             </div>
-          )}
-        </div>
-      )}
+          </>
+        )}
+
+        {/* --- MOBILE VIEW (< 768px, Navigation Stack & Drawer) --- */}
+        {isMobile && (
+          <div className="relative w-full h-full flex flex-col overflow-hidden">
+            {/* Drawer Sidebar Overlay */}
+            {isSidebarOpen && (
+              <div className="fixed inset-0 z-50 flex">
+                <div 
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                  onClick={() => setIsSidebarOpen(false)}
+                />
+                <div className="relative z-10 w-72 h-full shadow-2xl animate-in slide-in-from-left duration-200">
+                  <Sidebar
+                    notebooks={notebooks}
+                    currentNotebookId={currentNotebookId}
+                    currentView={currentView}
+                    onSelectNotebook={id => { setCurrentNotebookId(id); setCurrentView('all'); setIsSidebarOpen(false) }}
+                    onSelectView={view => { setCurrentView(view); setCurrentNotebookId(null); setIsSidebarOpen(false) }}
+                    onCreateNotebook={handleCreateNotebook}
+                    onDeleteNotebook={handleDeleteNotebook}
+                    onCreateNote={handleCreateNote}
+                    onOpenSettings={() => setIsSettingsOpen(true)}
+                    theme={theme}
+                    onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+                    onCloseMobile={() => setIsSidebarOpen(false)}
+                    isMobile={true}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Screen: List View */}
+            {mobileView === 'list' && (
+              <div className="relative w-full h-full flex flex-col">
+                <NoteList
+                  notes={notes}
+                  activeNoteId={activeNote?.id}
+                  onSelectNote={handleSelectNote}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  currentNotebookName={currentNotebookName}
+                  onOpenSidebar={() => setIsSidebarOpen(true)}
+                  onTogglePin={handleTogglePin}
+                  onSoftDelete={handleSoftDelete}
+                  isMobile={true}
+                />
+
+                {/* Floating Action Button (FAB) for mobile new note */}
+                {currentView !== 'trash' && (
+                  <button
+                    onClick={handleCreateNote}
+                    className="fixed right-5 bottom-6 w-14 h-14 rounded-full bg-emerald-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition z-40 cursor-pointer"
+                    title="新建笔记"
+                  >
+                    <Plus size={28} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Mobile Screen: Detail View */}
+            {mobileView === 'detail' && (
+              <div className="w-full h-full flex flex-col">
+                <NoteDetail
+                  note={activeNote}
+                  onUpdateTitle={handleUpdateTitle}
+                  onUpdateContent={handleUpdateContent}
+                  onBackMobile={() => setMobileView('list')}
+                  isMobile={true}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        theme={theme}
+        onChangeTheme={setTheme}
+        onDataImported={refreshData}
+      />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { LightEditor } from '../../editor/LightEditor'
 
@@ -9,12 +9,21 @@ export function NoteDetail({
   onBackMobile,
   isMobile
 }) {
+  const editorRef = useRef(null)
+
   if (!note) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-zinc-400 select-none bg-white dark:bg-zinc-900">
         <p className="text-xs">选择或新建笔记开始记录</p>
       </div>
     )
+  }
+
+  function handleTitleKeyDown(e) {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault()
+      editorRef.current?.focus()
+    }
   }
 
   return (
@@ -24,7 +33,7 @@ export function NoteDetail({
         <div className="flex items-center px-3 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
           <button
             onClick={onBackMobile}
-            className="flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-300 p-1 rounded"
+            className="flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-300 p-1 rounded cursor-pointer"
           >
             <ArrowLeft size={16} />
             <span>返回列表</span>
@@ -41,12 +50,14 @@ export function NoteDetail({
             placeholder="无标题"
             value={note.title || ''}
             onChange={e => onUpdateTitle(e.target.value)}
+            onKeyDown={handleTitleKeyDown}
             className="w-full text-2xl font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700"
           />
         </div>
 
         <div className="flex-1 overflow-hidden">
           <LightEditor
+            ref={editorRef}
             content={note.body_html || ''}
             onChange={onUpdateContent}
             isMobile={isMobile}

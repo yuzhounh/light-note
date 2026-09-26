@@ -1,5 +1,5 @@
 import React from 'react'
-import { Menu } from 'lucide-react'
+import { Menu, Pin, Trash2 } from 'lucide-react'
 
 export function NoteList({
   notes,
@@ -9,6 +9,8 @@ export function NoteList({
   onSearchChange,
   currentNotebookName,
   onOpenSidebar,
+  onTogglePin,
+  onSoftDelete,
   isMobile
 }) {
   function formatFullDate(isoString) {
@@ -20,6 +22,22 @@ export function NoteList({
     const hours = String(d.getHours()).padStart(2, '0')
     const mins = String(d.getMinutes()).padStart(2, '0')
     return `${year}-${month}-${day} ${hours}:${mins}`
+  }
+
+  function highlightMatch(text, query) {
+    if (!query || !query.trim() || !text) return text
+    const q = query.trim()
+    const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+    const parts = text.split(regex)
+    return parts.map((part, i) =>
+      regex.test(part) ? (
+        <mark key={i} className="bg-amber-200 dark:bg-amber-900/70 text-zinc-900 dark:text-zinc-100 rounded px-0.5">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    )
   }
 
   return (
@@ -64,22 +82,53 @@ export function NoteList({
               <div
                 key={note.id}
                 onClick={() => onSelectNote(note.id)}
-                className={`p-3 rounded-md cursor-pointer transition ${
+                className={`group relative p-3 rounded-md cursor-pointer transition ${
                   isSelected
                     ? 'bg-[#e8f0fe] dark:bg-sky-950/40 text-zinc-900 dark:text-zinc-100'
                     : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200'
                 }`}
               >
-                <h4 className="text-xs font-bold truncate mb-1">
-                  {note.title || '无标题'}
-                </h4>
+                <div className="flex items-start justify-between gap-1 mb-1">
+                  <h4 className="text-xs font-bold truncate">
+                    {highlightMatch(note.title || '无标题', searchQuery)}
+                  </h4>
+
+                  {note.is_pinned === 1 && (
+                    <Pin size={11} className="text-amber-500 fill-amber-500 shrink-0 mt-0.5" />
+                  )}
+                </div>
 
                 <p className="text-[11px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed mb-2">
-                  {note.body_text || '无附加正文...'}
+                  {highlightMatch(note.body_text || '无附加正文...', searchQuery)}
                 </p>
 
-                <div className="text-[11px] text-zinc-400 font-sans">
-                  {formatFullDate(note.updated_at)}
+                <div className="flex items-center justify-between text-[11px] text-zinc-400 font-sans">
+                  <span>{formatFullDate(note.updated_at)}</span>
+
+                  {/* Context quick action on hover */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                    {onTogglePin && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onTogglePin(note.id) }}
+                        className="p-0.5 hover:text-amber-500 rounded"
+                        title={note.is_pinned ? '取消置顶' : '置顶笔记'}
+                      >
+                        <Pin size={11} className={note.is_pinned ? 'fill-current' : ''} />
+                      </button>
+                    )}
+                    {onSoftDelete && (
+                      <button
+                        onClick={(e) => { 
+                          e.stopPropagation()
+                          if (confirm('确定移入回收站？')) onSoftDelete(note.id)
+                        }}
+                        className="p-0.5 hover:text-rose-500 rounded"
+                        title="移入回收站"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )

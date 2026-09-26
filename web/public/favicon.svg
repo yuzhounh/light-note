@@ -1,6 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-  <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-  <path d="M2 2l7.586 7.586"/>
-  <circle cx="11" cy="11" r="2"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Minimal yellow note icon</title>
+  <desc id="desc">A minimal white pen and two note lines on a warm yellow rounded-square background.</desc>
+
+  <defs>
+    <linearGradient id="note-yellow" x1="0.12" y1="0.06" x2="0.88" y2="0.94">
+      <stop offset="0" stop-color="#FFE56A"/>
+      <stop offset="0.52" stop-color="#FFD044"/>
+      <stop offset="1" stop-color="#FFB52A"/>
+    </linearGradient>
+    <linearGradient id="glyph-white" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFF9EB"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Transparent outside the rounded tile. -->
+  <rect x="62" y="62" width="900" height="900" rx="210" fill="url(#note-yellow)"/>
+  <rect x="62.75" y="62.75" width="898.5" height="898.5" rx="209.25" fill="none" stroke="#E89B16" stroke-width="1.5" stroke-opacity="0.52"/>
+
+  <!-- Two-shape pen: one rounded barrel and one abstract point. -->
+  <g transform="rotate(-45 486 404)" fill="url(#glyph-white)">
+    <rect x="294" y="357" width="414" height="94" rx="47"/>
+    <path d="M211 404 Q208 399 214 394 L270 361 Q278 356 286 360 L286 448 Q278 452 270 447 L214 414 Q208 409 211 404 Z"/>
+  </g>
+
+  <!-- Minimal note lines. -->
+  <rect x="246" y="665" width="532" height="52" rx="26" fill="url(#glyph-white)"/>
+  <rect x="246" y="759" width="414" height="52" rx="26" fill="url(#glyph-white)"/>
 </svg>
