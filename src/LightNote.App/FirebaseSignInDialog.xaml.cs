@@ -29,8 +29,12 @@ public partial class FirebaseSignInDialog : Window
             GoogleConfigPanel.Visibility = Visibility.Visible;
         }
 
+        SourceInitialized += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+        Activated += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+
         Loaded += (_, _) =>
         {
+            WindowNativeHelper.ApplyNativeFrame(this);
             if (GoogleConfigPanel.Visibility == Visibility.Visible && string.IsNullOrWhiteSpace(GoogleClientIdBox.Text))
             {
                 GoogleClientIdBox.Focus();
