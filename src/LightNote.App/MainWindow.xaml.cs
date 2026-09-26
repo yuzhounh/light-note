@@ -199,6 +199,7 @@ public partial class MainWindow : Window
             if (args.IsSuccess)
             {
                 _logger.Info("Local editor resources loaded in WebView2.");
+                PostEditorMessage(new { type = "theme.changed", payload = new { isDark = _themeService.IsDark } });
             }
             else
             {
@@ -1995,7 +1996,9 @@ public partial class MainWindow : Window
             EditorWebView.CoreWebView2.Profile.PreferredColorScheme = _themeService.IsDark
                 ? CoreWebView2PreferredColorScheme.Dark
                 : CoreWebView2PreferredColorScheme.Light;
+            PostEditorMessage(new { type = "theme.changed", payload = new { isDark = _themeService.IsDark } });
         }
+        WindowNativeHelper.ApplyNativeFrame(this);
     }
 
     public void ShowAndActivate()

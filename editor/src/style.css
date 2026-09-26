@@ -1,10 +1,124 @@
 @import 'katex/dist/katex.min.css';
 
 :root {
-  color: #1d2733;
-  background: #fff;
+  --bg-color: #ffffff;
+  --text-color: #1d2733;
+  --muted-text: #68717d;
+  --border-color: #e2e5e9;
+  --panel-bg: #f8fafc;
+  --code-bg: #f1f3f5;
+  --blockquote-border: #d7dce2;
+  --blockquote-text: #52606d;
+  --math-bg: #fbfcfd;
+  --math-border: #e9ecef;
+  --math-hover-bg: #f3f6fb;
+  --math-modal-bg: #ffffff;
+  --math-modal-header-border: #f1f5f9;
+  --math-modal-footer-bg: #f8fafc;
+  --math-modal-input-bg: #ffffff;
+  --math-modal-input-border: #cbd5e1;
+  --math-modal-btn-bg: #ffffff;
+  --math-modal-btn-border: #cbd5e1;
+  --math-modal-btn-text: #334155;
+  --math-modal-btn-hover: #f1f5f9;
+  --scrollbar-thumb: #e2e5e9;
+  --scrollbar-thumb-hover: #cbd0d6;
+  --selection-bg: #cce0ff;
+  --accent-color: #246bfd;
+
+  color: var(--text-color);
+  background: var(--bg-color);
   font-family: "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
   font-synthesis: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #202328;
+    --text-color: #f2f4f7;
+    --muted-text: #aab2bc;
+    --border-color: #3b4148;
+    --panel-bg: #1c1e22;
+    --code-bg: #17191c;
+    --blockquote-border: #4a5568;
+    --blockquote-text: #aab2bc;
+    --math-bg: #17191c;
+    --math-border: #3b4148;
+    --math-hover-bg: #22262d;
+    --math-modal-bg: #202328;
+    --math-modal-header-border: #292d32;
+    --math-modal-footer-bg: #1a1c20;
+    --math-modal-input-bg: #17191c;
+    --math-modal-input-border: #3b4148;
+    --math-modal-btn-bg: #202328;
+    --math-modal-btn-border: #3b4148;
+    --math-modal-btn-text: #f2f4f7;
+    --math-modal-btn-hover: #292d32;
+    --scrollbar-thumb: #3b4148;
+    --scrollbar-thumb-hover: #4e555e;
+    --selection-bg: #264f78;
+    --accent-color: #3b82f6;
+  }
+}
+
+html.dark, [data-theme="dark"] {
+  --bg-color: #202328;
+  --text-color: #f2f4f7;
+  --muted-text: #aab2bc;
+  --border-color: #3b4148;
+  --panel-bg: #1c1e22;
+  --code-bg: #17191c;
+  --blockquote-border: #4a5568;
+  --blockquote-text: #aab2bc;
+  --math-bg: #17191c;
+  --math-border: #3b4148;
+  --math-hover-bg: #22262d;
+  --math-modal-bg: #202328;
+  --math-modal-header-border: #292d32;
+  --math-modal-footer-bg: #1a1c20;
+  --math-modal-input-bg: #17191c;
+  --math-modal-input-border: #3b4148;
+  --math-modal-btn-bg: #202328;
+  --math-modal-btn-border: #3b4148;
+  --math-modal-btn-text: #f2f4f7;
+  --math-modal-btn-hover: #292d32;
+  --scrollbar-thumb: #3b4148;
+  --scrollbar-thumb-hover: #4e555e;
+  --selection-bg: #264f78;
+  --accent-color: #3b82f6;
+
+  color: var(--text-color);
+  background: var(--bg-color);
+}
+
+html.light, [data-theme="light"] {
+  --bg-color: #ffffff;
+  --text-color: #1d2733;
+  --muted-text: #68717d;
+  --border-color: #e2e5e9;
+  --panel-bg: #f8fafc;
+  --code-bg: #f1f3f5;
+  --blockquote-border: #d7dce2;
+  --blockquote-text: #52606d;
+  --math-bg: #fbfcfd;
+  --math-border: #e9ecef;
+  --math-hover-bg: #f3f6fb;
+  --math-modal-bg: #ffffff;
+  --math-modal-header-border: #f1f5f9;
+  --math-modal-footer-bg: #f8fafc;
+  --math-modal-input-bg: #ffffff;
+  --math-modal-input-border: #cbd5e1;
+  --math-modal-btn-bg: #ffffff;
+  --math-modal-btn-border: #cbd5e1;
+  --math-modal-btn-text: #334155;
+  --math-modal-btn-hover: #f1f5f9;
+  --scrollbar-thumb: #e2e5e9;
+  --scrollbar-thumb-hover: #cbd0d6;
+  --selection-bg: #cce0ff;
+  --accent-color: #246bfd;
+
+  color: var(--text-color);
+  background: var(--bg-color);
 }
 
 * { box-sizing: border-box; }
@@ -13,7 +127,9 @@ html { overflow: hidden; }
 body {
   padding: 24px 34px;
   overflow-y: auto;
-  scrollbar-color: #e2e5e9 transparent;
+  color: var(--text-color);
+  background: var(--bg-color);
+  scrollbar-color: var(--scrollbar-thumb) transparent;
   scrollbar-width: thin;
 }
 body::-webkit-scrollbar { width: 10px; }
@@ -21,38 +137,72 @@ body::-webkit-scrollbar-track { background: transparent; }
 body::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   border-radius: 999px;
-  background: #e2e5e9;
+  background: var(--scrollbar-thumb);
   background-clip: padding-box;
 }
-body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
+body::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover); }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    scrollbar-color: #3b4148 transparent;
-  }
-  body::-webkit-scrollbar-thumb {
-    background: #3b4148;
-  }
-  body::-webkit-scrollbar-thumb:hover {
-    background-color: #4e555e;
-  }
+::selection {
+  background: var(--selection-bg);
 }
+
 #root { height: 100%; }
-.tiptap { min-height: 100%; display: flow-root; outline: none; font-size: 16px; line-height: 1.75; overflow-wrap: anywhere; }
-.tiptap p.is-editor-empty:first-child::before { content: "开始记录…"; color: #a0a7b0; float: left; height: 0; pointer-events: none; }
+.tiptap {
+  min-height: 100%;
+  display: flow-root;
+  outline: none;
+  font-size: 16px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  color: var(--text-color);
+}
+.tiptap p.is-editor-empty:first-child::before {
+  content: "开始记录…";
+  color: var(--muted-text);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
 .tiptap p { margin: 0 0 1em; }
-.tiptap h1 { margin: .2em 0 .65em; font-size: 1.8em; line-height: 1.3; }
-.tiptap h2 { margin: .45em 0 .6em; font-size: 1.4em; line-height: 1.35; }
-.tiptap blockquote { margin: 1em 0; padding: .2em 0 .2em 1em; border-left: 4px solid #d7dce2; color: #52606d; }
-.tiptap pre { margin: 1em 0; padding: 14px 16px; border-radius: 7px; background: #f1f3f5; white-space: pre-wrap; font-family: Consolas, monospace; }
-.tiptap code { padding: .12em .3em; border-radius: 4px; background: #f1f3f5; font-family: Consolas, monospace; }
-.tiptap pre code { padding: 0; background: transparent; }
+.tiptap h1 { margin: .2em 0 .65em; font-size: 1.8em; line-height: 1.3; color: var(--text-color); }
+.tiptap h2 { margin: .45em 0 .6em; font-size: 1.4em; line-height: 1.35; color: var(--text-color); }
+.tiptap blockquote {
+  margin: 1em 0;
+  padding: .2em 0 .2em 1em;
+  border-left: 4px solid var(--blockquote-border);
+  color: var(--blockquote-text);
+}
+.tiptap pre {
+  margin: 1em 0;
+  padding: 14px 16px;
+  border-radius: 7px;
+  background: var(--code-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  white-space: pre-wrap;
+  font-family: Consolas, monospace;
+}
+.tiptap code {
+  padding: .12em .3em;
+  border-radius: 4px;
+  background: var(--code-bg);
+  color: var(--text-color);
+  font-family: Consolas, monospace;
+}
+.tiptap pre code { padding: 0; background: transparent; border: none; }
 .tiptap ul, .tiptap ol { margin: .3em 0 1em; padding-left: 1.8em; }
 .tiptap li > p { margin: 0; }
 .tiptap li { margin: 0.2em 0; }
 .tiptap li + li { margin-top: 0.25em; }
-.tiptap img { display: block; max-width: 100%; height: auto; margin: 14px 0; border-radius: 6px; box-shadow: 0 0 0 1px #e2e5e9; }
-.tiptap.ProseMirror-focused { caret-color: #246bfd; }
+.tiptap img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 14px 0;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--border-color);
+}
+.tiptap.ProseMirror-focused { caret-color: var(--accent-color); }
 
 /* Math rendering styling */
 .tiptap-mathematics-render {
@@ -66,8 +216,8 @@ body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
   user-select: all;
 }
 .tiptap-mathematics-render:hover {
-  background-color: rgba(36, 107, 253, 0.08);
-  box-shadow: 0 0 0 1px rgba(36, 107, 253, 0.35);
+  background-color: rgba(59, 130, 246, 0.16);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4);
 }
 .tiptap-mathematics-render--block {
   display: flex;
@@ -76,17 +226,18 @@ body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
   margin: 0.8em 0;
   padding: 8px 14px;
   border-radius: 6px;
-  background-color: #fbfcfd;
-  border: 1px solid #e9ecef;
+  background-color: var(--math-bg);
+  border: 1px solid var(--math-border);
+  color: var(--text-color);
 }
 .tiptap-mathematics-render--block:hover {
-  background-color: #f3f6fb;
-  box-shadow: 0 0 0 1px rgba(36, 107, 253, 0.35);
+  background-color: var(--math-hover-bg);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4);
 }
 .tiptap-mathematics-render.math-error {
-  color: #d93025;
-  background-color: #fce8e6;
-  border: 1px dashed #d93025;
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.12);
+  border: 1px dashed #ef4444;
   font-family: Consolas, monospace;
   font-size: 0.9em;
   padding: 2px 6px;
@@ -96,19 +247,19 @@ body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
 .math-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.38);
+  background-color: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
   animation: mathFadeIn 0.15s ease-out;
 }
 .math-modal-card {
-  background: #ffffff;
+  background: var(--math-modal-bg);
   border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
   width: 90%;
   max-width: 480px;
   display: flex;
@@ -121,17 +272,17 @@ body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--math-modal-header-border);
 }
 .math-modal-title {
   font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-color);
 }
 .math-modal-close {
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--muted-text);
   font-size: 18px;
   cursor: pointer;
   padding: 4px 8px;
@@ -139,8 +290,8 @@ body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
   line-height: 1;
 }
 .math-modal-close:hover {
-  color: #0f172a;
-  background-color: #f1f5f9;
+  color: var(--text-color);
+  background-color: var(--math-modal-btn-hover);
 }
 .math-modal-body {
   padding: 16px 18px;
@@ -151,12 +302,14 @@ body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
 .math-modal-label {
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: var(--muted-text);
 }
 .math-modal-input {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--math-modal-input-border);
+  background: var(--math-modal-input-bg);
+  color: var(--text-color);
   border-radius: 6px;
   font-family: Consolas, "Courier New", monospace;
   font-size: 14px;
@@ -165,22 +318,23 @@ body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .math-modal-input:focus {
-  border-color: #246bfd;
-  box-shadow: 0 0 0 2px rgba(36, 107, 253, 0.15);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 .math-modal-preview {
   min-height: 48px;
   padding: 10px 12px;
   border-radius: 6px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--math-modal-input-bg);
+  border: 1px solid var(--math-modal-input-border);
+  color: var(--text-color);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow-x: auto;
 }
 .math-modal-preview-placeholder {
-  color: #94a3b8;
+  color: var(--muted-text);
   font-size: 13px;
 }
 .math-modal-footer {
@@ -189,8 +343,8 @@ body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 18px;
-  background-color: #f8fafc;
-  border-top: 1px solid #f1f5f9;
+  background-color: var(--math-modal-footer-bg);
+  border-top: 1px solid var(--math-modal-header-border);
 }
 .math-modal-btn {
   padding: 6px 14px;
@@ -198,33 +352,30 @@ body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #334155;
+  border: 1px solid var(--math-modal-btn-border);
+  background: var(--math-modal-btn-bg);
+  color: var(--math-modal-btn-text);
   transition: all 0.15s;
 }
 .math-modal-btn:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
+  background: var(--math-modal-btn-hover);
 }
 .math-modal-btn-primary {
-  background: #246bfd;
-  border-color: #246bfd;
+  background: var(--accent-color);
+  border-color: var(--accent-color);
   color: #ffffff;
 }
 .math-modal-btn-primary:hover {
-  background: #1b5adb;
-  border-color: #1b5adb;
+  opacity: 0.9;
 }
 .math-modal-btn-danger {
-  color: #e11d48;
-  border-color: #fecdd3;
-  background: #fff1f2;
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
   margin-right: auto;
 }
 .math-modal-btn-danger:hover {
-  background: #ffe4e6;
-  border-color: #fda4af;
+  background: rgba(239, 68, 68, 0.2);
 }
 
 @keyframes mathFadeIn {

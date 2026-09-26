@@ -952,6 +952,13 @@ function EditorApp() {
         setStatus('请选择或新建一篇笔记')
         return
       }
+      if (message?.type === 'theme.changed') {
+        const isDark = Boolean(message.payload?.isDark)
+        document.documentElement.classList.toggle('dark', isDark)
+        document.documentElement.classList.toggle('light', !isDark)
+        document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
+        return
+      }
       if (message?.type === 'editor.command') {
         runCommand(message.payload?.command, message.payload?.value)
         return
@@ -1085,6 +1092,19 @@ function EditorApp() {
       )}
     </>
   )
+}
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)')
+const applyThemeFromMedia = isDark => {
+  document.documentElement.classList.toggle('dark', isDark)
+  document.documentElement.classList.toggle('light', !isDark)
+  document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
+}
+applyThemeFromMedia(mq.matches)
+try {
+  mq.addEventListener('change', e => applyThemeFromMedia(e.matches))
+} catch {
+  mq.addListener?.(e => applyThemeFromMedia(e.matches))
 }
 
 createRoot(document.getElementById('root')).render(<EditorApp />)

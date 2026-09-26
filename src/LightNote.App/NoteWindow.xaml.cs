@@ -53,11 +53,14 @@ public partial class NoteWindow : Window
         Loaded += OnLoaded;
         Closing += OnClosing;
         Closed += (_, _) => EditorWebView.Dispose();
+        SourceInitialized += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+        Activated += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         Loaded -= OnLoaded;
+        WindowNativeHelper.ApplyNativeFrame(this);
         try
         {
             await InitializeEditorAsync();
@@ -88,6 +91,13 @@ public partial class NoteWindow : Window
         EditorWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
             AttachmentHostName, _paths.AttachmentsDirectory, CoreWebView2HostResourceAccessKind.DenyCors);
         EditorWebView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+        EditorWebView.CoreWebView2.NavigationCompleted += (_, args) =>
+        {
+            if (args.IsSuccess)
+            {
+                PostEditorMessage(new { type = "theme.changed", payload = new { isDark = _themeService.IsDark } });
+            }
+        };
         EditorWebView.Source = new Uri($"https://{EditorHostName}/index.html");
     }
 
