@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { 
-  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2
+  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2, Sun, Moon
 } from 'lucide-react'
 
 export function Sidebar({
@@ -44,16 +44,16 @@ export function Sidebar({
             onCreateNote()
             if (isMobile) onCloseMobile()
           }}
-          className="w-full h-[34px] relative flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-full shadow-xs hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.98] transition cursor-pointer"
+          className="w-full h-[36px] relative flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-full shadow-xs hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.98] transition cursor-pointer"
         >
-          {/* Green circle: outer cap radius is 17px. Circle is 24px, left margin is 5px. Center = (17, 17). 100% concentric */}
-          <div className="w-[24px] h-[24px] rounded-full bg-[#00b87a] flex items-center justify-center shrink-0 ml-[5px]">
-            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          {/* Green circle: outer cap radius is 18px. Circle is 26px, left margin is 5px. Concentric and balanced */}
+          <div className="w-[26px] h-[26px] rounded-full bg-[#00b87a] flex items-center justify-center shrink-0 ml-[5px]">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </div>
-          <span className="ml-2.5 text-xs font-medium text-zinc-800 dark:text-zinc-200 tracking-wide">
+          <span className="ml-2.5 text-sm font-medium text-zinc-800 dark:text-zinc-200 tracking-wide">
             新建笔记
           </span>
         </button>
@@ -67,13 +67,13 @@ export function Sidebar({
             onSelectView('all')
             if (isMobile) onCloseMobile()
           }}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-normal transition text-left cursor-pointer ${
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-normal transition text-left cursor-pointer ${
             currentView === 'all' && !currentNotebookId
               ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white font-medium'
               : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900'
           }`}
         >
-          <FileText size={15} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
+          <FileText size={16} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
           <span>全部笔记</span>
         </button>
 
@@ -81,10 +81,10 @@ export function Sidebar({
         <div>
           <div
             onClick={() => setIsGroupOpen(!isGroupOpen)}
-            className="flex items-center justify-between px-3 py-2 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer transition"
+            className="flex items-center justify-between px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer transition"
           >
             <div className="flex items-center gap-2">
-              <Folder size={15} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
+              <Folder size={16} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
               <span>笔记本组</span>
             </div>
             <button
@@ -97,7 +97,7 @@ export function Sidebar({
               className="p-0.5 hover:text-zinc-900 dark:hover:text-white"
               title="新建笔记本"
             >
-              <Plus size={13} />
+              <Plus size={14} />
             </button>
           </div>
 
@@ -113,14 +113,14 @@ export function Sidebar({
                       onSelectNotebook(nb.id)
                       if (isMobile) onCloseMobile()
                     }}
-                    className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs cursor-pointer transition ${
+                    className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13.5px] cursor-pointer transition ${
                       isActive
                         ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white font-medium'
                         : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <Book size={14} className={isActive ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-400'} />
+                      <Book size={15} className={isActive ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-400'} />
                       <span className="truncate">{nb.name}</span>
                     </div>
 
@@ -134,7 +134,7 @@ export function Sidebar({
                       className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-500 rounded text-zinc-400 transition"
                       title="删除笔记本"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 )
@@ -171,18 +171,18 @@ export function Sidebar({
       </div>
 
       {/* Bottom Footer: User Profile / Google Login and Settings gear icon */}
-      <div className="relative flex items-center justify-between px-3.5 py-2.5 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
+      <div className="relative flex items-center justify-between px-3.5 py-2.5 border-t border-zinc-200 dark:border-zinc-800 text-[13.5px] text-zinc-600 dark:text-zinc-400">
         {currentUser ? (
           <button
             onClick={() => setIsProfileModalOpen(!isProfileModalOpen)}
-            className="flex items-center gap-2 max-w-[145px] hover:opacity-80 transition cursor-pointer text-left min-w-0"
+            className="flex items-center gap-2 max-w-[155px] hover:opacity-80 transition cursor-pointer text-left min-w-0"
             title="点击管理账号"
           >
             {currentUser.photoURL ? (
               <img
                 src={currentUser.photoURL}
                 alt=""
-                className="w-5 h-5 rounded-full object-cover shrink-0 ring-1 ring-zinc-300 dark:ring-zinc-700"
+                className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-zinc-300 dark:ring-zinc-700"
                 onError={e => {
                   e.currentTarget.style.display = 'none'
                   if (e.currentTarget.nextSibling) {
@@ -192,18 +192,18 @@ export function Sidebar({
               />
             ) : null}
             <div 
-              className={`w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-medium text-[10px] shrink-0 ${currentUser.photoURL ? 'hidden' : 'flex'}`}
+              className={`w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-medium text-[11px] shrink-0 ${currentUser.photoURL ? 'hidden' : 'flex'}`}
             >
               {currentUser.displayName ? currentUser.displayName.slice(0, 1).toUpperCase() : 'U'}
             </div>
-            <span className="truncate text-xs font-medium text-zinc-800 dark:text-zinc-200">
+            <span className="truncate text-[13.5px] font-normal text-zinc-800 dark:text-zinc-200">
               {currentUser.displayName || currentUser.email}
             </span>
           </button>
         ) : (
           <button
             onClick={onLoginGoogle}
-            className="hover:text-zinc-900 dark:hover:text-white transition cursor-pointer"
+            className="hover:text-zinc-900 dark:hover:text-white transition cursor-pointer text-[13.5px]"
           >
             Google 登录
           </button>
@@ -215,7 +215,7 @@ export function Sidebar({
             className="p-1 hover:text-zinc-900 dark:hover:text-white transition rounded cursor-pointer"
             title="设置中心"
           >
-            <Settings size={16} />
+            <Settings size={17} />
           </button>
         </div>
 
@@ -252,6 +252,38 @@ export function Sidebar({
                     {currentUser.email || ''}
                   </div>
                 </div>
+              </div>
+
+              <div className="border-t border-zinc-100 dark:border-zinc-800" />
+
+              {/* Theme mode switcher segmented control */}
+              <div className="flex items-center p-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => { if (theme !== 'light' && onToggleTheme) onToggleTheme() }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                    theme === 'light'
+                      ? 'bg-white text-zinc-900 shadow-xs'
+                      : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
+                  }`}
+                  title="浅色模式"
+                >
+                  <Sun size={12} />
+                  <span>浅色</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (theme !== 'dark' && onToggleTheme) onToggleTheme() }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                    theme === 'dark'
+                      ? 'bg-zinc-700 text-zinc-100 shadow-xs'
+                      : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
+                  }`}
+                  title="深色模式"
+                >
+                  <Moon size={12} />
+                  <span>深色</span>
+                </button>
               </div>
 
               <div className="border-t border-zinc-100 dark:border-zinc-800" />
