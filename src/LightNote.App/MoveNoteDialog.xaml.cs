@@ -7,6 +7,9 @@ public partial class MoveNoteDialog : Window
     public MoveNoteDialog(IReadOnlyList<MoveDestination> destinations, string? currentNotebookId)
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+        Activated += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+        Loaded += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
         DestinationBox.ItemsSource = destinations;
         DestinationBox.SelectedItem = destinations.FirstOrDefault(item => item.Id == currentNotebookId)
             ?? destinations.FirstOrDefault();

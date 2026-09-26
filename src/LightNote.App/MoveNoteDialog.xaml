@@ -21,7 +21,7 @@
                   DisplayMemberPath="Name">
             <ComboBox.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
                 </DataTemplate>
             </ComboBox.ItemTemplate>
         </ComboBox>
