@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "katex/dist/katex.min.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -84,4 +86,31 @@
   padding: 8px 12px;
   margin: 8px 0;
   overflow-x: auto;
+}
+
+.dark .math-node {
+  background-color: rgba(234, 179, 8, 0.22);
+}
+
+.ProseMirror pre {
+  background: #f4f4f5;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-family: monospace;
+}
+
+.dark .ProseMirror pre {
+  background: #18181b;
+  border: 1px solid #27272a;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid #d4d4d8;
+  padding-left: 1rem;
+  color: #71717a;
+}
+
+.dark .ProseMirror blockquote {
+  border-left: 3px solid #3f3f46;
+  color: #a1a1aa;
 }
