@@ -233,10 +233,6 @@
                                 Background="{DynamicResource PanelBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1">
-                            <Border.Effect>
-                                <DropShadowEffect BlurRadius="16" ShadowDepth="4" Direction="270"
-                                                  Opacity="0.35" Color="#000000" />
-                            </Border.Effect>
                             <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
                         </Border>
                     </ControlTemplate>

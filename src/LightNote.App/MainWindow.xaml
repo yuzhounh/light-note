@@ -765,7 +765,6 @@
                             <Button x:Name="CodeBlockButton" Content="{}{ }" Tag="codeBlock"
                                     Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="代码块" />
-                            <Separator Margin="5,0" />
                             <Button x:Name="TimestampButton" Tag="insertTimestamp"
                                     Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="插入当前时间">

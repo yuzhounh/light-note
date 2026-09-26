@@ -371,7 +371,8 @@ export const LightEditor = forwardRef(function LightEditor(
     const d = new Date()
     const pad = n => String(n).padStart(2, '0')
     const timestamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-    editor.chain().focus().insertContent(timestamp).run()
+    const { from } = editor.state.selection
+    editor.chain().focus().insertContent(timestamp).setTextSelection(from + timestamp.length).run()
   }
 
   return (
@@ -560,8 +561,6 @@ export const LightEditor = forwardRef(function LightEditor(
         >
           <span className="font-mono whitespace-nowrap leading-none font-medium">{'{}'}</span>
         </button>
-
-        <div className="w-[1px] h-3.5 bg-zinc-200 dark:bg-zinc-700 mx-0.5 shrink-0" />
 
         {/* Timestamp */}
         <button
