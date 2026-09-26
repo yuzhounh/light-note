@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { 
   FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check
 } from 'lucide-react'
+import { UserProfileModal } from '../modals/UserProfileModal'
 
 export function Sidebar({
   notebooks,
@@ -24,6 +25,7 @@ export function Sidebar({
   const [isGroupOpen, setIsGroupOpen] = useState(true)
   const [isAddingNotebook, setIsAddingNotebook] = useState(false)
   const [newNotebookName, setNewNotebookName] = useState('')
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
 
   function handleCreateNotebook(e) {
     e.preventDefault()
@@ -168,19 +170,35 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Bottom Footer: 'Google 登录' (direct Google OAuth popup) and Settings gear icon */}
-      <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
+      {/* Bottom Footer: User Profile / Google Login and Settings gear icon */}
+      <div className="flex items-center justify-between px-3.5 py-2.5 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
         {currentUser ? (
           <button
-            onClick={() => {
-              if (confirm(`当前已登录账号：${currentUser.displayName || currentUser.email}\n确定要退出登录吗？`)) {
-                onLogout && onLogout()
-              }
-            }}
-            className="truncate max-w-[130px] hover:text-rose-500 transition cursor-pointer text-left font-medium text-emerald-600 dark:text-emerald-400"
-            title="点击退出登录"
+            onClick={() => setIsProfileModalOpen(true)}
+            className="flex items-center gap-2 max-w-[145px] hover:opacity-80 transition cursor-pointer text-left min-w-0"
+            title="查看账号详情与退出登录"
           >
-            {currentUser.displayName || currentUser.email}
+            {currentUser.photoURL ? (
+              <img
+                src={currentUser.photoURL}
+                alt=""
+                className="w-5 h-5 rounded-full object-cover shrink-0 ring-1 ring-zinc-300 dark:ring-zinc-700"
+                onError={e => {
+                  e.currentTarget.style.display = 'none'
+                  if (e.currentTarget.nextSibling) {
+                    e.currentTarget.nextSibling.style.display = 'flex'
+                  }
+                }}
+              />
+            ) : null}
+            <div 
+              className={`w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-medium text-[10px] shrink-0 ${currentUser.photoURL ? 'hidden' : 'flex'}`}
+            >
+              {currentUser.displayName ? currentUser.displayName.slice(0, 1).toUpperCase() : 'U'}
+            </div>
+            <span className="truncate text-xs font-medium text-zinc-800 dark:text-zinc-200">
+              {currentUser.displayName || currentUser.email}
+            </span>
           </button>
         ) : (
           <button
@@ -191,7 +209,7 @@ export function Sidebar({
           </button>
         )}
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={onOpenSettings}
             className="p-1 hover:text-zinc-900 dark:hover:text-white transition rounded cursor-pointer"
@@ -201,6 +219,14 @@ export function Sidebar({
           </button>
         </div>
       </div>
+
+      {/* Account Profile & Logout Modal */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={currentUser}
+        onLogout={onLogout}
+      />
     </div>
   )
 }

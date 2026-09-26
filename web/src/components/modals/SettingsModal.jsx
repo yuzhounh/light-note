@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, Download, Upload, Trash2, Sun, Moon, Laptop, Cloud, Database, Info } from 'lucide-react'
+import { X, Download, Upload, Trash2, Sun, Moon, Database } from 'lucide-react'
 import { db } from '../../core/db/database'
 
 export function SettingsModal({
@@ -9,10 +9,7 @@ export function SettingsModal({
   onChangeTheme,
   onDataImported
 }) {
-  const [activeTab, setActiveTab] = useState('data') // 'data' | 'sync' | 'about'
-  const [firebaseConfig, setFirebaseConfig] = useState(() => {
-    return localStorage.getItem('lightnote_firebase_config') || ''
-  })
+  const [activeTab, setActiveTab] = useState('appearance') // 'appearance' | 'data'
   const [isExporting, setIsExporting] = useState(false)
   const [msg, setMsg] = useState('')
 
@@ -76,16 +73,10 @@ export function SettingsModal({
     }
   }
 
-  // Save Firebase Config
-  function handleSaveFirebase() {
-    localStorage.setItem('lightnote_firebase_config', firebaseConfig)
-    setMsg('云端同步配置已保存！')
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs select-none">
       <div 
-        className="w-full max-w-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -101,36 +92,8 @@ export function SettingsModal({
           </button>
         </div>
 
-        {/* Modal Navigation Tabs */}
+        {/* Modal Navigation Tabs: 外观主题 on the left, 数据与备份 on the right */}
         <div className="flex border-b border-zinc-200 dark:border-zinc-800 px-5 text-xs">
-          <button
-            onClick={() => { setActiveTab('data'); setMsg('') }}
-            className={`py-2.5 px-3 border-b-2 font-medium transition cursor-pointer ${
-              activeTab === 'data'
-                ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <span className="flex items-center gap-1.5">
-              <Database size={14} />
-              <span>数据与备份</span>
-            </span>
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('sync'); setMsg('') }}
-            className={`py-2.5 px-3 border-b-2 font-medium transition cursor-pointer ${
-              activeTab === 'sync'
-                ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <span className="flex items-center gap-1.5">
-              <Cloud size={14} />
-              <span>云端同步</span>
-            </span>
-          </button>
-
           <button
             onClick={() => { setActiveTab('appearance'); setMsg('') }}
             className={`py-2.5 px-3 border-b-2 font-medium transition cursor-pointer ${
@@ -144,6 +107,20 @@ export function SettingsModal({
               <span>外观主题</span>
             </span>
           </button>
+
+          <button
+            onClick={() => { setActiveTab('data'); setMsg('') }}
+            className={`py-2.5 px-3 border-b-2 font-medium transition cursor-pointer ${
+              activeTab === 'data'
+                ? 'border-amber-500 text-amber-600 dark:text-amber-400'
+                : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              <Database size={14} />
+              <span>数据与备份</span>
+            </span>
+          </button>
         </div>
 
         {/* Modal Body */}
@@ -154,12 +131,50 @@ export function SettingsModal({
             </div>
           )}
 
-          {/* TAB 1: Data & Backup */}
+          {/* TAB 1: Appearance (外观主题) */}
+          {activeTab === 'appearance' && (
+            <div className="space-y-3">
+              <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">显示模式</h4>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  onClick={() => onChangeTheme('light')}
+                  className={`flex items-center gap-2.5 p-3 rounded-lg border text-left transition cursor-pointer ${
+                    theme === 'light'
+                      ? 'border-amber-500 bg-amber-50/40 dark:bg-amber-950/20 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                      : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  <Sun size={18} className="text-amber-500 shrink-0" />
+                  <div>
+                    <div className="font-medium text-xs">浅色模式</div>
+                    <div className="text-[10px] text-zinc-400">标准明亮界面</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => onChangeTheme('dark')}
+                  className={`flex items-center gap-2.5 p-3 rounded-lg border text-left transition cursor-pointer ${
+                    theme === 'dark'
+                      ? 'border-amber-500 bg-amber-50/40 dark:bg-amber-950/20 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                      : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  <Moon size={18} className="text-amber-500 shrink-0" />
+                  <div>
+                    <div className="font-medium text-xs">深色模式</div>
+                    <div className="text-[10px] text-zinc-400">暗色护眼界面</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: Data & Backup (数据与备份) */}
           {activeTab === 'data' && (
             <div className="space-y-4">
               <div className="space-y-1">
                 <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">本地数据备份</h4>
-                <p className="text-zinc-500 text-[11px]">
+                <p className="text-zinc-500 text-[11px] leading-relaxed">
                   将当前的笔记本和全部笔记导出为单个标准 JSON 文件，可随时还原或导入 Windows 桌面版。
                 </p>
               </div>
@@ -189,71 +204,6 @@ export function SettingsModal({
                 >
                   <Trash2 size={14} />
                   <span>清空回收站</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: Cloud Sync */}
-          {activeTab === 'sync' && (
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">Firebase 同步配置</h4>
-                <p className="text-zinc-500 text-[11px]">
-                  粘贴 Firebase 配置 JSON，直接与 Windows 客户端共用同一个云端项目。未配置时完全不影响本地离线使用。
-                </p>
-              </div>
-
-              <textarea
-                rows={5}
-                placeholder='{"apiKey": "...", "authDomain": "...", "projectId": "...", "storageBucket": "..."}'
-                value={firebaseConfig}
-                onChange={e => setFirebaseConfig(e.target.value)}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md font-mono text-[11px] outline-none text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400"
-              />
-
-              <button
-                onClick={handleSaveFirebase}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition cursor-pointer"
-              >
-                保存同步参数
-              </button>
-            </div>
-          )}
-
-          {/* TAB 3: Appearance */}
-          {activeTab === 'appearance' && (
-            <div className="space-y-3">
-              <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">显示模式</h4>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => onChangeTheme('light')}
-                  className={`flex items-center gap-2 p-3 rounded-lg border text-left transition cursor-pointer ${
-                    theme === 'light'
-                      ? 'border-amber-500 bg-amber-50/40 dark:bg-amber-950/20 text-zinc-900 dark:text-zinc-100'
-                      : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                  }`}
-                >
-                  <Sun size={18} className="text-amber-500" />
-                  <div>
-                    <div className="font-medium text-xs">浅色模式</div>
-                    <div className="text-[10px] text-zinc-400">标准明亮界面</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => onChangeTheme('dark')}
-                  className={`flex items-center gap-2 p-3 rounded-lg border text-left transition cursor-pointer ${
-                    theme === 'dark'
-                      ? 'border-amber-500 bg-amber-50/40 dark:bg-amber-950/20 text-zinc-900 dark:text-zinc-100'
-                      : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                  }`}
-                >
-                  <Moon size={18} className="text-amber-500" />
-                  <div>
-                    <div className="font-medium text-xs">深色模式</div>
-                    <div className="text-[10px] text-zinc-400">暗色护眼界面</div>
-                  </div>
                 </button>
               </div>
             </div>
