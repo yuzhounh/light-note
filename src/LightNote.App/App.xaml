@@ -10,7 +10,9 @@
         <SolidColorBrush x:Key="TextBrush" Color="#FF1F2328" />
         <SolidColorBrush x:Key="MutedTextBrush" Color="#FF68717D" />
         <SolidColorBrush x:Key="AccentBrush" Color="#FF246BFD" />
-        <SolidColorBrush x:Key="AccentLightBrush" Color="#FFDCEEFF" />
+        <SolidColorBrush x:Key="AccentLightBrush" Color="#FFE8F0FE" />
+        <SolidColorBrush x:Key="ListItemSelectedBackgroundBrush" Color="#FFE8F0FE" />
+        <SolidColorBrush x:Key="ListItemSelectedBorderBrush" Color="#FFA0C5FD" />
         <SolidColorBrush x:Key="ToolbarHoverBackgroundBrush" Color="#FFE8ECF1" />
         <SolidColorBrush x:Key="ToolbarActiveBackgroundBrush" Color="#FFDCEEFF" />
         <SolidColorBrush x:Key="ToolbarActiveForegroundBrush" Color="#FF1D4ED8" />

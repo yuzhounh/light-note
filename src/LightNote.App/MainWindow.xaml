@@ -474,15 +474,15 @@
                                                 </Trigger>
                                                 <Trigger Property="IsSelected" Value="True">
                                                     <Setter TargetName="ItemBackground" Property="Background"
-                                                            Value="{DynamicResource AccentLightBrush}" />
+                                                            Value="{DynamicResource ListItemSelectedBackgroundBrush}" />
                                                     <Setter TargetName="ItemBackground" Property="BorderBrush"
-                                                            Value="{DynamicResource AccentBrush}" />
+                                                            Value="{DynamicResource ListItemSelectedBorderBrush}" />
                                                 </Trigger>
                                                 <Trigger Property="local:DropHelper.Indicator" Value="Highlight">
                                                     <Setter TargetName="ItemBackground" Property="Background"
-                                                            Value="{DynamicResource AccentLightBrush}" />
+                                                            Value="{DynamicResource ListItemSelectedBackgroundBrush}" />
                                                     <Setter TargetName="ItemBackground" Property="BorderBrush"
-                                                            Value="{DynamicResource AccentBrush}" />
+                                                            Value="{DynamicResource ListItemSelectedBorderBrush}" />
                                                 </Trigger>
                                                 <Trigger Property="local:DropHelper.Indicator" Value="TopLine">
                                                     <Setter TargetName="TopLineIndicator" Property="Visibility" Value="Visible" />
@@ -605,9 +605,9 @@
                                                      </Trigger>
                                                      <Trigger Property="IsSelected" Value="True">
                                                          <Setter TargetName="ItemBackground" Property="Background"
-                                                                 Value="{DynamicResource AccentLightBrush}" />
+                                                                 Value="{DynamicResource ListItemSelectedBackgroundBrush}" />
                                                          <Setter TargetName="ItemBackground" Property="BorderBrush"
-                                                                 Value="{DynamicResource AccentBrush}" />
+                                                                 Value="{DynamicResource ListItemSelectedBorderBrush}" />
                                                      </Trigger>
                                                  </ControlTemplate.Triggers>
                                              </ControlTemplate>

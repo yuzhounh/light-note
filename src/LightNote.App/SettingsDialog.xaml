@@ -70,9 +70,9 @@
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="NavBorder" Property="Background"
-                                        Value="{DynamicResource AccentLightBrush}" />
+                                        Value="{DynamicResource ListItemSelectedBackgroundBrush}" />
                                 <Setter TargetName="NavBorder" Property="BorderBrush"
-                                        Value="{DynamicResource AccentBrush}" />
+                                        Value="{DynamicResource ListItemSelectedBorderBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
