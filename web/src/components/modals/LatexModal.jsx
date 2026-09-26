@@ -132,7 +132,7 @@ export function LatexModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm select-none">
       <div 
-        className="w-full max-w-2xl max-h-[90vh] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-2xl shadow-2xl dark:shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl max-h-[90vh] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
