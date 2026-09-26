@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
@@ -457,12 +458,23 @@ public sealed class FirebaseSyncService(
         string localPath,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(configuration.StorageBucket))
+        {
+            return;
+        }
+
         var endpoint = $"https://firebasestorage.googleapis.com/v0/b/{Uri.EscapeDataString(configuration.StorageBucket)}/o?uploadType=media&name={Uri.EscapeDataString(cloudPath)}";
         using var request = CreateAuthorizedRequest(HttpMethod.Post, endpoint, session.IdToken);
         await using var stream = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read);
         request.Content = new StreamContent(stream);
         request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(mimeType);
         using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden)
+        {
+            logger.Info($"Cloud Storage 未开启或存储桶不可用（{(int)response.StatusCode}），已跳过附件云端上传：{cloudPath}");
+            return;
+        }
+
         _ = await ReadSuccessfulJsonAsync(response, cancellationToken);
     }
 
@@ -744,6 +756,11 @@ public sealed class FirebaseSyncService(
         string expectedHash,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(configuration.StorageBucket))
+        {
+            return;
+        }
+
         if (File.Exists(destination) &&
             new FileInfo(destination).Length == expectedSize &&
             string.Equals(
@@ -761,6 +778,12 @@ public sealed class FirebaseSyncService(
             var endpoint = $"https://firebasestorage.googleapis.com/v0/b/{Uri.EscapeDataString(configuration.StorageBucket)}/o/{Uri.EscapeDataString(cloudPath)}?alt=media";
             using var request = CreateAuthorizedRequest(HttpMethod.Get, endpoint, session.IdToken);
             using var response = await httpClient.SendAsync(request, cancellationToken);
+            if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden)
+            {
+                logger.Info($"Cloud Storage 未开启或云端附件不存在（{(int)response.StatusCode}）：{cloudPath}");
+                return;
+            }
+
             if (!response.IsSuccessStatusCode)
             {
                 _ = await ReadSuccessfulJsonAsync(response, cancellationToken);

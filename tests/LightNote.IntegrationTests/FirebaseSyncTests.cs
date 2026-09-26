@@ -89,6 +89,34 @@ public sealed class FirebaseSyncTests : IDisposable
         Assert.Contains(history, version => version.IsConflict && version.Title == "Local title");
     }
 
+    [Fact]
+    public async Task SyncSucceedsWhenCloudStorageBucketNotFound()
+    {
+        var (paths, factory, notes) = await CreateServicesAsync();
+        var note = CreateNote("Storage offline note", "content");
+        await notes.UpsertAsync(note);
+        await new AttachmentService(paths, factory).ImportAsync(
+            note.Id,
+            "test.png",
+            "image/png",
+            OnePixelPng);
+
+        var handler = new RecordingFirebaseHandler
+        {
+            StorageShouldReturnNotFound = true,
+        };
+        var service = new FirebaseSyncService(
+            paths,
+            factory,
+            new HttpClient(handler),
+            new NullLogger());
+        await service.SignInAsync("test@example.com", "password123");
+
+        var result = await service.SyncAsync();
+        Assert.Equal(2, result.Uploaded); // 1 note + 1 attachment metadata in firestore
+        Assert.Empty(handler.StorageUploads);
+    }
+
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
@@ -167,6 +195,8 @@ public sealed class FirebaseSyncTests : IDisposable
 
         public string? RemoteNoteResponse { get; init; }
 
+        public bool StorageShouldReturnNotFound { get; init; }
+
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
@@ -204,6 +234,14 @@ public sealed class FirebaseSyncTests : IDisposable
             if (url.Contains("firebasestorage.googleapis.com", StringComparison.Ordinal) &&
                 request.Method == HttpMethod.Post)
             {
+                if (StorageShouldReturnNotFound)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.NotFound)
+                    {
+                        Content = new StringContent("{\"error\":{\"code\":404,\"message\":\"Not Found.\"}}"),
+                    };
+                }
+
                 StorageUploads.Add(url);
                 return JsonResponse("{}");
             }

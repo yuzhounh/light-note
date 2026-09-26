@@ -1544,7 +1544,7 @@ public partial class MainWindow : Window
         {
             MessageBox.Show(this,
                 $"Firebase 尚未配置。配置文件稍后应放在：\n{_syncService.ConfigurationPath}\n\n" +
-                "需要 projectId、apiKey 和 storageBucket。",
+                "需要 projectId 与 apiKey（storageBucket 仅图片同步需要，可选）。",
                 "LightNote",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);

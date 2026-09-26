@@ -9,7 +9,7 @@ internal sealed record FirebaseConfiguration
 
     public required string ApiKey { get; init; }
 
-    public required string StorageBucket { get; init; }
+    public string? StorageBucket { get; init; }
 
     public string DatabaseId { get; init; } = "(default)";
 }
@@ -51,10 +51,9 @@ internal sealed class FirebaseConfigurationProvider(AppDataPaths paths)
             File.ReadAllText(ConfigurationPath),
             JsonOptions) ?? throw new InvalidDataException("Firebase 配置文件为空。");
         if (string.IsNullOrWhiteSpace(configuration.ProjectId) ||
-            string.IsNullOrWhiteSpace(configuration.ApiKey) ||
-            string.IsNullOrWhiteSpace(configuration.StorageBucket))
+            string.IsNullOrWhiteSpace(configuration.ApiKey))
         {
-            throw new InvalidDataException("Firebase 配置必须包含 projectId、apiKey 和 storageBucket。");
+            throw new InvalidDataException("Firebase 配置必须包含 projectId 和 apiKey。");
         }
 
         return configuration;
