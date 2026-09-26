@@ -50,6 +50,14 @@
                 <ListBox x:Name="VersionsList" ItemsSource="{Binding}" SelectionChanged="OnSelectionChanged"
                          Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         ScrollViewer.CanContentScroll="True"
+                         ScrollViewer.PanningMode="VerticalOnly"
+                         ScrollViewer.IsDeferredScrollingEnabled="False"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         VirtualizingPanel.ScrollUnit="Pixel"
+                         UseLayoutRounding="True" SnapsToDevicePixels="True"
                          AutomationProperties.Name="历史版本列表">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
