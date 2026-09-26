@@ -116,7 +116,7 @@ export function LightEditor({ content, onChange, isMobile = false }) {
   return (
     <div className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden">
       {/* Format Toolbar */}
-      <div className={`flex items-center gap-1 px-3 py-1.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur overflow-x-auto ${
+      <div className={`flex items-center gap-1 px-3 py-1.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur overflow-x-auto no-scrollbar ${
         isMobile ? 'text-xs' : 'text-sm'
       }`}>
         <button
