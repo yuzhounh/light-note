@@ -18,6 +18,8 @@ public sealed class ThemeService
         SetBrush("BorderBrush", IsDark ? "#FF3B4148" : "#FFE2E5E9");
         SetBrush("TextBrush", IsDark ? "#FFF2F4F7" : "#FF1F2328");
         SetBrush("MutedTextBrush", IsDark ? "#FFAAB2BC" : "#FF68717D");
+        SetBrush("AccentBrush", IsDark ? "#FF3B82F6" : "#FF246BFD");
+        SetBrush("AccentLightBrush", IsDark ? "#FF22334D" : "#FFDCEEFF");
         SetBrush("ScrollBarThumbBrush", IsDark ? "#FF3B4148" : "#FFE2E5E9");
         SetBrush("ScrollBarThumbHoverBrush", IsDark ? "#FF4E555E" : "#FFCBD0D6");
         SetBrush("ScrollBarThumbDragBrush", IsDark ? "#FF656D78" : "#FFAAB2BC");

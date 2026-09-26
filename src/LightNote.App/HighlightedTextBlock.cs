@@ -71,7 +71,8 @@ public sealed class HighlightedTextBlock : TextBlock
 
             Inlines.Add(new Run(text.Substring(nextMatch.Index, nextMatch.Term.Length))
             {
-                Background = new SolidColorBrush(Color.FromRgb(255, 226, 143)),
+                Background = new SolidColorBrush(Color.FromRgb(255, 214, 51)),
+                Foreground = new SolidColorBrush(Color.FromRgb(24, 28, 34)),
                 FontWeight = FontWeights.SemiBold,
             });
             position = nextMatch.Index + nextMatch.Term.Length;

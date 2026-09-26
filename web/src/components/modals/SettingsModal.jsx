@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { X, Download, Upload, Trash2, Sun, Moon, Database } from 'lucide-react'
 import { db } from '../../core/db/database'
+import { APP_DISPLAY_VERSION } from '../../core/version'
 
 export function SettingsModal({
   isOpen,
@@ -212,7 +213,7 @@ export function SettingsModal({
 
         {/* Modal Footer */}
         <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 text-[11px] text-zinc-400">
-          <span>LightNote Web & PWA v1.0.0</span>
+          <span>{APP_DISPLAY_VERSION}</span>
           <button
             onClick={onClose}
             className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded transition cursor-pointer"
