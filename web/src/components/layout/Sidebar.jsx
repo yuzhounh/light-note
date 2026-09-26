@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { 
-  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut
+  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2
 } from 'lucide-react'
 
 export function Sidebar({
@@ -131,9 +131,10 @@ export function Sidebar({
                           onDeleteNotebook(nb.id)
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-rose-500 rounded text-zinc-400"
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-500 rounded text-zinc-400 transition"
+                      title="删除笔记本"
                     >
-                      <X size={12} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 )
