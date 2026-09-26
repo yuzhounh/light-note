@@ -104,6 +104,6 @@ dotnet test LightNote.slnx
 .\scripts\build-installer.ps1
 ```
 
-发布目录为 `artifacts\releases\1.8.0\win-x64`，安装包为 `artifacts\installers\LightNote-1.8.0-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%UserProfile%\.lightnote`。
+发布目录为 `artifacts\releases\1.9.0\win-x64`，安装包为 `artifacts\installers\LightNote-1.9.0-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%UserProfile%\.lightnote`。
 
 构建产物规范见 [docs/build-artifacts.md](docs/build-artifacts.md)，详细路线见 [docs/implementation-plan.md](docs/implementation-plan.md)。
