@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { 
-  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2, Sun, Moon
+  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2, Sun, Moon, RefreshCw
 } from 'lucide-react'
 
 export function Sidebar({
@@ -19,7 +19,9 @@ export function Sidebar({
   theme,
   onToggleTheme,
   onCloseMobile,
-  isMobile
+  isMobile,
+  syncStatus,
+  onSync
 }) {
   const [isGroupOpen, setIsGroupOpen] = useState(true)
   const [isAddingNotebook, setIsAddingNotebook] = useState(false)
@@ -210,6 +212,27 @@ export function Sidebar({
         )}
 
         <div className="flex items-center gap-1 shrink-0">
+          {currentUser && (
+            <button
+              onClick={onSync}
+              className={`p-1 hover:text-zinc-900 dark:hover:text-white transition rounded cursor-pointer ${
+                syncStatus?.status === 'syncing' 
+                  ? 'text-amber-500 animate-spin' 
+                  : syncStatus?.status === 'error' 
+                  ? 'text-rose-500' 
+                  : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+              }`}
+              title={
+                syncStatus?.status === 'syncing'
+                  ? '正在同步...'
+                  : syncStatus?.status === 'error'
+                  ? `同步异常: ${syncStatus.error || ''} (点击重试)`
+                  : `已同步${syncStatus?.lastSyncedAt ? ' (' + new Date(syncStatus.lastSyncedAt).toLocaleTimeString() + ')' : ''} (点击立即同步)`
+              }
+            >
+              <RefreshCw size={15} />
+            </button>
+          )}
           <button
             onClick={onOpenSettings}
             className="p-1 hover:text-zinc-900 dark:hover:text-white transition rounded cursor-pointer"
@@ -252,6 +275,22 @@ export function Sidebar({
                     {currentUser.email || ''}
                   </div>
                 </div>
+              </div>
+
+              {/* Sync Status Row */}
+              <div className="flex items-center justify-between px-2 py-1.5 bg-zinc-50 dark:bg-zinc-800/60 rounded-lg text-xs">
+                <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
+                  <RefreshCw size={13} className={syncStatus?.status === 'syncing' ? 'animate-spin text-amber-500' : ''} />
+                  <span className="text-[11px]">
+                    {syncStatus?.status === 'syncing' ? '正在同步...' : syncStatus?.status === 'error' ? '同步失败' : '云端同步'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => { if (onSync) onSync() }}
+                  className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                >
+                  立即同步
+                </button>
               </div>
 
               <div className="border-t border-zinc-100 dark:border-zinc-800" />

@@ -5,6 +5,7 @@ import Image from '@tiptap/extension-image'
 import { Node, Mark, mergeAttributes } from '@tiptap/core'
 import katex from 'katex'
 import { LatexModal } from '../components/modals/LatexModal'
+import { syncService } from '../core/sync/syncService'
 
 // 1. Underline Mark
 const Underline = Mark.create({
@@ -145,6 +146,39 @@ export const MathNode = Node.create({
   }
 })
 
+// 4. Custom Image Node with attachment resolution
+const CustomImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      src: {
+        default: null,
+      },
+      'data-attachment-id': {
+        default: null,
+      }
+    }
+  },
+  addNodeView() {
+    return ({ node }) => {
+      const img = document.createElement('img')
+      img.src = node.attrs.src || ''
+      img.alt = node.attrs.alt || ''
+      if (node.attrs['data-attachment-id']) {
+        img.setAttribute('data-attachment-id', node.attrs['data-attachment-id'])
+      }
+      if (node.attrs.src && node.attrs.src.startsWith('https://lightnote.attachments/')) {
+        syncService.resolveImageUrl(node.attrs.src).then(resolved => {
+          if (resolved && resolved !== node.attrs.src) {
+            img.src = resolved
+          }
+        })
+      }
+      return { dom: img }
+    }
+  }
+})
+
 const FONT_FAMILIES = [
   { label: '微软雅黑', value: 'Microsoft YaHei, sans-serif' },
   { label: '宋体', value: 'SimSun, serif' },
@@ -171,7 +205,7 @@ export const LightEditor = forwardRef(function LightEditor(
       Underline,
       TextAppearance,
       MathNode,
-      Image.configure({
+      CustomImage.configure({
         inline: true,
         allowBase64: true,
       }),

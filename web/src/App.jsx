@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Plus } from 'lucide-react'
 import { seedInitialData } from './core/db/database'
 import { NotesRepository } from './core/db/notesRepository'
+import { syncService, subscribeSyncState } from './core/sync/syncService'
 import { useResponsive } from './hooks/useResponsive'
 import { useBackButton } from './hooks/useBackButton'
 import { Sidebar } from './components/layout/Sidebar'
@@ -23,6 +24,7 @@ export function App() {
   const [saveStatus, setSaveStatus] = useState('saved')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [syncStatus, setSyncStatus] = useState(() => syncService.getSyncState())
   
   // Theme state
   const [theme, setTheme] = useState(() => {
@@ -65,10 +67,20 @@ export function App() {
     init()
 
     // Subscribe to Firebase Google Auth state
-    const unsubscribe = subscribeAuth(user => {
+    const unsubscribeAuth = subscribeAuth(user => {
       setCurrentUser(user)
+      syncService.setUser(user, () => refreshData())
     })
-    return () => unsubscribe()
+
+    const unsubscribeSync = subscribeSyncState(status => {
+      setSyncStatus(status)
+    })
+
+    return () => {
+      unsubscribeAuth()
+      unsubscribeSync()
+      syncService.stopRealtimeSync()
+    }
   }, [])
 
   // Direct Google Login (via native Credential Manager on Android, popup on Web)
@@ -76,6 +88,7 @@ export function App() {
     try {
       const user = await loginWithGoogle()
       setCurrentUser(user)
+      syncService.setUser(user, () => refreshData())
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'SIGN_IN_CANCELLED') {
         const friendlyMessages = {
@@ -95,6 +108,21 @@ export function App() {
   async function handleLogout() {
     await logoutFirebase()
     setCurrentUser(null)
+    syncService.setUser(null)
+  }
+
+  // Manual trigger sync
+  async function handleManualSync() {
+    if (!currentUser) {
+      await handleGoogleLogin()
+      return
+    }
+    try {
+      await syncService.syncNow(currentUser, () => refreshData())
+      await refreshData()
+    } catch (err) {
+      console.warn('Manual sync failed:', err)
+    }
   }
 
   // Reload notes when view, notebook, or search query changes
@@ -105,7 +133,17 @@ export function App() {
   async function refreshData() {
     const nbs = await NotesRepository.getAllNotebooks()
     setNotebooks(nbs)
-    await loadNotes()
+    const list = await NotesRepository.getNotes({
+      notebookId: currentNotebookId,
+      view: currentView,
+      searchQuery,
+    })
+    setNotes(list)
+    setActiveNote(prev => {
+      if (!prev) return (!isMobile && list.length > 0) ? list[0] : null
+      const updated = list.find(n => n.id === prev.id)
+      return updated || ((!isMobile && list.length > 0) ? list[0] : null)
+    })
   }
 
   async function loadNotes() {
@@ -289,6 +327,8 @@ export function App() {
                 theme={theme}
                 onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
                 isMobile={false}
+                syncStatus={syncStatus}
+                onSync={handleManualSync}
               />
             </div>
 
@@ -347,6 +387,8 @@ export function App() {
                     onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
                     onCloseMobile={() => setIsSidebarOpen(false)}
                     isMobile={true}
+                    syncStatus={syncStatus}
+                    onSync={handleManualSync}
                   />
                 </div>
               </div>

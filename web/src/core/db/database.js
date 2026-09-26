@@ -38,6 +38,7 @@ export async function seedInitialData() {
       created_at: now,
       updated_at: now,
       deleted_at: null,
+      is_demo: 1,
     },
     {
       id: nbDevId,
@@ -47,6 +48,7 @@ export async function seedInitialData() {
       created_at: now,
       updated_at: now,
       deleted_at: null,
+      is_demo: 1,
     }
   ])
 
@@ -82,6 +84,7 @@ export async function seedInitialData() {
       created_at: '2026-09-25T10:02:00.000Z',
       updated_at: '2026-09-25T10:02:00.000Z',
       deleted_at: null,
+      is_demo: 1,
     },
     {
       id: note2Id,
@@ -95,6 +98,7 @@ export async function seedInitialData() {
       created_at: '2026-09-25T09:55:00.000Z',
       updated_at: '2026-09-25T09:55:00.000Z',
       deleted_at: null,
+      is_demo: 1,
     },
     {
       id: note3Id,
@@ -108,6 +112,7 @@ export async function seedInitialData() {
       created_at: '2026-09-25T09:02:00.000Z',
       updated_at: '2026-09-25T09:02:00.000Z',
       deleted_at: null,
+      is_demo: 1,
     },
     {
       id: note4Id,
@@ -121,6 +126,7 @@ export async function seedInitialData() {
       created_at: '2026-09-19T14:42:00.000Z',
       updated_at: '2026-09-19T14:42:00.000Z',
       deleted_at: null,
+      is_demo: 1,
     }
   ])
 }

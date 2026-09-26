@@ -1,4 +1,5 @@
 import { db } from './database'
+import { syncService } from '../sync/syncService'
 
 export const NotesRepository = {
   // --- Notebooks ---
@@ -144,5 +145,6 @@ export const NotesRepository = {
       created_at: now,
       retry_count: 0
     })
+    syncService.notifyOutboxChanged()
   }
 }
