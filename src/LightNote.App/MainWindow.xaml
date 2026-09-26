@@ -189,18 +189,34 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="38" />
                             </Grid.ColumnDefinitions>
-                            <Button x:Name="AccountButton" Margin="0,0,4,0" Padding="8,7"
+                            <Button x:Name="AccountButton" Margin="0,0,4,0" Padding="6,6"
                                     Style="{StaticResource SidebarActionButtonStyle}"
                                     HorizontalContentAlignment="Left" Click="OnAccountButtonClick"
                                     ToolTip="账户与同步" AutomationProperties.Name="打开账户菜单">
-                                <TextBlock x:Name="AccountButtonText" Text="Google 登录"
-                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="24" Height="24" CornerRadius="12"
+                                            Background="#E2E8F0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Margin="0,0,8,0" ClipToBounds="True">
+                                        <Grid>
+                                            <TextBlock x:Name="SidebarAvatarInitial" Text="G"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       FontSize="12" FontWeight="SemiBold" Foreground="#475569" />
+                                            <Image x:Name="SidebarAvatarImage" Stretch="UniformToFill" />
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock x:Name="AccountButtonText" Grid.Column="1" Text="Google 登录"
+                                               FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                </Grid>
                             </Button>
                             <Button Grid.Column="1" Margin="0" Padding="0"
                                     Style="{StaticResource SidebarActionButtonStyle}"
                                     HorizontalContentAlignment="Center"
-                                     Click="OnSettingsClick" ToolTip="设置"
-                                     AutomationProperties.Name="打开设置">
+                                    Click="OnSettingsClick" ToolTip="设置"
+                                    AutomationProperties.Name="打开设置">
                                 <TextBlock FontFamily="Segoe Fluent Icons" FontSize="17"
                                            Foreground="{DynamicResource TextBrush}" Text="&#xE713;" />
                             </Button>
@@ -209,16 +225,36 @@
                                    HorizontalOffset="0" VerticalOffset="-8"
                                    StaysOpen="False" AllowsTransparency="True"
                                    PopupAnimation="Fade">
-                                <Border x:Name="AccountPopupCard" Padding="8" CornerRadius="12"
+                                <Border x:Name="AccountPopupCard" Padding="10" CornerRadius="12"
                                         Background="{DynamicResource PanelBrush}"
                                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                     <StackPanel>
-                                        <TextBlock x:Name="AccountPopupIdentityText" Margin="10,7,10,0" FontSize="15"
-                                                   FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock x:Name="AccountPopupStatusText" Margin="10,4,10,8"
-                                                   Foreground="{DynamicResource MutedTextBrush}"
-                                                   TextWrapping="Wrap" />
-                                        <Separator Margin="0,2,0,4" Style="{StaticResource MenuSeparatorStyle}" />
+                                        <!-- Header with Name, Email and Avatar -->
+                                        <Grid Margin="10,8,10,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock x:Name="AccountPopupDisplayNameText" FontSize="16"
+                                                           FontWeight="Bold" Text="Google 账户" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock x:Name="AccountPopupEmailText" Margin="0,3,0,0" FontSize="13"
+                                                           Foreground="{DynamicResource MutedTextBrush}" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Width="40" Height="40" CornerRadius="20"
+                                                    Background="#E2E8F0" HorizontalAlignment="Right" VerticalAlignment="Center" ClipToBounds="True">
+                                                <Grid>
+                                                    <TextBlock x:Name="AccountPopupAvatarInitial" Text="G"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                               FontSize="16" FontWeight="Bold" Foreground="#475569" />
+                                                    <Image x:Name="AccountPopupAvatarImage" Stretch="UniformToFill" />
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+
+                                        <Separator Margin="0,2,0,6" Style="{StaticResource MenuSeparatorStyle}" />
+
+                                        <!-- 1. 立即同步 -->
                                         <Button x:Name="AccountPopupPrimaryButton"
                                                 Style="{StaticResource AccountPopupItemButtonStyle}"
                                                 Click="OnAccountPopupPrimaryClick">
@@ -227,12 +263,59 @@
                                                     <ColumnDefinition Width="28" />
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="17"
-                                                           Text="&#xE77B;" VerticalAlignment="Center" />
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16"
+                                                           Text="&#xE895;" VerticalAlignment="Center" />
                                                 <TextBlock x:Name="AccountPrimaryText" Grid.Column="1"
-                                                           VerticalAlignment="Center" />
+                                                           Text="立即同步" VerticalAlignment="Center" />
                                             </Grid>
                                         </Button>
+
+                                        <!-- 2. 导入 -->
+                                        <Button Style="{StaticResource AccountPopupItemButtonStyle}"
+                                                Click="OnAccountPopupImportClick">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16"
+                                                           Text="&#xE8B5;" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="导入" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Button>
+
+                                        <!-- 3. 导出 -->
+                                        <Button Style="{StaticResource AccountPopupItemButtonStyle}"
+                                                Click="OnAccountPopupExportClick">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16"
+                                                           Text="&#xEDE1;" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="导出" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Button>
+
+                                        <!-- 4. 开机自启动 -->
+                                        <Button Style="{StaticResource AccountPopupItemButtonStyle}"
+                                                Click="OnAutoStartClick">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16"
+                                                           Text="&#xE7E8;" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="开机自启动" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="AutoStartCheckMark" Grid.Column="2" FontFamily="Segoe Fluent Icons"
+                                                           FontSize="14" Foreground="#2563EB" Text="&#xE73E;" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Button>
+
+                                        <!-- 5. 颜色模式 -->
                                         <Button x:Name="ThemeModeButton"
                                                 Style="{StaticResource AccountPopupItemButtonStyle}"
                                                 Click="OnThemeModeClick">
@@ -254,7 +337,7 @@
                                                     <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="18" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="17"
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16"
                                                            Text="&#xE708;" VerticalAlignment="Center" />
                                                 <TextBlock Grid.Column="1" Text="颜色模式" VerticalAlignment="Center" />
                                                 <TextBlock x:Name="AccountThemeCurrentText" Grid.Column="2"
@@ -265,6 +348,8 @@
                                                            VerticalAlignment="Center" />
                                             </Grid>
                                         </Button>
+
+                                        <!-- 6. 设置 -->
                                         <Button Style="{StaticResource AccountPopupItemButtonStyle}"
                                                 Click="OnAccountPopupSettingsClick">
                                             <Grid>
@@ -273,13 +358,15 @@
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="17"
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16"
                                                            Text="&#xE713;" VerticalAlignment="Center" />
                                                 <TextBlock Grid.Column="1" Text="设置" VerticalAlignment="Center" />
                                                 <TextBlock x:Name="AccountSettingsVersionText" Grid.Column="2"
                                                            Foreground="{DynamicResource MutedTextBrush}" />
                                             </Grid>
                                         </Button>
+
+                                        <!-- 7. 退出账号 -->
                                         <Separator x:Name="AccountSignOutSeparator" Margin="0,4"
                                                    Style="{StaticResource MenuSeparatorStyle}" />
                                         <Button x:Name="AccountPopupSignOutButton"
@@ -290,13 +377,23 @@
                                                     <ColumnDefinition Width="28" />
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="17"
-                                                           Foreground="#FFE05252" Text="&#xE8BB;"
-                                                           VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="1" Foreground="#FFE05252" Text="退出登录"
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16"
+                                                           Text="&#xF3B1;" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="退出账号"
                                                            VerticalAlignment="Center" />
                                             </Grid>
                                         </Button>
+
+                                        <!-- 8. 底部同步状态卡片 -->
+                                        <Border x:Name="AccountPopupSyncCard" Margin="2,8,2,2" Padding="12,10"
+                                                Background="{DynamicResource SecondaryPanelBrush}" CornerRadius="8">
+                                            <StackPanel>
+                                                <TextBlock x:Name="AccountPopupSyncStatsText" Text="已同步： 上传 0，更新 0"
+                                                           FontSize="12" Foreground="{DynamicResource MutedTextBrush}" />
+                                                <TextBlock x:Name="AccountPopupLastSyncTimeText" Margin="0,3,0,0" Text="上次同步： 刚刚"
+                                                           FontSize="12" Foreground="{DynamicResource MutedTextBrush}" />
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
                                 </Border>
                             </Popup>
@@ -445,6 +542,15 @@
                                              <TextBlock Margin="0,2,0,0" Text="{Binding UpdatedLabel}" FontSize="12"
                                                         Foreground="{StaticResource MutedTextBrush}" />
                                          </StackPanel>
+                                         <Viewbox Width="16" Height="16" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                  Margin="0,10,10,0" ToolTip="未同步到云端"
+                                                  Visibility="{Binding IsUnsynced, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                             <Canvas Width="24" Height="24">
+                                                 <Path Stroke="#10B981" StrokeThickness="1.8" StrokeLineJoin="Round"
+                                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                                       Data="M 6 19 A 4 4 0 0 1 5 11 A 5.5 5.5 0 0 1 15 8 A 4.5 4.5 0 0 1 19 14 A 3.5 3.5 0 0 1 17 19 M 12 18 L 12 11 M 9 14 L 12 11 L 15 14" />
+                                             </Canvas>
+                                         </Viewbox>
                                          <Border Height="1" Margin="6,0" VerticalAlignment="Bottom"
                                                  Background="{DynamicResource BorderBrush}" />
                                      </Grid>

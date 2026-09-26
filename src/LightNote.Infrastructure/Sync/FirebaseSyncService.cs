@@ -29,9 +29,17 @@ public sealed class FirebaseSyncService(
 
     public string ConfigurationPath => _configurationProvider.ConfigurationPath;
 
+    public SyncResult? LastSyncResult { get; private set; }
+
     public FirebaseAccount? CurrentAccount => _session is null
         ? null
-        : new FirebaseAccount { UserId = _session.UserId, Email = _session.Email };
+        : new FirebaseAccount
+        {
+            UserId = _session.UserId,
+            Email = _session.Email,
+            DisplayName = _session.DisplayName,
+            PhotoUrl = _session.PhotoUrl,
+        };
 
     public async Task<FirebaseAccount?> RestoreSessionAsync(
         CancellationToken cancellationToken = default)
@@ -50,6 +58,8 @@ public sealed class FirebaseSyncService(
             }
 
             await EnsureFreshSessionAsync(cancellationToken);
+            var configuration = _configurationProvider.Load();
+            await PopulateProfileAsync(configuration, cancellationToken);
             return CurrentAccount;
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -243,24 +253,79 @@ public sealed class FirebaseSyncService(
         }, cancellationToken);
         using var idpDoc = await ReadSuccessfulJsonAsync(idpResponse, cancellationToken);
         var root = idpDoc.RootElement;
+        var displayName = root.TryGetProperty("displayName", out var dnProp) && !string.IsNullOrWhiteSpace(dnProp.GetString())
+            ? dnProp.GetString()
+            : null;
+        var photoUrl = root.TryGetProperty("photoUrl", out var puProp) && !string.IsNullOrWhiteSpace(puProp.GetString())
+            ? puProp.GetString()
+            : null;
+
         _session = new FirebaseSession
         {
             UserId = RequiredString(root, "localId"),
             Email = root.TryGetProperty("email", out var emailProp) && !string.IsNullOrWhiteSpace(emailProp.GetString())
                 ? emailProp.GetString()!
                 : RequiredString(root, "federatedId"),
+            DisplayName = displayName,
+            PhotoUrl = photoUrl,
             IdToken = RequiredString(root, "idToken"),
             RefreshToken = RequiredString(root, "refreshToken"),
             ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(ParseLong(root, "expiresIn")),
         };
+        await PopulateProfileAsync(configuration, cancellationToken);
         _sessionStore.Save(_session);
         return CurrentAccount!;
+    }
+
+    private async Task PopulateProfileAsync(
+        FirebaseConfiguration configuration,
+        CancellationToken cancellationToken)
+    {
+        if (_session is null || (!string.IsNullOrWhiteSpace(_session.DisplayName) && !string.IsNullOrWhiteSpace(_session.PhotoUrl)))
+        {
+            return;
+        }
+
+        try
+        {
+            var endpoint = $"https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={Uri.EscapeDataString(configuration.ApiKey)}";
+            using var response = await httpClient.PostAsJsonAsync(endpoint, new
+            {
+                idToken = _session.IdToken,
+            }, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return;
+            }
+
+            using var doc = await ReadSuccessfulJsonAsync(response, cancellationToken);
+            if (doc.RootElement.TryGetProperty("users", out var users) && users.GetArrayLength() > 0)
+            {
+                var user = users[0];
+                var fetchedDisplayName = user.TryGetProperty("displayName", out var dn) ? dn.GetString() : null;
+                var fetchedPhotoUrl = user.TryGetProperty("photoUrl", out var pu) ? pu.GetString() : null;
+                if (!string.IsNullOrWhiteSpace(fetchedDisplayName) || !string.IsNullOrWhiteSpace(fetchedPhotoUrl))
+                {
+                    _session = _session with
+                    {
+                        DisplayName = fetchedDisplayName ?? _session.DisplayName,
+                        PhotoUrl = fetchedPhotoUrl ?? _session.PhotoUrl,
+                    };
+                    _sessionStore.Save(_session);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Info($"Failed to populate profile: {ex.Message}");
+        }
     }
 
     public Task SignOutAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         _session = null;
+        LastSyncResult = null;
         _sessionStore.Clear();
         return Task.CompletedTask;
     }
@@ -324,13 +389,15 @@ public sealed class FirebaseSyncService(
                 session.UserId, "attachments", attachmentBatch.Cursor, cancellationToken);
 
             var uploaded = await PushOutboxAsync(configuration, session, cancellationToken);
-            return new SyncResult
+            var result = new SyncResult
             {
                 Uploaded = uploaded,
                 Downloaded = downloaded,
                 Conflicts = conflicts,
                 CompletedAt = DateTimeOffset.UtcNow,
             };
+            LastSyncResult = result;
+            return result;
         }
         finally
         {

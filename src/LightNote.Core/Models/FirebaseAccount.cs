@@ -5,4 +5,8 @@ public sealed record FirebaseAccount
     public required string UserId { get; init; }
 
     public required string Email { get; init; }
+
+    public string? DisplayName { get; init; }
+
+    public string? PhotoUrl { get; init; }
 }

@@ -12,6 +12,8 @@ public interface IFirebaseSyncService
 
     FirebaseAccount? CurrentAccount { get; }
 
+    SyncResult? LastSyncResult { get; }
+
     Task<FirebaseAccount?> RestoreSessionAsync(CancellationToken cancellationToken = default);
 
     Task<FirebaseAccount> SignInAsync(

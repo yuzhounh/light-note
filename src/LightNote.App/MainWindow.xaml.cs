@@ -603,18 +603,115 @@ public partial class MainWindow : Window
     {
         var account = _syncService.CurrentAccount;
         var isSignedIn = account is not null;
-        AccountPopupIdentityText.Text = isSignedIn ? account!.Email : "Google 账户";
-        AccountPopupStatusText.Text = isSignedIn ? _viewModel.SyncStatus : "登录后可在设备之间同步笔记";
-        AccountPrimaryText.Text = isSignedIn ? "立即同步" : "Google 登录";
-        AccountPopupSignOutButton.Visibility = isSignedIn ? Visibility.Visible : Visibility.Collapsed;
-        AccountSignOutSeparator.Visibility = isSignedIn ? Visibility.Visible : Visibility.Collapsed;
+
+        if (isSignedIn && account is not null)
+        {
+            var displayName = !string.IsNullOrWhiteSpace(account.DisplayName)
+                ? account.DisplayName
+                : account.Email.Split('@')[0];
+
+            AccountPopupDisplayNameText.Text = displayName;
+            AccountPopupEmailText.Text = account.Email;
+            AccountPrimaryText.Text = "立即同步";
+            AccountPopupSignOutButton.Visibility = Visibility.Visible;
+            AccountSignOutSeparator.Visibility = Visibility.Visible;
+            AccountPopupSyncCard.Visibility = Visibility.Visible;
+
+            var result = _syncService.LastSyncResult;
+            if (result is not null)
+            {
+                AccountPopupSyncStatsText.Text = $"已同步： 上传 {result.Uploaded}，更新 {result.Downloaded}";
+                AccountPopupLastSyncTimeText.Text = $"上次同步： {result.CompletedAt.ToLocalTime():HH:mm:ss}";
+            }
+            else
+            {
+                AccountPopupSyncStatsText.Text = "已就绪";
+                AccountPopupLastSyncTimeText.Text = "上次同步： 尚未同步";
+            }
+        }
+        else
+        {
+            AccountPopupDisplayNameText.Text = "Google 账户";
+            AccountPopupEmailText.Text = "登录后可在设备之间同步笔记";
+            AccountPrimaryText.Text = "Google 登录";
+            AccountPopupSignOutButton.Visibility = Visibility.Collapsed;
+            AccountSignOutSeparator.Visibility = Visibility.Collapsed;
+            AccountPopupSyncCard.Visibility = Visibility.Collapsed;
+        }
+
+        UpdateAvatarImages(account);
+        AutoStartCheckMark.Visibility = StartupRegistrationService.IsEnabled() ? Visibility.Visible : Visibility.Collapsed;
+        AccountSettingsVersionText.Text = $"v{GetType().Assembly.GetName().Version?.ToString(3) ?? "1.0.0"}";
         UpdateThemeMenu();
+    }
+
+    private void UpdateAvatarImages(FirebaseAccount? account)
+    {
+        if (account is null)
+        {
+            SidebarAvatarImage.Source = null;
+            SidebarAvatarInitial.Text = "G";
+            AccountPopupAvatarImage.Source = null;
+            AccountPopupAvatarInitial.Text = "G";
+            return;
+        }
+
+        var initial = !string.IsNullOrWhiteSpace(account.DisplayName)
+            ? account.DisplayName.Trim()[0].ToString().ToUpperInvariant()
+            : account.Email[0].ToString().ToUpperInvariant();
+
+        SidebarAvatarInitial.Text = initial;
+        AccountPopupAvatarInitial.Text = initial;
+
+        if (!string.IsNullOrWhiteSpace(account.PhotoUrl) &&
+            Uri.TryCreate(account.PhotoUrl, UriKind.Absolute, out var photoUri))
+        {
+            try
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = photoUri;
+                bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+
+                SidebarAvatarImage.Source = bitmap;
+                AccountPopupAvatarImage.Source = bitmap;
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.Info($"Failed to load user avatar image: {ex.Message}");
+            }
+        }
+
+        SidebarAvatarImage.Source = null;
+        AccountPopupAvatarImage.Source = null;
     }
 
     private void OnAccountPopupPrimaryClick(object sender, RoutedEventArgs e)
     {
         AccountPopup.IsOpen = false;
         OnSyncClick(sender, e);
+    }
+
+    private void OnAccountPopupImportClick(object sender, RoutedEventArgs e)
+    {
+        AccountPopup.IsOpen = false;
+        OnImportClick(sender, e);
+    }
+
+    private void OnAccountPopupExportClick(object sender, RoutedEventArgs e)
+    {
+        AccountPopup.IsOpen = false;
+        OnExportNoteClick(sender, e);
+    }
+
+    private void OnAutoStartClick(object sender, RoutedEventArgs e)
+    {
+        var current = StartupRegistrationService.IsEnabled();
+        StartupRegistrationService.SetEnabled(!current);
+        AutoStartCheckMark.Visibility = !current ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnAccountPopupSignOutClick(object sender, RoutedEventArgs e)
@@ -1623,15 +1720,18 @@ public partial class MainWindow : Window
         {
             AccountButtonText.Text = "Google 登录";
             AccountButton.ToolTip = "登录 Google 账户以同步笔记";
-            if (IsLoaded)
-            {
-                ConfigureAccountPopup();
-            }
-            return;
+        }
+        else
+        {
+            var displayName = !string.IsNullOrWhiteSpace(account.DisplayName)
+                ? account.DisplayName
+                : account.Email.Split('@')[0];
+            AccountButtonText.Text = displayName;
+            AccountButton.ToolTip = $"{displayName} ({account.Email})\n点击打开账户菜单";
         }
 
-        AccountButtonText.Text = account.Email;
-        AccountButton.ToolTip = $"{account.Email}\n点击打开账户菜单";
+        UpdateAvatarImages(account);
+
         if (IsLoaded)
         {
             ConfigureAccountPopup();
@@ -1660,14 +1760,7 @@ public partial class MainWindow : Window
             _viewModel.SyncStatus = result.Conflicts > 0
                 ? $"已同步 · {result.Conflicts} 个冲突副本"
                 : $"已同步 · {result.CompletedAt.ToLocalTime():HH:mm}";
-            if (!silent)
-            {
-                MessageBox.Show(this,
-                    $"同步完成：上传 {result.Uploaded}，下载 {result.Downloaded}，冲突副本 {result.Conflicts}。",
-                    "LightNote",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-            }
+            ConfigureAccountPopup();
         }
         catch (Exception exception)
         {

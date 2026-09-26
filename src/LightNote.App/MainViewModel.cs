@@ -1148,6 +1148,8 @@ public sealed class NoteListItem(
 
     public string UpdatedLabel => Model.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
 
+    public bool IsUnsynced => Model.SyncState == SyncState.Dirty;
+
     private static string NormalizePreview(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -1168,6 +1170,7 @@ public sealed class NoteListItem(
         OnPropertyChanged(nameof(TitleDisplay));
         OnPropertyChanged(nameof(Preview));
         OnPropertyChanged(nameof(UpdatedLabel));
+        OnPropertyChanged(nameof(IsUnsynced));
     }
 }
 

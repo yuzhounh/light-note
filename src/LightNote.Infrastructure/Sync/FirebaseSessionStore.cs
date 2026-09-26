@@ -11,6 +11,10 @@ internal sealed record FirebaseSession
 
     public required string Email { get; init; }
 
+    public string? DisplayName { get; init; }
+
+    public string? PhotoUrl { get; init; }
+
     public required string IdToken { get; init; }
 
     public required string RefreshToken { get; init; }
