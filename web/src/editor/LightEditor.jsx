@@ -6,24 +6,6 @@ import { Node, Mark, mergeAttributes } from '@tiptap/core'
 import katex from 'katex'
 import { LatexModal } from '../components/modals/LatexModal'
 import { syncService } from '../core/sync/syncService'
-import { stripTrailingPeriod } from '../core/db/notesRepository'
-
-export function isInitialTimestampNote(editor) {
-  if (!editor || !editor.state) return false
-  const doc = editor.state.doc
-  if (doc.childCount === 3) {
-    const p1 = doc.child(0)
-    const p2 = doc.child(1)
-    const p3 = doc.child(2)
-    if (p1.type?.name === 'paragraph' && p2.type?.name === 'paragraph' && p3.type?.name === 'paragraph') {
-      if (p2.content.size === 0 && p3.content.size === 0) {
-        const text = p1.textContent.trim()
-        return /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(text)
-      }
-    }
-  }
-  return false
-}
 
 // 1. Underline Mark
 const Underline = Mark.create({
@@ -273,20 +255,6 @@ export const LightEditor = forwardRef(function LightEditor(
         }
         return false
       },
-      handleDOMEvents: {
-        click(view, event) {
-          const target = event.target
-          if (target?.closest?.('a')) return false
-          if (editor && isInitialTimestampNote(editor)) {
-            setTimeout(() => {
-              if (editor && isInitialTimestampNote(editor)) {
-                editor.commands.focus('end')
-              }
-            }, 0)
-          }
-          return false
-        },
-      },
     },
     onUpdate: ({ editor }) => {
       if (onChange) {
@@ -302,8 +270,6 @@ export const LightEditor = forwardRef(function LightEditor(
     focus: (position = 'start') => {
       if (position === 'start' || position === 'end' || position === 'all') {
         editor?.commands.focus(position)
-      } else if (isInitialTimestampNote(editor)) {
-        editor?.commands.focus('end')
       } else {
         editor?.commands.focus()
       }
@@ -398,6 +364,14 @@ export const LightEditor = forwardRef(function LightEditor(
     }
     setMathModal(prev => ({ ...prev, isOpen: false }))
     editor.commands.focus()
+  }
+
+  function handleInsertTimestamp() {
+    if (!editor) return
+    const d = new Date()
+    const pad = n => String(n).padStart(2, '0')
+    const timestamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+    editor.chain().focus().insertContent(timestamp).run()
   }
 
   return (
@@ -586,6 +560,20 @@ export const LightEditor = forwardRef(function LightEditor(
         >
           <span className="font-mono whitespace-nowrap leading-none font-medium">{'{}'}</span>
         </button>
+
+        <div className="w-[1px] h-3.5 bg-zinc-200 dark:bg-zinc-700 mx-0.5 shrink-0" />
+
+        {/* Timestamp */}
+        <button
+          onClick={handleInsertTimestamp}
+          className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100"
+          title="插入当前时间"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </button>
       </div>
 
       {/* Editor Content Area: Title is directly below toolbar, strictly left-aligned at px-6 */}
@@ -593,11 +581,7 @@ export const LightEditor = forwardRef(function LightEditor(
         className="flex-1 overflow-y-auto px-6 py-5"
         onClick={e => {
           if (e.target === e.currentTarget && editor) {
-            if (isInitialTimestampNote(editor)) {
-              editor.commands.focus('end')
-            } else {
-              editor.commands.focus()
-            }
+            editor.commands.focus()
           }
         }}
       >
@@ -609,21 +593,7 @@ export const LightEditor = forwardRef(function LightEditor(
           onKeyDown={e => {
             if (e.key === 'Enter' || e.key === 'Tab') {
               e.preventDefault()
-              const clean = stripTrailingPeriod(title)
-              if (clean !== title && onUpdateTitle) {
-                onUpdateTitle(clean)
-              }
-              if (isInitialTimestampNote(editor)) {
-                editor?.commands.focus('end')
-              } else {
-                editor?.commands.focus('end')
-              }
-            }
-          }}
-          onBlur={() => {
-            const clean = stripTrailingPeriod(title)
-            if (clean !== title && onUpdateTitle) {
-              onUpdateTitle(clean)
+              editor?.commands.focus('start')
             }
           }}
           className="w-full text-[21px] font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-3 tracking-tight"

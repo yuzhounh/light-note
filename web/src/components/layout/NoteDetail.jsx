@@ -22,7 +22,7 @@ export function NoteDetail({
   function handleTitleKeyDown(e) {
     if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault()
-      editorRef.current?.focus('end')
+      editorRef.current?.focus('start')
     }
   }
 

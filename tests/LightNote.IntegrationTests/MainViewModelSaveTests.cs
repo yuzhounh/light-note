@@ -81,7 +81,7 @@ public sealed class MainViewModelSaveTests : IDisposable
     }
 
     [Fact]
-    public async Task NewNoteCreatesTimestampOnFirstLineAndTwoBlankLines()
+    public async Task NewNoteCreatesCleanBlankNote()
     {
         var paths = new AppDataPaths(_testDirectory);
         var connectionFactory = new SqliteConnectionFactory(paths);
@@ -98,13 +98,12 @@ public sealed class MainViewModelSaveTests : IDisposable
 
         Assert.NotNull(viewModel.SelectedNote);
         var created = viewModel.SelectedNote.Model;
-        var pattern = @"^<p>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}</p><p></p><p></p>$";
-        Assert.Matches(pattern, created.BodyHtml);
-        Assert.Matches(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n\n$", created.BodyText);
+        Assert.Equal("<p></p>", created.BodyHtml);
+        Assert.Equal(string.Empty, created.BodyText);
     }
 
     [Fact]
-    public async Task TitleEndingWithPeriodAutomaticallyStripsPeriod()
+    public async Task TitleEndingWithPeriodIsPreserved()
     {
         var paths = new AppDataPaths(_testDirectory);
         var connectionFactory = new SqliteConnectionFactory(paths);
@@ -122,7 +121,7 @@ public sealed class MainViewModelSaveTests : IDisposable
         Assert.True(await viewModel.FlushAllAsync());
 
         var saved = await notes.GetAsync(viewModel.SelectedNote!.Model.Id);
-        Assert.Equal("新计划", saved?.Title);
+        Assert.Equal("新计划。", saved?.Title);
     }
 
     public void Dispose()

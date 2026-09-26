@@ -533,22 +533,6 @@ public sealed partial class MainViewModel(
         });
     }
 
-    public static string TrimTrailingPeriods(string? title)
-    {
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            return string.Empty;
-        }
-
-        var trimmed = title.TrimEnd();
-        while (trimmed.EndsWith('.') || trimmed.EndsWith('。') || trimmed.EndsWith('．'))
-        {
-            trimmed = trimmed[..^1].TrimEnd();
-        }
-
-        return trimmed;
-    }
-
     public void ApplyNoteTitleChange(string noteId, string value)
     {
         if (!TryGetLatestNote(noteId, out var current) || current.DeletedAt is not null)
@@ -556,14 +540,7 @@ public sealed partial class MainViewModel(
             return;
         }
 
-        var trimmedPeriods = TrimTrailingPeriods(value);
-        var normalizedTitle = string.IsNullOrWhiteSpace(trimmedPeriods)
-            ? (string.IsNullOrWhiteSpace(value) ? "无标题笔记" : trimmedPeriods)
-            : trimmedPeriods;
-        if (string.IsNullOrWhiteSpace(normalizedTitle))
-        {
-            normalizedTitle = "无标题笔记";
-        }
+        var normalizedTitle = string.IsNullOrWhiteSpace(value) ? "无标题笔记" : value.Trim();
         if (current.Title == normalizedTitle)
         {
             return;
@@ -642,27 +619,14 @@ public sealed partial class MainViewModel(
 
         var selectedTag = SelectedNotebook?.Kind == NotebookKind.Tag ? SelectedNotebook : null;
         var now = DateTimeOffset.UtcNow;
-        var localTimestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        var bodyHtml = $"<p>{localTimestamp}</p><p></p><p></p>";
-        var bodyText = $"{localTimestamp}\n\n";
-        var bodyJson = JsonSerializer.Serialize(new
-        {
-            type = "doc",
-            content = new object[]
-            {
-                new { type = "paragraph", content = new[] { new { type = "text", text = localTimestamp } } },
-                new { type = "paragraph" },
-                new { type = "paragraph" }
-            }
-        });
         var note = new Note
         {
             Id = Guid.NewGuid().ToString(),
             NotebookId = SelectedNotebook?.Kind == NotebookKind.User ? SelectedNotebook.Id : null,
             Title = "无标题笔记",
-            BodyJson = bodyJson,
-            BodyHtml = bodyHtml,
-            BodyText = bodyText,
+            BodyJson = "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}",
+            BodyHtml = "<p></p>",
+            BodyText = string.Empty,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -845,14 +809,7 @@ public sealed partial class MainViewModel(
         }
 
         var current = GetLatestNote(SelectedNote.Model.Id);
-        var trimmedPeriods = TrimTrailingPeriods(value);
-        var normalizedTitle = string.IsNullOrWhiteSpace(trimmedPeriods)
-            ? (string.IsNullOrWhiteSpace(value) ? "无标题笔记" : trimmedPeriods)
-            : trimmedPeriods;
-        if (string.IsNullOrWhiteSpace(normalizedTitle))
-        {
-            normalizedTitle = "无标题笔记";
-        }
+        var normalizedTitle = string.IsNullOrWhiteSpace(value) ? "无标题笔记" : value.Trim();
         if (current.Title == normalizedTitle)
         {
             return;
@@ -1361,9 +1318,21 @@ public sealed class NoteListItem(
             return "空笔记";
         }
 
-        return string.Join(' ', text.Split(
+        var match = System.Text.RegularExpressions.Regex.Match(text, @"^\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*");
+        if (match.Success)
+        {
+            var contentAfterTimestamp = text[match.Length..].Trim();
+            if (!string.IsNullOrWhiteSpace(contentAfterTimestamp))
+            {
+                text = contentAfterTimestamp;
+            }
+        }
+
+        var normalized = string.Join(' ', text.Split(
             (char[]?)null,
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        return string.IsNullOrWhiteSpace(normalized) ? "空笔记" : normalized;
     }
 
     public void Update(Note updatedNote)

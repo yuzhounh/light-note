@@ -90,6 +90,35 @@ public sealed class FirebaseSyncTests : IDisposable
     }
 
     [Fact]
+    public async Task NewerLocalNoteIsNotOverwrittenByOlderRemoteNoteAndPushesOutbox()
+    {
+        var (paths, factory, notes) = await CreateServicesAsync();
+        var local = CreateNote("Local newer title", "local newer body");
+        await notes.UpsertAsync(local);
+        var remoteUpdatedAt = local.UpdatedAt.AddMinutes(-5);
+        var handler = new RecordingFirebaseHandler
+        {
+            RemoteNoteResponse = BuildRemoteNote(local.Id, remoteUpdatedAt, title: "Remote older title"),
+        };
+        var service = new FirebaseSyncService(
+            paths,
+            factory,
+            new HttpClient(handler),
+            new NullLogger());
+        await service.SignInAsync("test@example.com", "password123");
+
+        var result = await service.SyncAsync();
+        var stored = await notes.GetAsync(local.Id);
+
+        Assert.Equal(0, result.Downloaded);
+        Assert.Equal(0, result.Conflicts);
+        Assert.Equal(1, result.Uploaded);
+        Assert.Equal("Local newer title", stored?.Title);
+        Assert.Equal("local newer body", stored?.BodyText);
+        Assert.Equal(SyncState.Clean, stored?.SyncState);
+    }
+
+    [Fact]
     public async Task SyncSucceedsWhenCloudStorageBucketNotFound()
     {
         var (paths, factory, notes) = await CreateServicesAsync();
@@ -187,12 +216,12 @@ public sealed class FirebaseSyncTests : IDisposable
         UpdatedAt = DateTimeOffset.UtcNow,
     };
 
-    private static string BuildRemoteNote(string id, DateTimeOffset updatedAt)
+    private static string BuildRemoteNote(string id, DateTimeOffset updatedAt, string title = "Remote title")
     {
         var fields = new Dictionary<string, object>
         {
             ["notebookId"] = new { nullValue = (object?)null },
-            ["title"] = new { stringValue = "Remote title" },
+            ["title"] = new { stringValue = title },
             ["bodyJson"] = new { stringValue = "{\"type\":\"doc\"}" },
             ["bodyHtml"] = new { stringValue = "<p>remote body</p>" },
             ["bodyText"] = new { stringValue = "remote body" },

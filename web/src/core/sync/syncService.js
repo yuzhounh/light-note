@@ -245,11 +245,9 @@ export const syncService = {
         const isDeleted = (rDeleted || rNote.isDeleted) ? 1 : 0
         const isPinned = rNote.isPinned ? 1 : 0
 
-        // If local note has unpushed changes and local is newer, keep local
-        if (local && pendingNoteIds.has(rNote.id)) {
-          if (new Date(local.updated_at) > new Date(rUpdated)) {
-            continue
-          }
+        // If local note is newer or equal (especially with unpushed changes), keep local
+        if (local && new Date(local.updated_at) >= new Date(rUpdated)) {
+          continue
         }
 
         const noteRecord = {

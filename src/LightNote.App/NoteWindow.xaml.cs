@@ -255,23 +255,7 @@ public partial class NoteWindow : Window
         if ((e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None) || e.Key == Key.Enter)
         {
             e.Handled = true;
-            SanitizeTitleBox();
-            FocusEditor("end");
-        }
-    }
-
-    private void OnTitleLostFocus(object sender, RoutedEventArgs e)
-    {
-        SanitizeTitleBox();
-    }
-
-    private void SanitizeTitleBox()
-    {
-        var text = TitleBox.Text;
-        var sanitized = MainViewModel.TrimTrailingPeriods(text);
-        if (!string.Equals(text, sanitized, StringComparison.Ordinal))
-        {
-            TitleBox.Text = sanitized;
+            FocusEditor();
         }
     }
 

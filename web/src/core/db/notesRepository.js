@@ -7,14 +7,6 @@ export function getFormattedLocalTimestamp() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
 }
 
-export function stripTrailingPeriod(title) {
-  if (!title) return ''
-  let trimmed = title.trimEnd()
-  while (trimmed.endsWith('.') || trimmed.endsWith('。') || trimmed.endsWith('．')) {
-    trimmed = trimmed.slice(0, -1).trimEnd()
-  }
-  return trimmed
-}
 
 export const NotesRepository = {
   // --- Notebooks ---
@@ -92,13 +84,8 @@ export const NotesRepository = {
     return await db.notes.get(id)
   },
 
-  async createNote({ notebookId, title = '', bodyHtml = '', bodyText = '' }) {
-    if (!bodyHtml) {
-      const timestamp = getFormattedLocalTimestamp()
-      bodyHtml = `<p>${timestamp}</p><p></p><p></p>`
-      bodyText = `${timestamp}\n\n`
-    }
-    const cleanTitle = stripTrailingPeriod(title)
+  async createNote({ notebookId, title = '', bodyHtml = '<p></p>', bodyText = '' }) {
+    const cleanTitle = title.trim() || '无标题笔记'
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
     const note = {
@@ -121,7 +108,7 @@ export const NotesRepository = {
 
   async saveNote(id, { title, bodyHtml, bodyText }) {
     const now = new Date().toISOString()
-    const cleanTitle = stripTrailingPeriod(title)
+    const cleanTitle = title.trim() || '无标题笔记'
     await db.notes.update(id, {
       title: cleanTitle,
       body_html: bodyHtml,

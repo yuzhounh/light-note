@@ -495,7 +495,18 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
 
     private static string CreateSnippet(string bodyText, IReadOnlyList<string> terms)
     {
-        var normalized = bodyText.ReplaceLineEndings(" ").Trim();
+        var text = bodyText;
+        var match = System.Text.RegularExpressions.Regex.Match(text, @"^\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*");
+        if (match.Success)
+        {
+            var contentAfterTimestamp = text[match.Length..].Trim();
+            if (!string.IsNullOrWhiteSpace(contentAfterTimestamp))
+            {
+                text = contentAfterTimestamp;
+            }
+        }
+
+        var normalized = text.ReplaceLineEndings(" ").Trim();
         if (normalized.Length == 0)
         {
             return "空笔记";

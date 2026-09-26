@@ -754,7 +754,7 @@ public sealed class FirebaseSyncService(
                 sort_order = excluded.sort_order,
                 updated_at = excluded.updated_at,
                 deleted_at = excluded.deleted_at
-            WHERE $isInitial = 0 OR excluded.updated_at > notebooks.updated_at;
+            WHERE excluded.updated_at > notebooks.updated_at;
             """;
         command.Parameters.AddWithValue("$id", id);
         command.Parameters.AddWithValue("$name", GetString(fields, "name"));
@@ -808,7 +808,7 @@ public sealed class FirebaseSyncService(
             }
         }
 
-        if (isInitial && local is not null && local.UpdatedAt >= remoteUpdatedAt)
+        if (local is not null && local.UpdatedAt >= remoteUpdatedAt)
         {
             await transaction.CommitAsync(cancellationToken);
             return (false, false);
@@ -941,8 +941,7 @@ public sealed class FirebaseSyncService(
                 """;
             localCommand.Parameters.AddWithValue("$id", id);
             await using var localReader = await localCommand.ExecuteReaderAsync(cancellationToken);
-            if (isInitial &&
-                await localReader.ReadAsync(cancellationToken) &&
+            if (await localReader.ReadAsync(cancellationToken) &&
                 localReader.GetInt64(1) == 1 &&
                 ParseTimestamp(localReader.GetString(0)) >= remoteUpdatedAt)
             {

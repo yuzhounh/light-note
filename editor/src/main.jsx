@@ -639,23 +639,6 @@ function markdownToCleanHtml(raw) {
   return cleanAndConvertHtml(rawHtml)
 }
 
-function isInitialTimestampNote(editor) {
-  if (!editor || !editor.state) return false
-  const doc = editor.state.doc
-  if (doc.childCount === 3) {
-    const p1 = doc.child(0)
-    const p2 = doc.child(1)
-    const p3 = doc.child(2)
-    if (p1.type?.name === 'paragraph' && p2.type?.name === 'paragraph' && p3.type?.name === 'paragraph') {
-      if (p2.content.size === 0 && p3.content.size === 0) {
-        const text = p1.textContent.trim()
-        return /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(text)
-      }
-    }
-  }
-  return false
-}
-
 function EditorApp() {
   const [, setStatus] = useState('编辑器桥接初始化中')
   const [mathModal, setMathModal] = useState(null)
@@ -843,20 +826,6 @@ function EditorApp() {
         }
         return false
       },
-      handleDOMEvents: {
-        click(view, event) {
-          const target = event.target
-          if (target?.closest?.('a')) return false
-          if (editorRef.current && isInitialTimestampNote(editorRef.current)) {
-            setTimeout(() => {
-              if (editorRef.current && isInitialTimestampNote(editorRef.current)) {
-                editorRef.current.commands.focus('end')
-              }
-            }, 0)
-          }
-          return false
-        },
-      },
     },
     onUpdate: ({ editor: currentEditor }) => {
       isDirtyRef.current = true
@@ -994,6 +963,12 @@ function EditorApp() {
         },
         undo: () => editor.chain().focus().undo().run(),
         redo: () => editor.chain().focus().redo().run(),
+        insertTimestamp: () => {
+          const d = new Date()
+          const pad = n => String(n).padStart(2, '0')
+          const timestamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+          editor.chain().focus().insertContent(timestamp).run()
+        },
         focus: () => {
           if (value === 'start' || value === 'end' || value === 'all') {
             editor.commands.focus(value)
@@ -1063,21 +1038,13 @@ function EditorApp() {
       editor.setEditable(true)
       setStatus(`已载入：${message.payload.title}`)
       post('note.loaded', { id: noteIdRef.current })
-      if (isInitialTimestampNote(editor)) {
-        editor.commands.focus('end')
-      } else {
-        editor.commands.focus('start')
-      }
+      editor.commands.focus('start')
       emitState(editor)
     }
 
     const onWindowFocus = () => {
       if (editor && !editor.isFocused && noteIdRef.current) {
-        if (isInitialTimestampNote(editor)) {
-          editor.commands.focus('end')
-        } else {
-          editor.commands.focus()
-        }
+        editor.commands.focus()
       }
     }
     window.addEventListener('focus', onWindowFocus)
@@ -1087,8 +1054,6 @@ function EditorApp() {
       focus: (position = 'start') => {
         if (position === 'start' || position === 'end' || position === 'all') {
           editor.commands.focus(position)
-        } else if (isInitialTimestampNote(editor)) {
-          editor.commands.focus('end')
         } else {
           editor.commands.focus()
         }

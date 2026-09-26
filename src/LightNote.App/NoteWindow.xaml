@@ -89,6 +89,11 @@
                             Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
                     <Button x:Name="CodeBlockButton" Content="{}{ }" Tag="codeBlock"
                             Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
+                    <Separator Margin="5,0" />
+                    <Button x:Name="TimestampButton" Tag="insertTimestamp"
+                            Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" ToolTip="插入当前时间">
+                        <TextBlock Text="&#xE823;" FontFamily="Segoe Fluent Icons" FontSize="13" />
+                    </Button>
                 </StackPanel>
             </ScrollViewer>
         </Border>
@@ -99,8 +104,7 @@
                 <TextBox x:Name="TitleBox" FontSize="22" FontWeight="SemiBold" BorderThickness="0"
                          Padding="0" Background="Transparent" TextWrapping="NoWrap"
                          TextChanged="OnTitleChanged"
-                         PreviewKeyDown="OnTitlePreviewKeyDown"
-                         LostFocus="OnTitleLostFocus" />
+                         PreviewKeyDown="OnTitlePreviewKeyDown" />
                 <TextBlock x:Name="TagsText" Margin="0,6,0,0" Foreground="{DynamicResource AccentBrush}"
                            TextTrimming="CharacterEllipsis" />
             </StackPanel>

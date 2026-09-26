@@ -70,18 +70,33 @@ public sealed class DailyUseTests : IDisposable
     }
 
     [Fact]
-    public void TrimTrailingPeriodsRemovesChineseAndEnglishPeriods()
+    public void NoteListItemPreviewStripsLeadingTimestamp()
     {
-        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结。"));
-        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结."));
-        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结．"));
-        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结。。。"));
-        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结..."));
-        Assert.Equal("工作总结", MainViewModel.TrimTrailingPeriods("工作总结。 "));
-        Assert.Equal("版本 1.2", MainViewModel.TrimTrailingPeriods("版本 1.2."));
-        Assert.Equal("无句号标题", MainViewModel.TrimTrailingPeriods("无句号标题"));
-        Assert.Equal(string.Empty, MainViewModel.TrimTrailingPeriods("。"));
-        Assert.Equal(string.Empty, MainViewModel.TrimTrailingPeriods(""));
+        var note = new Note
+        {
+            Id = "n1",
+            Title = "测试笔记",
+            BodyText = "2026-09-27 00:42:11\n\n这是实际的正文内容",
+            BodyHtml = "<p>2026-09-27 00:42:11</p><p></p><p>这是实际的正文内容</p>",
+            BodyJson = "{}",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+        var item = new NoteListItem(note);
+        Assert.Equal("这是实际的正文内容", item.Preview);
+
+        var timestampOnly = new Note
+        {
+            Id = "n2",
+            Title = "仅时间戳",
+            BodyText = "2026-09-27 00:42:11\n\n",
+            BodyHtml = "<p>2026-09-27 00:42:11</p>",
+            BodyJson = "{}",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+        var item2 = new NoteListItem(timestampOnly);
+        Assert.Equal("2026-09-27 00:42:11", item2.Preview);
     }
 
     [Fact]

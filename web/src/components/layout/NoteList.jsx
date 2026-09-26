@@ -8,6 +8,18 @@ function extractFirstImage(bodyHtml) {
   return match ? match[1] : null
 }
 
+function getNotePreviewText(bodyText) {
+  if (!bodyText) return '无附加正文...'
+  const match = /^\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*/.exec(bodyText)
+  if (match) {
+    const after = bodyText.slice(match[0].length).trim()
+    if (after) {
+      return after
+    }
+  }
+  return bodyText.trim() || '无附加正文...'
+}
+
 function NoteCardThumbnail({ src }) {
   const [realSrc, setRealSrc] = useState(src)
   useEffect(() => {
@@ -162,7 +174,7 @@ export function NoteList({
                       </div>
 
                       <p className="text-[13px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed mb-2">
-                        {highlightMatch(note.body_text || '无附加正文...', searchQuery)}
+                        {highlightMatch(getNotePreviewText(note.body_text), searchQuery)}
                       </p>
 
                       <div className="flex items-center justify-between text-xs text-zinc-400 font-sans">
