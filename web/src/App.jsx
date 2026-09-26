@@ -8,7 +8,7 @@ import { Sidebar } from './components/layout/Sidebar'
 import { NoteList } from './components/layout/NoteList'
 import { NoteDetail } from './components/layout/NoteDetail'
 import { SettingsModal } from './components/modals/SettingsModal'
-import { AuthModal } from './components/modals/AuthModal'
+import { loginWithGoogle, logoutFirebase, subscribeAuth } from './core/auth/firebaseAuth'
 
 export function App() {
   const { isMobile, isTablet, isDesktop } = useResponsive()
@@ -22,7 +22,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [saveStatus, setSaveStatus] = useState('saved')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [isAuthOpen, setIsAuthOpen] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
   
   // Theme state
   const [theme, setTheme] = useState(() => {
@@ -63,7 +63,31 @@ export function App() {
       await refreshData()
     }
     init()
+
+    // Subscribe to Firebase Google Auth state
+    const unsubscribe = subscribeAuth(user => {
+      setCurrentUser(user)
+    })
+    return () => unsubscribe()
   }, [])
+
+  // Direct Google Login (via official popup)
+  async function handleGoogleLogin() {
+    try {
+      const user = await loginWithGoogle()
+      setCurrentUser(user)
+    } catch (err) {
+      if (err.code !== 'auth/popup-closed-by-user') {
+        alert('Google 登录异常: ' + (err.message || err.code))
+      }
+    }
+  }
+
+  // Logout
+  async function handleLogout() {
+    await logoutFirebase()
+    setCurrentUser(null)
+  }
 
   // Reload notes when view, notebook, or search query changes
   useEffect(() => {
@@ -251,7 +275,9 @@ export function App() {
                 onDeleteNotebook={handleDeleteNotebook}
                 onCreateNote={handleCreateNote}
                 onOpenSettings={() => setIsSettingsOpen(true)}
-                onOpenAuth={() => setIsAuthOpen(true)}
+                currentUser={currentUser}
+                onLoginGoogle={handleGoogleLogin}
+                onLogout={handleLogout}
                 theme={theme}
                 onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
                 isMobile={false}
@@ -306,7 +332,9 @@ export function App() {
                     onDeleteNotebook={handleDeleteNotebook}
                     onCreateNote={handleCreateNote}
                     onOpenSettings={() => setIsSettingsOpen(true)}
-                    onOpenAuth={() => setIsAuthOpen(true)}
+                    currentUser={currentUser}
+                    onLoginGoogle={handleGoogleLogin}
+                    onLogout={handleLogout}
                     theme={theme}
                     onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
                     onCloseMobile={() => setIsSidebarOpen(false)}
@@ -368,12 +396,6 @@ export function App() {
         theme={theme}
         onChangeTheme={setTheme}
         onDataImported={refreshData}
-      />
-
-      {/* Google / Account Auth Modal */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
       />
     </div>
   )

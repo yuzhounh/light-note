@@ -13,7 +13,9 @@ export function Sidebar({
   onDeleteNotebook,
   onCreateNote,
   onOpenSettings,
-  onOpenAuth,
+  currentUser,
+  onLoginGoogle,
+  onLogout,
   theme,
   onToggleTheme,
   onCloseMobile,
@@ -166,14 +168,28 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Bottom Footer: 'Google 登录' and Settings gear icon */}
+      {/* Bottom Footer: 'Google 登录' (direct Google OAuth popup) and Settings gear icon */}
       <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
-        <button
-          onClick={onOpenAuth || onOpenSettings}
-          className="hover:text-zinc-900 dark:hover:text-white transition cursor-pointer"
-        >
-          Google 登录
-        </button>
+        {currentUser ? (
+          <button
+            onClick={() => {
+              if (confirm(`当前已登录账号：${currentUser.displayName || currentUser.email}\n确定要退出登录吗？`)) {
+                onLogout && onLogout()
+              }
+            }}
+            className="truncate max-w-[130px] hover:text-rose-500 transition cursor-pointer text-left font-medium text-emerald-600 dark:text-emerald-400"
+            title="点击退出登录"
+          >
+            {currentUser.displayName || currentUser.email}
+          </button>
+        ) : (
+          <button
+            onClick={onLoginGoogle}
+            className="hover:text-zinc-900 dark:hover:text-white transition cursor-pointer"
+          >
+            Google 登录
+          </button>
+        )}
 
         <div className="flex items-center gap-1">
           <button
