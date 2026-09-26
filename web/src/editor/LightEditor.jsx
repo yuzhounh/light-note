@@ -336,7 +336,7 @@ export const LightEditor = forwardRef(function LightEditor(
         <select
           value={selectedFont}
           onChange={e => handleFontChange(e.target.value)}
-          className="h-[26px] bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-1.5 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer shrink-0 whitespace-nowrap"
+          className="h-[26px] bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-1.5 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:text-zinc-100 cursor-pointer shrink-0 whitespace-nowrap transition"
         >
           {FONT_FAMILIES.map(f => (
             <option key={f.label} value={f.label}>{f.label}</option>
@@ -347,7 +347,7 @@ export const LightEditor = forwardRef(function LightEditor(
         <select
           value={selectedSize}
           onChange={e => handleSizeChange(e.target.value)}
-          className="h-[26px] bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-1.5 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer shrink-0 whitespace-nowrap"
+          className="h-[26px] bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-1.5 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:text-zinc-100 cursor-pointer shrink-0 whitespace-nowrap transition"
         >
           {FONT_SIZES.map(s => (
             <option key={s} value={s}>{s}</option>
@@ -361,8 +361,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().setParagraph().run()}
           className={`h-[26px] px-2.5 rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('paragraph') && !editor.isActive('heading')
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white font-medium'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-normal'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white font-medium shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 font-normal'
           }`}
         >
           正文
@@ -373,8 +373,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('heading', { level: 1 })
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white font-medium'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-normal'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white font-medium shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 font-normal'
           }`}
         >
           H₁
@@ -384,8 +384,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('heading', { level: 2 })
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white font-medium'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-normal'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white font-medium shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 font-normal'
           }`}
         >
           H₂
@@ -398,8 +398,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center font-bold text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('bold')
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="粗体 (Ctrl+B)"
         >
@@ -410,8 +410,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center italic text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('italic')
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="斜体 (Ctrl+I)"
         >
@@ -422,8 +422,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center underline text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('underline')
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="下划线 (Ctrl+U)"
         >
@@ -434,8 +434,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleStrike().run()}
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center line-through text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('strike')
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="删除线"
         >
@@ -446,8 +446,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleHighlight().run()}
           className={`relative w-[26px] h-[26px] rounded-md flex flex-col items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('highlight')
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="文本荧光高亮"
         >
@@ -457,7 +457,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={handleInsertMath}
-          className="w-[26px] h-[26px] rounded-md flex items-center justify-center italic font-serif text-xs font-semibold shrink-0 whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+          className="w-[26px] h-[26px] rounded-md flex items-center justify-center italic font-serif text-xs font-semibold shrink-0 whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 transition cursor-pointer"
           title="插入数学公式 (KaTeX)"
         >
           fx
@@ -470,8 +470,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('bulletList')
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="无序列表"
         >
@@ -482,8 +482,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('orderedList')
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="编号列表"
         >
@@ -494,8 +494,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs font-serif shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('blockquote')
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="引用"
         >
@@ -507,8 +507,8 @@ export const LightEditor = forwardRef(function LightEditor(
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           className={`w-[22px] h-[22px] rounded flex items-center justify-center text-[11px] font-mono shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('codeBlock')
-              ? 'bg-zinc-200/90 dark:bg-zinc-600 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="代码块"
         >
