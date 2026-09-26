@@ -259,12 +259,12 @@ export const LightEditor = forwardRef(function LightEditor(
   return (
     <div className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden">
       {/* 1:1 Parity Desktop Toolbar */}
-      <div className="flex items-center gap-1.5 px-6 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs select-none overflow-x-auto shrink-0">
+      <div className="flex items-center gap-1.5 px-6 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs select-none overflow-x-auto shrink-0 whitespace-nowrap no-scrollbar">
         {/* Font Family Dropdown */}
         <select
           value={selectedFont}
           onChange={e => handleFontChange(e.target.value)}
-          className="bg-transparent border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-1 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer"
+          className="bg-transparent border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-1 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer shrink-0 whitespace-nowrap"
         >
           {FONT_FAMILIES.map(f => (
             <option key={f.label} value={f.label}>{f.label}</option>
@@ -275,19 +275,19 @@ export const LightEditor = forwardRef(function LightEditor(
         <select
           value={selectedSize}
           onChange={e => handleSizeChange(e.target.value)}
-          className="bg-transparent border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-1 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer"
+          className="bg-transparent border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-1 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer shrink-0 whitespace-nowrap"
         >
           {FONT_SIZES.map(s => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
 
-        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1 shrink-0" />
 
         {/* Paragraph & Headings */}
         <button
           onClick={() => editor.chain().focus().setParagraph().run()}
-          className={`px-2 py-1 rounded transition text-xs font-normal cursor-pointer ${
+          className={`px-2 py-1 rounded transition text-xs font-normal shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('paragraph') && !editor.isActive('heading')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -298,7 +298,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`px-2 py-1 rounded transition text-xs font-normal cursor-pointer ${
+          className={`px-2 py-1 rounded transition text-xs font-normal shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('heading', { level: 1 })
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -309,7 +309,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`px-2 py-1 rounded transition text-xs font-normal cursor-pointer ${
+          className={`px-2 py-1 rounded transition text-xs font-normal shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('heading', { level: 2 })
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -318,12 +318,12 @@ export const LightEditor = forwardRef(function LightEditor(
           H₂
         </button>
 
-        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1 shrink-0" />
 
         {/* B, I, U, Strike, Highlight, fx */}
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs transition cursor-pointer ${
+          className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('bold')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -335,7 +335,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`w-6 h-6 rounded flex items-center justify-center italic text-xs transition cursor-pointer ${
+          className={`w-6 h-6 rounded flex items-center justify-center italic text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('italic')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -347,7 +347,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={`w-6 h-6 rounded flex items-center justify-center underline text-xs transition cursor-pointer ${
+          className={`w-6 h-6 rounded flex items-center justify-center underline text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('underline')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -359,7 +359,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center line-through text-xs transition cursor-pointer ${
+          className={`px-1.5 h-6 rounded flex items-center justify-center line-through text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('strike')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -371,7 +371,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleHighlight().run()}
-          className="relative px-1.5 h-6 rounded flex flex-col items-center justify-center text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+          className="relative px-1.5 h-6 rounded flex flex-col items-center justify-center text-xs shrink-0 whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
           title="文本荧光高亮"
         >
           <span>ab</span>
@@ -380,18 +380,18 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={handleInsertMath}
-          className="px-1.5 h-6 rounded flex items-center justify-center italic font-serif text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+          className="px-1.5 h-6 rounded flex items-center justify-center italic font-serif text-xs font-semibold shrink-0 whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
           title="插入数学公式 (KaTeX)"
         >
           fx
         </button>
 
-        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1 shrink-0" />
 
         {/* Lists, Quote, Code block */}
         <button
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs transition cursor-pointer ${
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('bulletList')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -403,7 +403,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs transition cursor-pointer ${
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('orderedList')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -415,7 +415,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs font-serif transition cursor-pointer ${
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs font-serif shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('blockquote')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -427,14 +427,14 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs font-mono transition cursor-pointer ${
+          className={`px-2 h-6 rounded flex items-center justify-center text-xs font-mono shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('codeBlock')
               ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="代码块"
         >
-          {'{ }'}
+          <span className="font-mono whitespace-nowrap inline-block">{'{ }'}</span>
         </button>
       </div>
 
