@@ -97,6 +97,8 @@ function toNullableIsoString(val) {
 const DEMO_TITLES = new Set([
   '具身智能',
   'AI 模型发布日报 | 9月24日',
+  '开发计划',
+  'V1.6: 交互细节统一',
   'TypeScript 5.8 新特性速览',
   '每周复盘模板'
 ])
@@ -156,10 +158,7 @@ export const syncService = {
       const { firestore } = getServices()
       const uid = user.uid
 
-      // 1. Push pending local changes to Firestore
-      await this.pushOutbox(user)
-
-      // 2. Pull remote notebooks
+      // 1. Pull remote notebooks
       const nbColRef = collection(firestore, 'users', uid, 'notebooks')
       const nbSnap = await getDocs(nbColRef)
       const remoteNotebooks = []
@@ -167,7 +166,7 @@ export const syncService = {
         remoteNotebooks.push({ id: d.id, ...d.data() })
       })
 
-      // 3. Pull remote notes
+      // 2. Pull remote notes
       const notesColRef = collection(firestore, 'users', uid, 'notes')
       const notesSnap = await getDocs(notesColRef)
       const remoteNotes = []
@@ -175,7 +174,7 @@ export const syncService = {
         remoteNotes.push({ id: d.id, ...d.data() })
       })
 
-      // 4. Pull remote attachments
+      // 3. Pull remote attachments
       try {
         const attColRef = collection(firestore, 'users', uid, 'attachments')
         const attSnap = await getDocs(attColRef)
@@ -283,6 +282,13 @@ export const syncService = {
       const cb = onDataChange || this.onDataChange
       if (cb) {
         cb()
+      }
+
+      // 7. Push any pending local outbox changes
+      try {
+        await this.pushOutbox(user)
+      } catch (pushErr) {
+        console.warn('Post-pull push outbox warning:', pushErr)
       }
 
       return {
