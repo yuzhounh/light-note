@@ -71,14 +71,22 @@ export function App() {
     return () => unsubscribe()
   }, [])
 
-  // Direct Google Login (via official popup)
+  // Direct Google Login (via native Credential Manager on Android, popup on Web)
   async function handleGoogleLogin() {
     try {
       const user = await loginWithGoogle()
       setCurrentUser(user)
     } catch (err) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        alert('Google 登录异常: ' + (err.message || err.code))
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'SIGN_IN_CANCELLED') {
+        const friendlyMessages = {
+          'auth/popup-blocked': '浏览器阻止了登录窗口，请允许本站弹出窗口后重试。',
+          'auth/popup-closed-by-user': '登录窗口已关闭，请重新尝试。',
+          'auth/unauthorized-domain': '当前网站域名尚未加入 Firebase 授权域名。',
+          'auth/network-request-failed': '网络连接失败，请检查网络后重试。',
+          'SIGN_IN_CANCELLED': '已取消 Google 登录。',
+          'NATIVE_SIGN_IN_FAILED': '手机系统未能完成 Google 登录，请检查 Google Play 服务和网络后重试。'
+        }
+        alert(friendlyMessages[err.code] || err.message || ('Google 登录异常: ' + (err.code || err)))
       }
     }
   }

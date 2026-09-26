@@ -4,4 +4,5 @@
     <string name="title_activity_main">LightNote</string>
     <string name="package_name">com.lightnote.app</string>
     <string name="custom_url_scheme">com.lightnote.app</string>
+    <string name="default_web_client_id">589160261764-c2t7mqui1ve0gk9tnd96om0ho87u2iik.apps.googleusercontent.com</string>
 </resources>
