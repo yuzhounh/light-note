@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LightNote.Core.Abstractions;
@@ -359,6 +360,23 @@ public sealed partial class MainViewModel(
         if (current.BodyJson == bodyJson && current.BodyHtml == bodyHtml && current.BodyText == bodyText)
         {
             return;
+        }
+
+        if (string.Equals(current.BodyText.Trim(), bodyText.Trim(), StringComparison.Ordinal))
+        {
+            try
+            {
+                using var currentDoc = JsonDocument.Parse(current.BodyJson);
+                using var newDoc = JsonDocument.Parse(bodyJson);
+                if (JsonElement.DeepEquals(currentDoc.RootElement, newDoc.RootElement))
+                {
+                    return;
+                }
+            }
+            catch
+            {
+                // Fallback to strict comparison
+            }
         }
 
         QueueSave(current with

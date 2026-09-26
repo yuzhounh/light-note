@@ -284,6 +284,11 @@ public partial class MainWindow : Window
 
     private void ApplyEditorPayload(JsonElement payload)
     {
+        if (payload.TryGetProperty("isDirty", out var isDirtyElement) && !isDirtyElement.GetBoolean())
+        {
+            return;
+        }
+
         if (!payload.TryGetProperty("id", out var idElement) ||
             string.IsNullOrWhiteSpace(idElement.GetString()))
         {

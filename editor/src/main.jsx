@@ -600,6 +600,7 @@ function EditorApp() {
   const editorRef = useRef(null)
   const noteIdRef = useRef(null)
   const changeTimerRef = useRef(null)
+  const isDirtyRef = useRef(false)
   const pendingImagesRef = useRef(new Map())
   const mathInputRef = useRef(null)
   const mathPreviewRef = useRef(null)
@@ -607,9 +608,10 @@ function EditorApp() {
   const emitSnapshot = () => {
     const editor = editorRef.current
     const id = noteIdRef.current
-    if (!editor || !id) return
+    if (!editor || !id || !isDirtyRef.current) return
     post('note.changed', {
       id,
+      isDirty: true,
       json: editor.getJSON(),
       html: editor.getHTML(),
       text: editor.getText({ blockSeparator: '\n' }),
@@ -749,6 +751,7 @@ function EditorApp() {
       },
     },
     onUpdate: ({ editor: currentEditor }) => {
+      isDirtyRef.current = true
       queueSnapshot()
       emitState(currentEditor)
     },
@@ -832,9 +835,10 @@ function EditorApp() {
 
     const getSnapshot = () => {
       const id = noteIdRef.current
-      if (!id) return null
+      if (!id || !isDirtyRef.current) return null
       return {
         id,
+        isDirty: true,
         json: editor.getJSON(),
         html: editor.getHTML(),
         text: editor.getText({ blockSeparator: '\n' }),
@@ -898,6 +902,7 @@ function EditorApp() {
       const message = event.data
       if (message?.type === 'editor.clear') {
         clearTimeout(changeTimerRef.current)
+        isDirtyRef.current = false
         noteIdRef.current = null
         pendingImagesRef.current.clear()
         editor.commands.setContent('<p></p>', { emitUpdate: false })
@@ -935,6 +940,7 @@ function EditorApp() {
       if (message?.type !== 'note.load') return
 
       clearTimeout(changeTimerRef.current)
+      isDirtyRef.current = false
       noteIdRef.current = message.payload.id
       pendingImagesRef.current.clear()
       const processedHtml = cleanAndConvertHtml(message.payload.html)
