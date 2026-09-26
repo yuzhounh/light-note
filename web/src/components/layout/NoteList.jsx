@@ -58,21 +58,21 @@ export function NoteList({
             placeholder="搜索标题和正文"
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
-            className="w-full px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-900 border border-transparent focus:border-zinc-300 dark:focus:border-zinc-700 text-xs text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none transition"
+            className="w-full px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-900 border border-transparent focus:border-zinc-300 dark:focus:border-zinc-700 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none transition"
           />
         </div>
 
         {/* Category & Count Header */}
-        <div className="px-1 text-xs text-zinc-700 dark:text-zinc-300 font-normal">
+        <div className="px-1 text-sm text-zinc-800 dark:text-zinc-200 font-medium">
           <span>{currentNotebookName || '全部笔记'}</span>
-          <span className="ml-1 text-zinc-500">({notes.length}条)</span>
+          <span className="ml-1 text-xs text-zinc-500 font-normal">({notes.length}条)</span>
         </div>
       </div>
 
       {/* Note Cards List */}
       <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1">
         {notes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-zinc-400 text-xs text-center p-4">
+          <div className="flex flex-col items-center justify-center h-48 text-zinc-400 text-sm text-center p-4">
             <p>暂无相关笔记</p>
           </div>
         ) : (
@@ -89,16 +89,16 @@ export function NoteList({
                 }`}
               >
                 <div className="mb-1">
-                  <h4 className="text-xs font-bold truncate">
+                  <h4 className="text-[14.5px] font-semibold truncate text-zinc-900 dark:text-zinc-100">
                     {highlightMatch(note.title || '无标题', searchQuery)}
                   </h4>
                 </div>
 
-                <p className="text-[11px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed mb-2">
+                <p className="text-[13px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed mb-2">
                   {highlightMatch(note.body_text || '无附加正文...', searchQuery)}
                 </p>
 
-                <div className="flex items-center justify-between text-[11px] text-zinc-400 font-sans">
+                <div className="flex items-center justify-between text-xs text-zinc-400 font-sans">
                   <span>{formatFullDate(note.updated_at)}</span>
 
                   {/* Context quick action on hover: only delete icon */}
@@ -111,7 +111,7 @@ export function NoteList({
                       className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-rose-500 rounded transition text-zinc-400"
                       title="移入回收站"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} />
                     </button>
                   )}
                 </div>
