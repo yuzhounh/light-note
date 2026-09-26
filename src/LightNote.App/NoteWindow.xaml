@@ -10,7 +10,8 @@
         Height="720"
         MinWidth="620"
         MinHeight="440"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
         WindowStyle="None"
         Background="{DynamicResource PanelBrush}">
     <shell:WindowChrome.WindowChrome>

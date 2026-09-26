@@ -1520,6 +1520,19 @@ public partial class MainWindow : Window
 
         try
         {
+            var existingWindow = Application.Current.Windows
+                .OfType<NoteWindow>()
+                .FirstOrDefault(w => w.NoteId == item.Model.Id);
+            if (existingWindow is not null)
+            {
+                if (existingWindow.WindowState == WindowState.Minimized)
+                {
+                    existingWindow.WindowState = WindowState.Normal;
+                }
+                existingWindow.Activate();
+                return;
+            }
+
             await CaptureEditorSnapshotAsync();
             await _viewModel.FlushAllAsync();
             var window = new NoteWindow(
@@ -1528,10 +1541,7 @@ public partial class MainWindow : Window
                 _paths,
                 _logger,
                 _attachmentService,
-                _themeService)
-            {
-                Owner = this,
-            };
+                _themeService);
             window.Show();
         }
         catch (Exception exception)

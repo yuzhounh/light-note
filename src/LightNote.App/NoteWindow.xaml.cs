@@ -28,6 +28,8 @@ public partial class NoteWindow : Window
     private bool _allowClose;
     private bool _closing;
 
+    public string NoteId => _note.Id;
+
     public NoteWindow(
         Note note,
         MainViewModel viewModel,
