@@ -8,6 +8,8 @@ public interface IFirebaseSyncService
 
     string ConfigurationPath { get; }
 
+    string? GoogleClientId { get; }
+
     FirebaseAccount? CurrentAccount { get; }
 
     Task<FirebaseAccount?> RestoreSessionAsync(CancellationToken cancellationToken = default);
@@ -15,6 +17,12 @@ public interface IFirebaseSyncService
     Task<FirebaseAccount> SignInAsync(
         string email,
         string password,
+        CancellationToken cancellationToken = default);
+
+    Task<FirebaseAccount> SignInWithGoogleAsync(
+        string? clientId = null,
+        string? clientSecret = null,
+        Action<string>? openBrowserUrl = null,
         CancellationToken cancellationToken = default);
 
     Task SignOutAsync(CancellationToken cancellationToken = default);

@@ -12,6 +12,10 @@ internal sealed record FirebaseConfiguration
     public string? StorageBucket { get; init; }
 
     public string DatabaseId { get; init; } = "(default)";
+
+    public string? GoogleClientId { get; init; }
+
+    public string? GoogleClientSecret { get; init; }
 }
 
 internal sealed class FirebaseConfigurationProvider(AppDataPaths paths)
@@ -40,6 +44,18 @@ internal sealed class FirebaseConfigurationProvider(AppDataPaths paths)
         }
     }
 
+    public FirebaseConfiguration? LoadSafely()
+    {
+        try
+        {
+            return Load();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public FirebaseConfiguration Load()
     {
         if (!File.Exists(ConfigurationPath))
@@ -57,5 +73,29 @@ internal sealed class FirebaseConfigurationProvider(AppDataPaths paths)
         }
 
         return configuration;
+    }
+
+    public void SaveGoogleCredentials(string clientId, string? clientSecret)
+    {
+        if (!File.Exists(ConfigurationPath))
+        {
+            return;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(ConfigurationPath);
+            var doc = JsonSerializer.Deserialize<System.Text.Json.Nodes.JsonObject>(json, JsonOptions) ?? [];
+            doc["googleClientId"] = clientId.Trim();
+            if (!string.IsNullOrWhiteSpace(clientSecret))
+            {
+                doc["googleClientSecret"] = clientSecret.Trim();
+            }
+            File.WriteAllText(ConfigurationPath, doc.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch
+        {
+            // Ignore errors when saving optional Google credentials to disk
+        }
     }
 }

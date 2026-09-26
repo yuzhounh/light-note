@@ -1553,27 +1553,18 @@ public partial class MainWindow : Window
 
         if (_syncService.CurrentAccount is null)
         {
-            var dialog = new FirebaseSignInDialog { Owner = this };
+            var dialog = new FirebaseSignInDialog(_syncService, _logger) { Owner = this };
             if (dialog.ShowDialog() != true)
             {
                 return;
             }
 
-            try
+            var account = _syncService.CurrentAccount;
+            if (account is not null)
             {
-                _viewModel.SyncStatus = "正在登录…";
-                var account = await _syncService.SignInAsync(dialog.Email, dialog.Password);
                 _viewModel.SyncStatus = $"同步：{account.Email}";
                 UpdateAccountDisplay(account);
                 _syncTimer.Start();
-            }
-            catch (Exception exception)
-            {
-                _logger.Error("Firebase sign-in failed.", exception);
-                _viewModel.SyncStatus = "登录失败";
-                MessageBox.Show(this, $"登录失败：{exception.Message}", "LightNote",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
             }
         }
 

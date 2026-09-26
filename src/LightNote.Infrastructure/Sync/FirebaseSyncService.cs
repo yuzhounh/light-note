@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -78,6 +80,175 @@ public sealed class FirebaseSyncService(
         {
             UserId = RequiredString(root, "localId"),
             Email = RequiredString(root, "email"),
+            IdToken = RequiredString(root, "idToken"),
+            RefreshToken = RequiredString(root, "refreshToken"),
+            ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(ParseLong(root, "expiresIn")),
+        };
+        _sessionStore.Save(_session);
+        return CurrentAccount!;
+    }
+
+    public string? GoogleClientId => _configurationProvider.LoadSafely()?.GoogleClientId;
+
+    public async Task<FirebaseAccount> SignInWithGoogleAsync(
+        string? clientId = null,
+        string? clientSecret = null,
+        Action<string>? openBrowserUrl = null,
+        CancellationToken cancellationToken = default)
+    {
+        var configuration = _configurationProvider.Load();
+        var effectiveClientId = !string.IsNullOrWhiteSpace(clientId)
+            ? clientId.Trim()
+            : configuration.GoogleClientId;
+        var effectiveClientSecret = !string.IsNullOrWhiteSpace(clientSecret)
+            ? clientSecret.Trim()
+            : configuration.GoogleClientSecret;
+
+        if (string.IsNullOrWhiteSpace(effectiveClientId))
+        {
+            throw new InvalidOperationException("未配置 Google 客户端 ID (Client ID)。");
+        }
+
+        if (effectiveClientId != configuration.GoogleClientId ||
+            effectiveClientSecret != configuration.GoogleClientSecret)
+        {
+            _configurationProvider.SaveGoogleCredentials(effectiveClientId, effectiveClientSecret);
+        }
+
+        var verifierBytes = new byte[32];
+        RandomNumberGenerator.Fill(verifierBytes);
+        var codeVerifier = Base64UrlEncode(verifierBytes);
+        var codeChallenge = Base64UrlEncode(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));
+
+        int port;
+        using (var socket = new TcpListener(IPAddress.Loopback, 0))
+        {
+            socket.Start();
+            port = ((IPEndPoint)socket.LocalEndpoint).Port;
+            socket.Stop();
+        }
+        var redirectUri = $"http://127.0.0.1:{port}/";
+
+        using var listener = new HttpListener();
+        listener.Prefixes.Add(redirectUri);
+        listener.Start();
+
+        var state = Guid.NewGuid().ToString("N");
+        var authUrl = $"https://accounts.google.com/o/oauth2/v2/auth?" +
+            $"client_id={Uri.EscapeDataString(effectiveClientId)}" +
+            $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
+            $"&response_type=code" +
+            $"&scope=openid%20email%20profile" +
+            $"&code_challenge={codeChallenge}" +
+            $"&code_challenge_method=S256" +
+            $"&state={state}";
+
+        if (openBrowserUrl is not null)
+        {
+            openBrowserUrl(authUrl);
+        }
+        else
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = authUrl,
+                UseShellExecute = true,
+            });
+        }
+
+        HttpListenerContext context;
+        using var reg = cancellationToken.Register(() =>
+        {
+            try { listener.Stop(); } catch { }
+        });
+
+        try
+        {
+            context = await listener.GetContextAsync();
+        }
+        catch (Exception) when (cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException("用户取消了 Google 登录授权。", cancellationToken);
+        }
+
+        var request = context.Request;
+        var response = context.Response;
+        var code = request.QueryString["code"];
+        var error = request.QueryString["error"];
+
+        var html = error is not null
+            ? """
+              <!DOCTYPE html><html><head><meta charset="utf-8"><title>LightNote 授权结果</title></head>
+              <body style="font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:80vh;text-align:center;background:#f8fafc;color:#1e293b;">
+                <div style="background:white;padding:32px 48px;border-radius:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+                  <h2 style="color:#ef4444;margin-bottom:8px;">Google 授权未完成</h2>
+                  <p style="color:#64748b;margin:0;">您可以关闭此标签页并返回 LightNote 重新尝试。</p>
+                </div>
+              </body></html>
+              """
+            : """
+              <!DOCTYPE html><html><head><meta charset="utf-8"><title>LightNote 授权结果</title></head>
+              <body style="font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:80vh;text-align:center;background:#f8fafc;color:#1e293b;">
+                <div style="background:white;padding:32px 48px;border-radius:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+                  <h2 style="color:#2563eb;margin-bottom:8px;">Google 账号授权成功</h2>
+                  <p style="color:#64748b;margin:0;">已成功验证，您可以关闭此浏览器标签页并返回 LightNote 继续使用。</p>
+                </div>
+              </body></html>
+              """;
+
+        var buffer = Encoding.UTF8.GetBytes(html);
+        response.ContentType = "text/html; charset=utf-8";
+        response.ContentLength64 = buffer.Length;
+        await response.OutputStream.WriteAsync(buffer, cancellationToken);
+        response.OutputStream.Close();
+        listener.Stop();
+
+        if (error is not null)
+        {
+            throw new InvalidOperationException($"Google 登录失败：{error}");
+        }
+
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            throw new InvalidOperationException("未从 Google 收到有效的授权码。");
+        }
+
+        var tokenParams = new Dictionary<string, string>
+        {
+            ["code"] = code,
+            ["client_id"] = effectiveClientId,
+            ["redirect_uri"] = redirectUri,
+            ["grant_type"] = "authorization_code",
+            ["code_verifier"] = codeVerifier,
+        };
+        if (!string.IsNullOrWhiteSpace(effectiveClientSecret))
+        {
+            tokenParams["client_secret"] = effectiveClientSecret;
+        }
+
+        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://oauth2.googleapis.com/token")
+        {
+            Content = new FormUrlEncodedContent(tokenParams),
+        };
+        using var tokenResponse = await httpClient.SendAsync(tokenRequest, cancellationToken);
+        using var tokenDoc = await ReadSuccessfulJsonAsync(tokenResponse, cancellationToken);
+        var googleIdToken = RequiredString(tokenDoc.RootElement, "id_token");
+
+        var idpEndpoint = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key={Uri.EscapeDataString(configuration.ApiKey)}";
+        using var idpResponse = await httpClient.PostAsJsonAsync(idpEndpoint, new
+        {
+            postBody = $"id_token={Uri.EscapeDataString(googleIdToken)}&providerId=google.com",
+            requestUri = "http://localhost",
+            returnSecureToken = true,
+        }, cancellationToken);
+        using var idpDoc = await ReadSuccessfulJsonAsync(idpResponse, cancellationToken);
+        var root = idpDoc.RootElement;
+        _session = new FirebaseSession
+        {
+            UserId = RequiredString(root, "localId"),
+            Email = root.TryGetProperty("email", out var emailProp) && !string.IsNullOrWhiteSpace(emailProp.GetString())
+                ? emailProp.GetString()!
+                : RequiredString(root, "federatedId"),
             IdToken = RequiredString(root, "idToken"),
             RefreshToken = RequiredString(root, "refreshToken"),
             ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(ParseLong(root, "expiresIn")),
@@ -1171,6 +1342,12 @@ public sealed class FirebaseSyncService(
         value is null ? DBNull.Value : value.Value.ToUniversalTime().ToString("O");
 
     private static object DbString(string? value) => value is null ? DBNull.Value : value;
+
+    private static string Base64UrlEncode(byte[] input) =>
+        Convert.ToBase64String(input)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
 
     private sealed record OutboxItem(
         string Id,

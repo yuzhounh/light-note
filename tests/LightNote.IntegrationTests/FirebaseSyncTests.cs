@@ -117,6 +117,39 @@ public sealed class FirebaseSyncTests : IDisposable
         Assert.Empty(handler.StorageUploads);
     }
 
+    [Fact]
+    public async Task SignInWithGoogleSavesSessionAndReturnsAccount()
+    {
+        var (paths, factory, _) = await CreateServicesAsync();
+        var handler = new RecordingFirebaseHandler();
+        var service = new FirebaseSyncService(
+            paths,
+            factory,
+            new HttpClient(handler),
+            new NullLogger());
+
+        var account = await service.SignInWithGoogleAsync(
+            clientId: "test-client-id.apps.googleusercontent.com",
+            clientSecret: "test-secret",
+            openBrowserUrl: url =>
+            {
+                Task.Run(async () =>
+                {
+                    await Task.Delay(50);
+                    var uri = new Uri(url);
+                    var redirectUri = System.Web.HttpUtility.ParseQueryString(uri.Query)["redirect_uri"]!;
+                    var state = System.Web.HttpUtility.ParseQueryString(uri.Query)["state"]!;
+                    using var client = new HttpClient();
+                    await client.GetAsync($"{redirectUri}?code=google-auth-code&state={state}");
+                });
+            });
+
+        Assert.Equal("user-google-1", account.UserId);
+        Assert.Equal("user@gmail.com", account.Email);
+        Assert.Equal(account, service.CurrentAccount);
+        Assert.Equal("test-client-id.apps.googleusercontent.com", service.GoogleClientId);
+    }
+
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
@@ -210,6 +243,30 @@ public sealed class FirebaseSyncTests : IDisposable
                       "email":"test@example.com",
                       "idToken":"test-id-token",
                       "refreshToken":"test-refresh-token",
+                      "expiresIn":"3600"
+                    }
+                    """);
+            }
+
+            if (url.Contains("oauth2.googleapis.com/token", StringComparison.Ordinal))
+            {
+                return JsonResponse("""
+                    {
+                      "id_token":"google-test-id-token",
+                      "access_token":"google-test-access-token",
+                      "expires_in":3600
+                    }
+                    """);
+            }
+
+            if (url.Contains("signInWithIdp", StringComparison.Ordinal))
+            {
+                return JsonResponse("""
+                    {
+                      "localId":"user-google-1",
+                      "email":"user@gmail.com",
+                      "idToken":"firebase-google-id-token",
+                      "refreshToken":"firebase-google-refresh-token",
                       "expiresIn":"3600"
                     }
                     """);
