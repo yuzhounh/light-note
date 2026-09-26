@@ -1053,7 +1053,12 @@ public partial class MainWindow : Window
 
         container.IsSelected = true;
         container.Focus();
-        container.ContextMenu = CreateNotebookContextMenu(item);
+        var menu = CreateNotebookContextMenu(item);
+        container.ContextMenu = menu;
+        if (menu is null)
+        {
+            e.Handled = true;
+        }
     }
 
     private Point _noteDragStartPoint;
@@ -1364,7 +1369,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private ContextMenu CreateNotebookContextMenu(NotebookListItem item)
+    private ContextMenu? CreateNotebookContextMenu(NotebookListItem item)
     {
         var menu = new ContextMenu();
         if (item.Kind == NotebookKind.GroupRoot)
@@ -1378,9 +1383,14 @@ public partial class MainWindow : Window
         }
         else if (item.Kind == NotebookKind.User && item.Id is not null)
         {
-            menu.Items.Add(CreateNotebookMenuItem("移出笔记本组", new NotebookGroupAssignment(item.Id, null),
-                OnAssignNotebookGroupClick));
-            foreach (var group in _viewModel.Notebooks.Where(candidate => candidate.Kind == NotebookKind.Group))
+            if (item.GroupId is not null)
+            {
+                menu.Items.Add(CreateNotebookMenuItem("移出笔记本组", new NotebookGroupAssignment(item.Id, null),
+                    OnAssignNotebookGroupClick));
+            }
+
+            foreach (var group in _viewModel.Notebooks.Where(candidate =>
+                         candidate.Kind == NotebookKind.Group && candidate.Id != item.GroupId))
             {
                 menu.Items.Add(CreateNotebookMenuItem(
                     $"移到“{group.Name}”",
@@ -1389,7 +1399,7 @@ public partial class MainWindow : Window
             }
         }
 
-        return menu;
+        return menu.Items.Count > 0 ? menu : null;
     }
 
     private static MenuItem CreateNotebookMenuItem(
