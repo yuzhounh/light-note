@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $developmentDirectory = Join-Path $projectRoot "artifacts\development\current\win-x64"
 $executablePath = Join-Path $developmentDirectory "LightNote.exe"
