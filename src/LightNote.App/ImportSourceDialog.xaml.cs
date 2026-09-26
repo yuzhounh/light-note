@@ -7,6 +7,9 @@ public partial class ImportSourceDialog : Window
     public ImportSourceDialog()
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+        Activated += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+        Loaded += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
     }
 
     public ImportSourceKind SelectedSourceKind { get; private set; }

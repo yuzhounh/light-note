@@ -6,7 +6,9 @@
         SizeToContent="Height"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
-        ShowInTaskbar="False">
+        ShowInTaskbar="False"
+        Background="{DynamicResource AppBackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}">
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -14,7 +16,8 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TextBlock Text="从现有文件导入" FontSize="19" FontWeight="SemiBold" />
+        <TextBlock Text="从现有文件导入" FontSize="19" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextBrush}" />
         <TextBlock Grid.Row="1" Margin="0,8,0,0" TextWrapping="Wrap"
                    Foreground="{DynamicResource MutedTextBrush}"
                    Text="自动识别常见导出格式，并转换成可编辑、可搜索的本地笔记。" />
@@ -27,7 +30,8 @@
             <Button Grid.Column="0" Margin="0" Padding="14,16" MinHeight="92" Click="OnFilesClick"
                     Cursor="Hand" AutomationProperties.Name="选择一个或多个笔记文件">
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="选择文件" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock Text="选择文件" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextBrush}" />
                     <TextBlock Margin="0,8,0,0" Text="可一次选择多个文件" Foreground="{DynamicResource MutedTextBrush}"
                                TextWrapping="Wrap" HorizontalAlignment="Center" />
                 </StackPanel>
@@ -35,21 +39,25 @@
             <Button Grid.Column="2" Margin="0" Padding="14,16" MinHeight="92" Click="OnFolderClick"
                     Cursor="Hand" AutomationProperties.Name="递归导入笔记文件夹">
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="选择文件夹" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock Text="选择文件夹" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextBrush}" />
                     <TextBlock Margin="0,8,0,0" Text="递归导入并保留子目录" Foreground="{DynamicResource MutedTextBrush}"
                                TextWrapping="Wrap" HorizontalAlignment="Center" />
                 </StackPanel>
             </Button>
         </Grid>
         <StackPanel Grid.Row="3" Margin="0,20,0,0">
-            <Border Padding="14,12" CornerRadius="6" Background="{DynamicResource SidebarBrush}">
+            <Border Padding="14,12" CornerRadius="6"
+                    Background="{DynamicResource SecondaryPanelBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                 <StackPanel>
-                    <TextBlock Text="迁移兼容" FontWeight="SemiBold" />
+                    <TextBlock Text="迁移兼容" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
                     <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" LineHeight="20" Foreground="{DynamicResource MutedTextBrush}"
                                Text="印象笔记 / 有道云：ENEX 或 HTML&#x0a;Google Keep：解压 Google Takeout 后选择 Keep 文件夹&#x0a;浮墨、为知、WPS、小米及其他软件：HTML、Markdown、TXT 或 CSV" />
                 </StackPanel>
             </Border>
-            <Button Margin="0,16,0,0" HorizontalAlignment="Right" Padding="20,7" Content="取消" IsCancel="True" />
+            <Button Margin="0,16,0,0" HorizontalAlignment="Right" Padding="20,7" Content="取消" IsCancel="True"
+                    Style="{StaticResource DialogButtonStyle}" />
         </StackPanel>
     </Grid>
 </Window>
