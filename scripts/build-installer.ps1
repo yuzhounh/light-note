@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Version,
     [string]$Configuration = "Release"
 )
@@ -78,3 +78,11 @@ if ($LASTEXITCODE -ne 0) {
 
 $installerPath = Join-Path $projectRoot "artifacts\installers\LightNote-$Version-win-x64-setup.exe"
 Write-Host "安装包已生成：$installerPath"
+
+$portableZipPath = Join-Path $projectRoot "artifacts\installers\LightNote-$Version-win-x64-portable.zip"
+if (Test-Path -LiteralPath $portableZipPath) {
+    Remove-Item -LiteralPath $portableZipPath -Force
+}
+Write-Host "正在打包便携版：$portableZipPath..."
+[System.IO.Compression.ZipFile]::CreateFromDirectory($publishDirectory, $portableZipPath)
+Write-Host "便携版已生成：$portableZipPath"

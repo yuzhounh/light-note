@@ -12,3 +12,6 @@ tmp/
 *.db-wal
 editor/node_modules/
 editor/dist/
+web/node_modules/
+web/dist/
+.firebase/
