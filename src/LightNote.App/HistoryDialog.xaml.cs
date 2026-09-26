@@ -9,6 +9,9 @@ public partial class HistoryDialog : Window
     public HistoryDialog(IReadOnlyList<NoteVersion> versions, Note currentNote)
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+        Activated += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
+        Loaded += (_, _) => WindowNativeHelper.ApplyNativeFrame(this);
         DataContext = versions.Select(version => new HistoryItem(version)).ToArray();
         CurrentTitleText.Text = currentNote.Title;
         CurrentBodyText.Text = string.IsNullOrWhiteSpace(currentNote.BodyText) ? "空笔记" : currentNote.BodyText;
