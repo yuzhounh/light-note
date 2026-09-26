@@ -13,7 +13,7 @@ html { overflow: hidden; }
 body {
   padding: 24px 34px;
   overflow-y: auto;
-  scrollbar-color: #c5cbd2 transparent;
+  scrollbar-color: #e2e5e9 transparent;
   scrollbar-width: thin;
 }
 body::-webkit-scrollbar { width: 10px; }
@@ -21,10 +21,22 @@ body::-webkit-scrollbar-track { background: transparent; }
 body::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   border-radius: 999px;
-  background: #c5cbd2;
+  background: #e2e5e9;
   background-clip: padding-box;
 }
-body::-webkit-scrollbar-thumb:hover { background-color: #aab2bc; }
+body::-webkit-scrollbar-thumb:hover { background-color: #cbd0d6; }
+
+@media (prefers-color-scheme: dark) {
+  body {
+    scrollbar-color: #3b4148 transparent;
+  }
+  body::-webkit-scrollbar-thumb {
+    background: #3b4148;
+  }
+  body::-webkit-scrollbar-thumb:hover {
+    background-color: #4e555e;
+  }
+}
 #root { height: 100%; }
 .tiptap { min-height: 100%; display: flow-root; outline: none; font-size: 16px; line-height: 1.75; overflow-wrap: anywhere; }
 .tiptap p.is-editor-empty:first-child::before { content: "开始记录…"; color: #a0a7b0; float: left; height: 0; pointer-events: none; }

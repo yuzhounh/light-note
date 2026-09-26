@@ -1,14 +1,78 @@
 import React, { useEffect, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { Node, mergeAttributes } from '@tiptap/core'
+import { Node, Mark, mergeAttributes } from '@tiptap/core'
 import katex from 'katex'
-import { 
-  Bold, Italic, Heading1, Heading2, List, ListOrdered, 
-  Quote, Code, Sigma, Undo, Redo, Check
-} from 'lucide-react'
 
-// KaTeX Math Node Extension
+// 1. Underline Mark
+const Underline = Mark.create({
+  name: 'underline',
+  parseHTML: () => [{ tag: 'u' }],
+  renderHTML: ({ HTMLAttributes }) => ['u', mergeAttributes(HTMLAttributes), 0],
+  addCommands() {
+    return {
+      toggleUnderline: () => ({ commands }) => commands.toggleMark(this.name),
+    }
+  },
+  addKeyboardShortcuts() {
+    return { 'Mod-u': () => this.editor.commands.toggleUnderline() }
+  },
+})
+
+// 2. TextAppearance Mark (fontFamily, fontSize, highlight)
+const TextAppearance = Mark.create({
+  name: 'textAppearance',
+  addAttributes() {
+    return {
+      fontFamily: {
+        default: null,
+        parseHTML: element => element.style.fontFamily || null,
+      },
+      fontSize: {
+        default: null,
+        parseHTML: element => element.style.fontSize || null,
+      },
+      backgroundColor: {
+        default: null,
+        parseHTML: element => element.style.backgroundColor || null,
+      },
+    }
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'span[style]',
+        getAttrs: element => {
+          if (element.hasAttribute('data-type')) return false
+          const { fontFamily, fontSize, backgroundColor } = element.style
+          return fontFamily || fontSize || backgroundColor ? {} : false
+        },
+      },
+    ]
+  },
+  renderHTML({ HTMLAttributes }) {
+    const style = [
+      HTMLAttributes.fontFamily ? `font-family: ${HTMLAttributes.fontFamily}` : '',
+      HTMLAttributes.fontSize ? `font-size: ${HTMLAttributes.fontSize}` : '',
+      HTMLAttributes.backgroundColor ? `background-color: ${HTMLAttributes.backgroundColor}` : '',
+    ].filter(Boolean).join('; ')
+    return ['span', style ? { style } : {}, 0]
+  },
+  addCommands() {
+    return {
+      setFontFamily: fontFamily => ({ commands }) => commands.setMark(this.name, { fontFamily }),
+      setFontSize: fontSize => ({ commands }) => commands.setMark(this.name, { fontSize }),
+      toggleHighlight: () => ({ editor, commands }) => {
+        const isHighlighted = editor.isActive(this.name, { backgroundColor: '#fff2a8' })
+        return commands.setMark(this.name, {
+          backgroundColor: isHighlighted ? null : '#fff2a8',
+        })
+      },
+    }
+  },
+})
+
+// 3. KaTeX Math Node
 export const MathNode = Node.create({
   name: 'mathNode',
   group: 'inline',
@@ -66,21 +130,34 @@ export const MathNode = Node.create({
   }
 })
 
+const FONT_FAMILIES = [
+  { label: '微软雅黑', value: 'Microsoft YaHei, sans-serif' },
+  { label: '宋体', value: 'SimSun, serif' },
+  { label: '黑体', value: 'SimHei, sans-serif' },
+  { label: '楷体', value: 'KaiTi, serif' },
+  { label: 'Arial', value: 'Arial, sans-serif' },
+  { label: 'Consolas', value: 'Consolas, monospace' },
+]
+
+const FONT_SIZES = ['11', '12', '13', '14', '15', '16', '18', '20', '24']
+
 export function LightEditor({ content, onChange, isMobile = false }) {
-  const [mathPromptOpen, setMathPromptOpen] = useState(false)
-  const [latexInput, setLatexInput] = useState('')
+  const [selectedFont, setSelectedFont] = useState('微软雅黑')
+  const [selectedSize, setSelectedSize] = useState('12')
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
+      Underline,
+      TextAppearance,
       MathNode,
     ],
     content: content || '',
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none focus:outline-none min-h-[300px] p-4 text-zinc-900 dark:text-zinc-100',
+        class: 'prose dark:prose-invert max-w-none focus:outline-none min-h-[400px] text-zinc-900 dark:text-zinc-100 leading-relaxed text-[15px]',
       },
     },
     onUpdate: ({ editor }) => {
@@ -93,7 +170,6 @@ export function LightEditor({ content, onChange, isMobile = false }) {
     },
   })
 
-  // Synchronize content when active note changes
   useEffect(() => {
     if (editor && content !== undefined && editor.getHTML() !== content) {
       editor.commands.setContent(content || '', false)
@@ -102,9 +178,21 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
   if (!editor) return null
 
+  function handleFontChange(val) {
+    setSelectedFont(val)
+    const found = FONT_FAMILIES.find(f => f.label === val)
+    if (found) {
+      editor.chain().focus().setFontFamily(found.value).run()
+    }
+  }
+
+  function handleSizeChange(val) {
+    setSelectedSize(val)
+    editor.chain().focus().setFontSize(`${val}pt`).run()
+  }
+
   function handleInsertMath() {
-    const defaultFormula = 'E = mc^2'
-    const input = window.prompt('输入 LaTeX 数学公式 (如 \\frac{a}{b} 或 E = mc^2):', defaultFormula)
+    const input = window.prompt('输入 LaTeX 数学公式 (例如: E = mc^2 或 \\sqrt{x^2+y^2}):', 'E = mc^2')
     if (input) {
       editor.chain().focus().insertContent({
         type: 'mathNode',
@@ -115,146 +203,189 @@ export function LightEditor({ content, onChange, isMobile = false }) {
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden">
-      {/* Format Toolbar */}
-      <div className={`flex items-center gap-1 px-3 py-1.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur overflow-x-auto no-scrollbar ${
-        isMobile ? 'text-xs' : 'text-sm'
-      }`}>
-        <button
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-1.5 rounded transition ${
-            editor.isActive('bold') 
-              ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 font-bold' 
-              : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-          }`}
-          title="加粗 (Ctrl+B)"
+      {/* 1:1 Parity Desktop Toolbar */}
+      <div className="flex items-center gap-1.5 px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs select-none overflow-x-auto">
+        {/* Font Family Dropdown */}
+        <select
+          value={selectedFont}
+          onChange={e => handleFontChange(e.target.value)}
+          className="bg-transparent border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-1 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer"
         >
-          <Bold size={16} />
-        </button>
+          {FONT_FAMILIES.map(f => (
+            <option key={f.label} value={f.label}>{f.label}</option>
+          ))}
+        </select>
 
-        <button
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-1.5 rounded transition ${
-            editor.isActive('italic') 
-              ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' 
-              : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-          }`}
-          title="斜体 (Ctrl+I)"
+        {/* Font Size Dropdown */}
+        <select
+          value={selectedSize}
+          onChange={e => handleSizeChange(e.target.value)}
+          className="bg-transparent border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-1 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer"
         >
-          <Italic size={16} />
-        </button>
+          {FONT_SIZES.map(s => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
 
-        <div className="w-[1px] h-4 bg-zinc-300 dark:bg-zinc-700 mx-1" />
+        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+
+        {/* Paragraph & Headings */}
+        <button
+          onClick={() => editor.chain().focus().setParagraph().run()}
+          className={`px-2 py-1 rounded transition text-xs font-normal ${
+            editor.isActive('paragraph') && !editor.isActive('heading')
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+          }`}
+        >
+          正文
+        </button>
 
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`p-1.5 rounded transition ${
-            editor.isActive('heading', { level: 1 }) 
-              ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' 
-              : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+          className={`px-2 py-1 rounded transition text-xs font-normal ${
+            editor.isActive('heading', { level: 1 })
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
-          title="一级标题"
         >
-          <Heading1 size={16} />
+          H₁
         </button>
 
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`p-1.5 rounded transition ${
-            editor.isActive('heading', { level: 2 }) 
-              ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' 
-              : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+          className={`px-2 py-1 rounded transition text-xs font-normal ${
+            editor.isActive('heading', { level: 2 })
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
-          title="二级标题"
         >
-          <Heading2 size={16} />
+          H₂
         </button>
 
-        <div className="w-[1px] h-4 bg-zinc-300 dark:bg-zinc-700 mx-1" />
+        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+
+        {/* B, I, U, Strike, Highlight, fx */}
+        <button
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs transition ${
+            editor.isActive('bold')
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+          }`}
+          title="粗体 (Ctrl+B)"
+        >
+          B
+        </button>
 
         <button
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          className={`w-6 h-6 rounded flex items-center justify-center italic text-xs transition ${
+            editor.isActive('italic')
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+          }`}
+          title="斜体 (Ctrl+I)"
+        >
+          /
+        </button>
+
+        <button
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          className={`w-6 h-6 rounded flex items-center justify-center underline text-xs transition ${
+            editor.isActive('underline')
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+          }`}
+          title="下划线 (Ctrl+U)"
+        >
+          U
+        </button>
+
+        <button
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          className={`px-1.5 h-6 rounded flex items-center justify-center line-through text-xs transition ${
+            editor.isActive('strike')
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+          }`}
+          title="删除线"
+        >
+          ab
+        </button>
+
+        <button
+          onClick={() => editor.chain().focus().toggleHighlight().run()}
+          className="relative px-1.5 h-6 rounded flex flex-col items-center justify-center text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition"
+          title="文本荧光高亮"
+        >
+          <span>ab</span>
+          <span className="w-full h-[2.5px] bg-amber-400 rounded-full -mt-0.5" />
+        </button>
+
+        <button
+          onClick={handleInsertMath}
+          className="px-1.5 h-6 rounded flex items-center justify-center italic font-serif text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition"
+          title="插入数学公式 (KaTeX)"
+        >
+          fx
+        </button>
+
+        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+
+        {/* Lists, Quote, Code block */}
+        <button
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-1.5 rounded transition ${
-            editor.isActive('bulletList') 
-              ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' 
-              : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs transition ${
+            editor.isActive('bulletList')
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="无序列表"
         >
-          <List size={16} />
+          •≡
         </button>
 
         <button
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-1.5 rounded transition ${
-            editor.isActive('orderedList') 
-              ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' 
-              : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs transition ${
+            editor.isActive('orderedList')
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
-          title="有序列表"
+          title="编号列表"
         >
-          <ListOrdered size={16} />
+          1≡
         </button>
 
         <button
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`p-1.5 rounded transition ${
-            editor.isActive('blockquote') 
-              ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' 
-              : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs font-serif transition ${
+            editor.isActive('blockquote')
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
-          title="引用块"
+          title="引用"
         >
-          <Quote size={16} />
+          ”
         </button>
 
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`p-1.5 rounded transition ${
-            editor.isActive('codeBlock') 
-              ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' 
-              : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs font-mono transition ${
+            editor.isActive('codeBlock')
+              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="代码块"
         >
-          <Code size={16} />
-        </button>
-
-        <div className="w-[1px] h-4 bg-zinc-300 dark:bg-zinc-700 mx-1" />
-
-        {/* Math Formula Button */}
-        <button
-          onClick={handleInsertMath}
-          className="flex items-center gap-1 px-2 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition"
-          title="插入数学公式 (KaTeX)"
-        >
-          <Sigma size={16} />
-          <span className="text-xs font-semibold">公式</span>
-        </button>
-
-        <div className="flex-1" />
-
-        <button
-          onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().undo()}
-          className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400"
-          title="撤销 (Ctrl+Z)"
-        >
-          <Undo size={16} />
-        </button>
-
-        <button
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().redo()}
-          className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400"
-          title="重做 (Ctrl+Y)"
-        >
-          <Redo size={16} />
+          {'{ }'}
         </button>
       </div>
 
       {/* Editor Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        <EditorContent editor={editor} className="h-full" />
+      <div className="flex-1 overflow-y-auto px-10 py-6">
+        <EditorContent editor={editor} />
       </div>
     </div>
   )

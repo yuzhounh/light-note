@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { 
-  Book, BookOpen, Plus, Trash2, Pin, Folder, Moon, Sun, 
-  X, Check, ChevronRight
+  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check
 } from 'lucide-react'
 
 export function Sidebar({
@@ -12,181 +11,173 @@ export function Sidebar({
   onSelectView,
   onCreateNotebook,
   onDeleteNotebook,
+  onCreateNote,
   theme,
   onToggleTheme,
   onCloseMobile,
   isMobile
 }) {
-  const [isAdding, setIsAdding] = useState(false)
+  const [isGroupOpen, setIsGroupOpen] = useState(true)
+  const [isAddingNotebook, setIsAddingNotebook] = useState(false)
   const [newNotebookName, setNewNotebookName] = useState('')
 
-  function handleCreate(e) {
+  function handleCreateNotebook(e) {
     e.preventDefault()
     if (newNotebookName.trim()) {
       onCreateNotebook(newNotebookName.trim())
       setNewNotebookName('')
-      setIsAdding(false)
+      setIsAddingNotebook(false)
     }
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-zinc-100 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
-      {/* App Header */}
-      <div className="flex items-center justify-between p-3.5 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-500 font-bold text-sm">
-            LN
+    <div className="flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
+      {/* Top Action: Large '+ 新建笔记' pill button */}
+      <div className="p-3">
+        <button
+          onClick={() => {
+            onCreateNote()
+            if (isMobile) onCloseMobile()
+          }}
+          className="w-full flex items-center gap-2.5 px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-full shadow-sm hover:shadow hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.98] transition cursor-pointer"
+        >
+          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
+            +
           </div>
-          <span className="font-semibold text-sm tracking-wide text-zinc-800 dark:text-zinc-200">
-            LightNote
+          <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 tracking-wide">
+            新建笔记
           </span>
-        </div>
+        </button>
+      </div>
 
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onToggleTheme}
-            className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition"
-            title="切换深色/浅色模式"
+      {/* Main Navigation List */}
+      <div className="flex-1 overflow-y-auto px-2 space-y-1">
+        {/* 全部笔记 */}
+        <button
+          onClick={() => {
+            onSelectView('all')
+            if (isMobile) onCloseMobile()
+          }}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-normal transition text-left cursor-pointer ${
+            currentView === 'all' && !currentNotebookId
+              ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white font-medium'
+              : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900'
+          }`}
+        >
+          <FileText size={15} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
+          <span>全部笔记</span>
+        </button>
+
+        {/* 笔记本组 (可展开/折叠) */}
+        <div>
+          <div
+            onClick={() => setIsGroupOpen(!isGroupOpen)}
+            className="flex items-center justify-between px-3 py-2 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer transition"
           >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-          
-          {isMobile && (
+            <div className="flex items-center gap-2">
+              <Folder size={15} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
+              <span>笔记本组</span>
+            </div>
             <button
-              onClick={onCloseMobile}
-              className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 transition"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsAddingNotebook(true)
+                setIsGroupOpen(true)
+              }}
+              className="p-0.5 hover:text-zinc-900 dark:hover:text-white"
+              title="新建笔记本"
             >
-              <X size={18} />
+              <Plus size={13} />
             </button>
+          </div>
+
+          {/* Sub Notebook Items */}
+          {isGroupOpen && (
+            <div className="pl-6 pr-1 space-y-0.5 mt-0.5">
+              {notebooks.map(nb => {
+                const isActive = currentNotebookId === nb.id && currentView === 'all'
+                return (
+                  <div
+                    key={nb.id}
+                    onClick={() => {
+                      onSelectNotebook(nb.id)
+                      if (isMobile) onCloseMobile()
+                    }}
+                    className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs cursor-pointer transition ${
+                      isActive
+                        ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white font-medium'
+                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <Book size={14} className={isActive ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-400'} />
+                      <span className="truncate">{nb.name}</span>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (confirm(`确定删除笔记本“${nb.name}”？笔记仍会保留。`)) {
+                          onDeleteNotebook(nb.id)
+                        }
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-rose-500 rounded text-zinc-400"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                )
+              })}
+
+              {/* Add notebook inline form */}
+              {isAddingNotebook && (
+                <form onSubmit={handleCreateNotebook} className="pt-1">
+                  <div className="flex items-center gap-1 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded p-1">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="笔记本名"
+                      value={newNotebookName}
+                      onChange={e => setNewNotebookName(e.target.value)}
+                      className="w-full text-xs bg-transparent outline-none text-zinc-800 dark:text-zinc-200 px-1"
+                    />
+                    <button type="submit" className="p-0.5 text-emerald-600">
+                      <Check size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingNotebook(false)}
+                      className="p-0.5 text-zinc-400"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Main Navigation Views */}
-      <div className="p-2 space-y-0.5">
+      {/* Bottom Footer: 'Google 登录' and Settings gear icon */}
+      <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
         <button
-          onClick={() => { onSelectView('all'); if (isMobile) onCloseMobile() }}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
-            currentView === 'all' && !currentNotebookId
-              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold'
-              : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-800/70'
-          }`}
+          onClick={() => alert('轻量版网页端已开启本地存储；可在后续直接接入 Firebase Google OAuth 登录')}
+          className="hover:text-zinc-900 dark:hover:text-white transition cursor-pointer"
         >
-          <BookOpen size={16} />
-          <span>全部笔记</span>
+          Google 登录
         </button>
 
-        <button
-          onClick={() => { onSelectView('pinned'); if (isMobile) onCloseMobile() }}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
-            currentView === 'pinned'
-              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold'
-              : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-800/70'
-          }`}
-        >
-          <Pin size={16} />
-          <span>已置顶</span>
-        </button>
-
-        <button
-          onClick={() => { onSelectView('trash'); if (isMobile) onCloseMobile() }}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
-            currentView === 'trash'
-              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold'
-              : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-800/70'
-          }`}
-        >
-          <Trash2 size={16} />
-          <span>回收站</span>
-        </button>
-      </div>
-
-      {/* Notebooks Header */}
-      <div className="flex items-center justify-between px-3 pt-3 pb-1">
-        <span className="text-[11px] font-semibold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase">
-          笔记本
-        </span>
-        <button
-          onClick={() => setIsAdding(true)}
-          className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition"
-          title="新建笔记本"
-        >
-          <Plus size={14} />
-        </button>
-      </div>
-
-      {/* New Notebook Inline Form */}
-      {isAdding && (
-        <form onSubmit={handleCreate} className="px-2 pb-2">
-          <div className="flex items-center gap-1 bg-white dark:bg-zinc-900 border border-amber-500/50 rounded-md p-1 shadow-sm">
-            <Folder size={14} className="text-amber-500 shrink-0 ml-1" />
-            <input
-              type="text"
-              autoFocus
-              placeholder="笔记本名称"
-              value={newNotebookName}
-              onChange={e => setNewNotebookName(e.target.value)}
-              className="w-full text-xs bg-transparent outline-none text-zinc-800 dark:text-zinc-200 px-1"
-            />
-            <button
-              type="submit"
-              className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded"
-            >
-              <Check size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsAdding(false)}
-              className="p-1 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Notebook List */}
-      <div className="flex-1 overflow-y-auto px-2 space-y-0.5">
-        {notebooks.map(nb => {
-          const isActive = currentNotebookId === nb.id && currentView === 'all'
-          return (
-            <div
-              key={nb.id}
-              onClick={() => {
-                onSelectNotebook(nb.id)
-                if (isMobile) onCloseMobile()
-              }}
-              className={`group flex items-center justify-between px-3 py-1.5 rounded-lg text-xs cursor-pointer transition ${
-                isActive
-                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-800/70'
-              }`}
-            >
-              <div className="flex items-center gap-2 truncate">
-                <Folder size={15} className={isActive ? 'text-amber-500' : 'text-zinc-400'} />
-                <span className="truncate">{nb.name}</span>
-              </div>
-              
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (confirm(`确定删除笔记本“${nb.name}”吗？其内部的笔记仍会保留。`)) {
-                    onDeleteNotebook(nb.id)
-                  }
-                }}
-                className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-500 rounded transition"
-                title="删除笔记本"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Footer Info */}
-      <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 text-[11px] text-zinc-400 text-center">
-        LightNote Web v1.0 • 本地优先
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onToggleTheme}
+            className="p-1 hover:text-zinc-900 dark:hover:text-white transition rounded cursor-pointer"
+            title="切换明暗主题"
+          >
+            <Settings size={16} />
+          </button>
+        </div>
       </div>
     </div>
   )

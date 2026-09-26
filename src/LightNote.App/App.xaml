@@ -11,6 +11,9 @@
         <SolidColorBrush x:Key="MutedTextBrush" Color="#FF68717D" />
         <SolidColorBrush x:Key="AccentBrush" Color="#FF246BFD" />
         <SolidColorBrush x:Key="AccentLightBrush" Color="#FFDCEEFF" />
+        <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#FFE2E5E9" />
+        <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#FFCBD0D6" />
+        <SolidColorBrush x:Key="ScrollBarThumbDragBrush" Color="#FFAAB2BC" />
 
         <Style TargetType="Button">
             <Setter Property="FontFamily" Value="Microsoft YaHei" />
@@ -143,11 +146,15 @@
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
                                                 <Border x:Name="ThumbBorder" Margin="2,1"
-                                                        Background="#C5CBD2" CornerRadius="3" />
+                                                        Background="{DynamicResource ScrollBarThumbBrush}" CornerRadius="3" />
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
                                                         <Setter TargetName="ThumbBorder" Property="Background"
-                                                                Value="#AAB2BC" />
+                                                                Value="{DynamicResource ScrollBarThumbHoverBrush}" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="ThumbBorder" Property="Background"
+                                                                Value="{DynamicResource ScrollBarThumbDragBrush}" />
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
