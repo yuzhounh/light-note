@@ -264,7 +264,7 @@ export const LightEditor = forwardRef(function LightEditor(
         <select
           value={selectedFont}
           onChange={e => handleFontChange(e.target.value)}
-          className="bg-transparent border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-1 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer shrink-0 whitespace-nowrap"
+          className="h-[26px] bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-1.5 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer shrink-0 whitespace-nowrap"
         >
           {FONT_FAMILIES.map(f => (
             <option key={f.label} value={f.label}>{f.label}</option>
@@ -275,33 +275,34 @@ export const LightEditor = forwardRef(function LightEditor(
         <select
           value={selectedSize}
           onChange={e => handleSizeChange(e.target.value)}
-          className="bg-transparent border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-1 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer shrink-0 whitespace-nowrap"
+          className="h-[26px] bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-1.5 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer shrink-0 whitespace-nowrap"
         >
           {FONT_SIZES.map(s => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
 
-        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1 shrink-0" />
+        <div className="w-[1px] h-3.5 bg-zinc-200 dark:bg-zinc-700 mx-0.5 shrink-0" />
 
-        {/* Paragraph & Headings */}
+        {/* Paragraph (appropriately sized for text) */}
         <button
           onClick={() => editor.chain().focus().setParagraph().run()}
-          className={`px-2 py-1 rounded transition text-xs font-normal shrink-0 whitespace-nowrap cursor-pointer ${
+          className={`h-[26px] px-2.5 rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('paragraph') && !editor.isActive('heading')
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white font-medium'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-normal'
           }`}
         >
           正文
         </button>
 
+        {/* Headings: uniform 26x26 square */}
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`px-2 py-1 rounded transition text-xs font-normal shrink-0 whitespace-nowrap cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('heading', { level: 1 })
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white font-medium'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-normal'
           }`}
         >
           H₁
@@ -309,23 +310,23 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`px-2 py-1 rounded transition text-xs font-normal shrink-0 whitespace-nowrap cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('heading', { level: 2 })
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white font-medium'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-normal'
           }`}
         >
           H₂
         </button>
 
-        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1 shrink-0" />
+        <div className="w-[1px] h-3.5 bg-zinc-200 dark:bg-zinc-700 mx-0.5 shrink-0" />
 
-        {/* B, I, U, Strike, Highlight, fx */}
+        {/* Inline styles: uniform 26x26 square */}
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center font-bold text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('bold')
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="粗体 (Ctrl+B)"
@@ -335,9 +336,9 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`w-6 h-6 rounded flex items-center justify-center italic text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center italic text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('italic')
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="斜体 (Ctrl+I)"
@@ -347,9 +348,9 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={`w-6 h-6 rounded flex items-center justify-center underline text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center underline text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('underline')
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="下划线 (Ctrl+U)"
@@ -359,9 +360,9 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center line-through text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center line-through text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('strike')
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="删除线"
@@ -371,29 +372,29 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleHighlight().run()}
-          className="relative px-1.5 h-6 rounded flex flex-col items-center justify-center text-xs shrink-0 whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+          className="relative w-[26px] h-[26px] rounded-md flex flex-col items-center justify-center text-xs shrink-0 whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
           title="文本荧光高亮"
         >
-          <span>ab</span>
-          <span className="w-full h-[2.5px] bg-amber-400 rounded-full -mt-0.5" />
+          <span className="leading-none text-[11px]">ab</span>
+          <span className="w-3.5 h-[2px] bg-amber-400 rounded-full mt-0.5" />
         </button>
 
         <button
           onClick={handleInsertMath}
-          className="px-1.5 h-6 rounded flex items-center justify-center italic font-serif text-xs font-semibold shrink-0 whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+          className="w-[26px] h-[26px] rounded-md flex items-center justify-center italic font-serif text-xs font-semibold shrink-0 whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
           title="插入数学公式 (KaTeX)"
         >
           fx
         </button>
 
-        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1 shrink-0" />
+        <div className="w-[1px] h-3.5 bg-zinc-200 dark:bg-zinc-700 mx-0.5 shrink-0" />
 
-        {/* Lists, Quote, Code block */}
+        {/* Lists & Quote: uniform 26x26 square */}
         <button
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('bulletList')
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="无序列表"
@@ -403,9 +404,9 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('orderedList')
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="编号列表"
@@ -415,9 +416,9 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`px-1.5 h-6 rounded flex items-center justify-center text-xs font-serif shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs font-serif shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('blockquote')
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="引用"
@@ -425,16 +426,17 @@ export const LightEditor = forwardRef(function LightEditor(
           ”
         </button>
 
+        {/* Code block: slightly smaller 22x22 square with no space {} */}
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`px-2 h-6 rounded flex items-center justify-center text-xs font-mono shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[22px] h-[22px] rounded flex items-center justify-center text-[11px] font-mono shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('codeBlock')
-              ? 'bg-zinc-200/80 dark:bg-zinc-700 text-zinc-900 dark:text-white'
+              ? 'bg-zinc-200/90 dark:bg-zinc-700 text-zinc-900 dark:text-white'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
           }`}
           title="代码块"
         >
-          <span className="font-mono whitespace-nowrap inline-block">{'{ }'}</span>
+          <span className="font-mono whitespace-nowrap leading-none font-medium">{'{}'}</span>
         </button>
       </div>
 
