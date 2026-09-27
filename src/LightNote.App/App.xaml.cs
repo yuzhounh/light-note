@@ -1,4 +1,4 @@
-﻿using System.Configuration;
+using System.Configuration;
 using System.Data;
 using System.Windows;
 using System.Windows.Interop;
@@ -45,18 +45,6 @@ public partial class App : System.Windows.Application
 
         _services = ConfigureServices();
         var logger = _services.GetRequiredService<IAppLogger>();
-
-        try
-        {
-            if (StartupRegistrationService.RemoveLegacyRegistration())
-            {
-                logger.Info("Removed legacy Windows startup registration.");
-            }
-        }
-        catch (Exception exception)
-        {
-            logger.Error("Failed to remove legacy Windows startup registration.", exception);
-        }
 
         DispatcherUnhandledException += (_, args) => HandleDispatcherException(logger, args);
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -105,8 +93,24 @@ public partial class App : System.Windows.Application
 
             var window = _services.GetRequiredService<MainWindow>();
             MainWindow = window;
-            window.Show();
-            logger.Info("LightNote started successfully.");
+
+            var trayService = _services.GetRequiredService<TrayIconService>();
+            trayService.Initialize(window, logger);
+
+            bool startInBackground = e.Args.Any(arg =>
+                string.Equals(arg, "--background", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(arg, "--tray", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(arg, "--minimized", StringComparison.OrdinalIgnoreCase));
+
+            if (!startInBackground)
+            {
+                window.Show();
+                logger.Info("LightNote started successfully (window shown).");
+            }
+            else
+            {
+                logger.Info("LightNote started successfully (in tray mode).");
+            }
         }
         catch (Exception exception)
         {
@@ -122,6 +126,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _services?.GetService<TrayIconService>()?.Dispose();
         _services?.GetService<IAppLogger>()?.Info("LightNote stopped.");
         _services?.Dispose();
         _singleInstance?.Dispose();
@@ -151,6 +156,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IDatabaseIntegrityChecker, DatabaseIntegrityChecker>();
         services.AddSingleton(new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(30) });
         services.AddSingleton<IFirebaseSyncService, FirebaseSyncService>();
+        services.AddSingleton<TrayIconService>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<MainWindow>();
         return services.BuildServiceProvider();

@@ -31,7 +31,7 @@ public static class StartupRegistrationService
                 var exePath = Environment.ProcessPath;
                 if (!string.IsNullOrEmpty(exePath))
                 {
-                    key.SetValue(ValueName, $"\"{exePath}\"");
+                    key.SetValue(ValueName, $"\"{exePath}\" --background");
                 }
             }
             else

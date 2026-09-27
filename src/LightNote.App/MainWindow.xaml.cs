@@ -52,6 +52,7 @@ public partial class MainWindow : Window
     };
     private bool _editorReady;
     private bool _allowClose;
+    private bool _isExiting;
     private bool _closingInProgress;
     private bool _notebookDialogOpen;
     private bool _syncInProgress;
@@ -610,6 +611,13 @@ public partial class MainWindow : Window
         }
     }
 
+    public void ExitApplication()
+    {
+        _isExiting = true;
+        _allowClose = false;
+        Close();
+    }
+
     private async void OnClosing(object? sender, CancelEventArgs e)
     {
         if (_allowClose)
@@ -620,6 +628,22 @@ public partial class MainWindow : Window
         e.Cancel = true;
         if (_closingInProgress)
         {
+            return;
+        }
+
+        if (!_isExiting)
+        {
+            Hide();
+            try
+            {
+                await CaptureEditorSnapshotAsync();
+                await _viewModel.FlushAllAsync();
+                SaveWindowSettings();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Failed while flushing on minimize to tray.", ex);
+            }
             return;
         }
 
@@ -638,6 +662,7 @@ public partial class MainWindow : Window
                     MessageBoxResult.No);
                 if (choice != MessageBoxResult.Yes)
                 {
+                    _isExiting = false;
                     return;
                 }
             }
@@ -645,6 +670,7 @@ public partial class MainWindow : Window
             SaveWindowSettings();
             _allowClose = true;
             Close();
+            System.Windows.Application.Current.Shutdown();
         }
         catch (Exception exception)
         {
