@@ -562,14 +562,18 @@ export const LightEditor = forwardRef(function LightEditor(
         {/* Code block */}
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs font-mono shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('codeBlock')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
               : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
           }`}
           title="代码块"
         >
-          <span className="font-mono whitespace-nowrap leading-none font-medium -translate-y-px">{'{}'}</span>
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m18 16 4-4-4-4" />
+            <path d="m6 8-4 4 4 4" />
+            <path d="m14.5 4-5 16" />
+          </svg>
         </button>
 
         {/* Timestamp */}

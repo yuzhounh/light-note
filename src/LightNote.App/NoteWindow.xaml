@@ -89,9 +89,8 @@
                             Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" />
                     <Button x:Name="CodeBlockButton" Tag="codeBlock"
                             Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" ToolTip="代码块">
-                        <TextBlock Text="{}{}" FontFamily="Consolas, Cascadia Code, monospace"
-                                   FontWeight="Normal" FontSize="13"
-                                   VerticalAlignment="Center" Margin="0,-1,0,0" />
+                        <TextBlock Text="&#xE943;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
+                                   VerticalAlignment="Center" />
                     </Button>
                     <Button x:Name="TimestampButton" Tag="insertTimestamp"
                             Style="{StaticResource ToolbarButtonStyle}" Click="OnEditorCommandClick" ToolTip="插入当前时间">
