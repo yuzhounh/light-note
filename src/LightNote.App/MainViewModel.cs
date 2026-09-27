@@ -1009,6 +1009,16 @@ public sealed partial class MainViewModel(
                 : HasMoreNotes ? $"已加载 {Notes.Count} 篇，仍有更多" : "本地数据已就绪";
     }
 
+    private string GetNotebookName(string? notebookId)
+    {
+        if (string.IsNullOrWhiteSpace(notebookId))
+        {
+            return "未归类";
+        }
+        var match = Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.User && item.Id == notebookId);
+        return match?.Name ?? "未归类";
+    }
+
     private async Task<IReadOnlyList<NoteListItem>> LoadNoteItemsAsync(
         NotebookListItem notebook,
         int offset,
@@ -1023,12 +1033,16 @@ public sealed partial class MainViewModel(
                 limit,
                 offset,
                 cancellationToken);
-            return hits.Select(hit =>
-            {
-                var note = _pendingSaves.TryGetValue(hit.Note.Id, out var pending)
+            var rawNotes = hits.Select(hit =>
+                _pendingSaves.TryGetValue(hit.Note.Id, out var pending)
                     ? pending.Note
-                    : hit.Note;
-                return new NoteListItem(note, hit.Snippet, query);
+                    : hit.Note).ToList();
+            var showBadge = rawNotes.Select(n => n.NotebookId ?? "").Distinct().Count() > 1;
+            return hits.Select((hit, i) =>
+            {
+                var note = rawNotes[i];
+                var nbName = GetNotebookName(note.NotebookId);
+                return new NoteListItem(note, hit.Snippet, query, nbName, showBadge);
             }).ToArray();
         }
 
@@ -1058,12 +1072,16 @@ public sealed partial class MainViewModel(
                 offset,
                 cancellationToken),
         };
-        return notes.Select(storedNote =>
-        {
-            var note = _pendingSaves.TryGetValue(storedNote.Id, out var pending)
+        var resolvedNotes = notes.Select(storedNote =>
+            _pendingSaves.TryGetValue(storedNote.Id, out var pending)
                 ? pending.Note
-                : storedNote;
-            return new NoteListItem(note);
+                : storedNote).ToList();
+        var isMultiNotebook = notebook.Kind != NotebookKind.User &&
+                              resolvedNotes.Select(n => n.NotebookId ?? "").Distinct().Count() > 1;
+        return resolvedNotes.Select(note =>
+        {
+            var nbName = GetNotebookName(note.NotebookId);
+            return new NoteListItem(note, notebookName: nbName, showNotebookBadge: isMultiNotebook);
         }).ToArray();
     }
 
@@ -1293,7 +1311,9 @@ public sealed partial class MainViewModel(
 public sealed class NoteListItem(
     Note note,
     string? previewOverride = null,
-    string matchQuery = "") : ObservableObject
+    string matchQuery = "",
+    string? notebookName = null,
+    bool showNotebookBadge = false) : ObservableObject
 {
     private readonly string? _previewOverride = previewOverride;
 
@@ -1310,6 +1330,10 @@ public sealed class NoteListItem(
     public string UpdatedLabel => Model.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
 
     public bool IsUnsynced => Model.SyncState == SyncState.Dirty;
+
+    public string? NotebookName { get; private set; } = notebookName;
+
+    public bool ShowNotebookBadge { get; private set; } = showNotebookBadge && !string.IsNullOrWhiteSpace(notebookName);
 
     private static string NormalizePreview(string? text)
     {
@@ -1335,14 +1359,24 @@ public sealed class NoteListItem(
         return string.IsNullOrWhiteSpace(normalized) ? "空笔记" : normalized;
     }
 
-    public void Update(Note updatedNote)
+    public void Update(Note updatedNote, string? notebookName = null, bool? showNotebookBadge = null)
     {
         Model = updatedNote;
+        if (notebookName is not null)
+        {
+            NotebookName = notebookName;
+        }
+        if (showNotebookBadge.HasValue)
+        {
+            ShowNotebookBadge = showNotebookBadge.Value;
+        }
         OnPropertyChanged(nameof(Model));
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(TitleDisplay));
         OnPropertyChanged(nameof(Preview));
         OnPropertyChanged(nameof(UpdatedLabel));
+        OnPropertyChanged(nameof(NotebookName));
+        OnPropertyChanged(nameof(ShowNotebookBadge));
         OnPropertyChanged(nameof(IsUnsynced));
     }
 }
