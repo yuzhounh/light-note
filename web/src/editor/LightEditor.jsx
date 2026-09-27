@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
+import Link from '@tiptap/extension-link'
 import { Node, Mark, mergeAttributes } from '@tiptap/core'
 import katex from 'katex'
 import { LatexModal } from '../components/modals/LatexModal'
@@ -117,8 +118,8 @@ export const MathNode = Node.create({
       const dom = document.createElement('span')
       const isBlock = !!node.attrs.isBlock
       dom.className = isBlock
-        ? 'math-node block my-2 py-1 px-2 text-center overflow-x-auto select-none cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 rounded-lg transition'
-        : 'math-node inline-block px-1 py-0.5 align-middle select-none cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 rounded transition'
+        ? 'math-node block my-2 py-1 px-2 text-center overflow-x-auto cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 rounded-lg transition'
+        : 'math-node inline-block px-1 py-0.5 align-middle cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 rounded transition'
       dom.setAttribute('data-latex', node.attrs.latex || '')
       dom.setAttribute('data-block', isBlock ? 'true' : 'false')
       dom.title = '点击编辑数学公式'
@@ -146,7 +147,167 @@ export const MathNode = Node.create({
   }
 })
 
-// 4. Custom Image Node with attachment resolution
+// 4. Resizable Image View Component with Quick Presets, Drag Handle and Lightbox
+function ResizableImageComponent({ node, updateAttributes, selected, deleteNode }) {
+  const [resolvedSrc, setResolvedSrc] = useState(node.attrs.src || '')
+  const [isResizing, setIsResizing] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const imageRef = useRef(null)
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    let active = true
+    if (node.attrs.src && node.attrs.src.startsWith('https://lightnote.attachments/')) {
+      syncService.resolveImageUrl(node.attrs.src).then(resolved => {
+        if (active && resolved) {
+          setResolvedSrc(resolved)
+        }
+      })
+    } else {
+      setResolvedSrc(node.attrs.src || '')
+    }
+    return () => { active = false }
+  }, [node.attrs.src])
+
+  const handleResizeStart = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+    const startX = e.clientX
+    const startWidth = imageRef.current ? imageRef.current.offsetWidth : 300
+    const parentWidth = containerRef.current?.parentElement?.offsetWidth || window.innerWidth
+
+    const onMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX
+      const newWidth = Math.max(80, Math.min(parentWidth, startWidth + deltaX))
+      if (imageRef.current) {
+        imageRef.current.style.width = `${newWidth}px`
+      }
+    }
+
+    const onMouseUp = (upEvent) => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+      setIsResizing(false)
+      const deltaX = upEvent.clientX - startX
+      const finalWidth = Math.max(80, Math.min(parentWidth, startWidth + deltaX))
+      updateAttributes({ width: `${Math.round(finalWidth)}px` })
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
+
+  const handleSetPresetWidth = (widthVal, e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    updateAttributes({ width: widthVal })
+  }
+
+  const handleDoubleClick = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (typeof window.__openImageLightbox === 'function') {
+      window.__openImageLightbox(resolvedSrc)
+    }
+  }
+
+  const currentWidth = node.attrs.width || '100%'
+
+  return (
+    <NodeViewWrapper
+      as="span"
+      ref={containerRef}
+      className="inline-block relative my-2 max-w-full group select-none align-middle"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <span className={`relative inline-block max-w-full rounded-lg overflow-visible ${
+        selected ? 'ring-2 ring-amber-500 ring-offset-2' : ''
+      }`}>
+        <img
+          ref={imageRef}
+          src={resolvedSrc}
+          alt={node.attrs.alt || ''}
+          data-attachment-id={node.attrs['data-attachment-id']}
+          style={{ width: currentWidth, maxWidth: '100%', display: 'block' }}
+          className="rounded-lg shadow-xs cursor-pointer object-contain transition-all"
+          onDoubleClick={handleDoubleClick}
+        />
+
+        {/* Floating Quick Action Toolbar */}
+        {(hovered || selected || isResizing) && (
+          <span className="absolute top-2 right-2 bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-md shadow-md py-0.5 px-1.5 flex items-center gap-1 text-[11px] z-20">
+            <button
+              type="button"
+              onClick={(e) => handleSetPresetWidth('25%', e)}
+              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '25%' ? 'bg-amber-100 text-amber-800 font-bold dark:bg-amber-900/60 dark:text-amber-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
+              title="25% 宽度"
+            >
+              25%
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSetPresetWidth('50%', e)}
+              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '50%' ? 'bg-amber-100 text-amber-800 font-bold dark:bg-amber-900/60 dark:text-amber-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
+              title="50% 宽度"
+            >
+              50%
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSetPresetWidth('75%', e)}
+              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '75%' ? 'bg-amber-100 text-amber-800 font-bold dark:bg-amber-900/60 dark:text-amber-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
+              title="75% 宽度"
+            >
+              75%
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSetPresetWidth('100%', e)}
+              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '100%' ? 'bg-amber-100 text-amber-800 font-bold dark:bg-amber-900/60 dark:text-amber-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
+              title="100% 原始/全宽"
+            >
+              100%
+            </button>
+            <span className="w-[1px] h-3 bg-zinc-200 dark:bg-zinc-700 mx-0.5" />
+            <button
+              type="button"
+              onClick={handleDoubleClick}
+              className="px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition"
+              title="查看大图"
+            >
+              🔍
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteNode?.() }}
+              className="px-1.5 py-0.5 rounded hover:bg-red-50 text-red-600 dark:hover:bg-red-950/40 dark:text-red-400 transition"
+              title="删除图片"
+            >
+              🗑️
+            </button>
+          </span>
+        )}
+
+        {/* Bottom-right Drag Resize Handle */}
+        {(hovered || selected || isResizing) && (
+          <span
+            onMouseDown={handleResizeStart}
+            className="absolute bottom-1 right-1 w-4 h-4 bg-amber-500 text-white rounded-full flex items-center justify-center cursor-se-resize shadow-md hover:scale-125 transition-transform z-20"
+            title="拖拽调节大小"
+          >
+            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <path d="M21 15v6h-6M21 21l-9-9" />
+            </svg>
+          </span>
+        )}
+      </span>
+    </NodeViewWrapper>
+  )
+}
+
+// Custom Image Node with width attribute and Resizable Image View
 const CustomImage = Image.extend({
   addAttributes() {
     return {
@@ -154,28 +315,24 @@ const CustomImage = Image.extend({
       src: {
         default: null,
       },
+      width: {
+        default: null,
+        parseHTML: element => element.getAttribute('width') || element.style.width || null,
+        renderHTML: attributes => {
+          if (!attributes.width) return {}
+          return {
+            width: attributes.width,
+            style: `width: ${attributes.width}`,
+          }
+        },
+      },
       'data-attachment-id': {
         default: null,
       }
     }
   },
   addNodeView() {
-    return ({ node }) => {
-      const img = document.createElement('img')
-      img.src = node.attrs.src || ''
-      img.alt = node.attrs.alt || ''
-      if (node.attrs['data-attachment-id']) {
-        img.setAttribute('data-attachment-id', node.attrs['data-attachment-id'])
-      }
-      if (node.attrs.src && node.attrs.src.startsWith('https://lightnote.attachments/')) {
-        syncService.resolveImageUrl(node.attrs.src).then(resolved => {
-          if (resolved && resolved !== node.attrs.src) {
-            img.src = resolved
-          }
-        })
-      }
-      return { dom: img }
-    }
+    return ReactNodeViewRenderer(ResizableImageComponent)
   }
 })
 
@@ -196,8 +353,17 @@ export const LightEditor = forwardRef(function LightEditor(
 ) {
   const [selectedFont, setSelectedFont] = useState('微软雅黑')
   const [selectedSize, setSelectedSize] = useState('12')
+  const [lightboxSrc, setLightboxSrc] = useState(null)
 
+  const titleInputRef = useRef(null)
   const lastDispatchedHtml = useRef(content || '')
+
+  useEffect(() => {
+    window.__openImageLightbox = (src) => setLightboxSrc(src)
+    return () => {
+      delete window.__openImageLightbox
+    }
+  }, [])
 
   const editor = useEditor({
     extensions: [
@@ -207,6 +373,16 @@ export const LightEditor = forwardRef(function LightEditor(
       Underline,
       TextAppearance,
       MathNode,
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          class: 'text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer transition',
+          title: 'Ctrl + 单击在浏览器中打开链接',
+        },
+      }),
       CustomImage.configure({
         inline: true,
         allowBase64: true,
@@ -216,6 +392,33 @@ export const LightEditor = forwardRef(function LightEditor(
     editorProps: {
       attributes: {
         class: 'focus:outline-none min-h-[400px] text-zinc-900 dark:text-zinc-100 text-[14.5px] leading-[1.65]',
+      },
+      handleClick: (view, pos, event) => {
+        const a = event.target.closest('a')
+        if (a && (event.ctrlKey || event.metaKey)) {
+          event.preventDefault()
+          const href = a.getAttribute('href')
+          if (href) {
+            window.open(href, '_blank', 'noopener,noreferrer')
+            return true
+          }
+        }
+        return false
+      },
+      handleKeyDown: (view, event) => {
+        if (event.key === 'Backspace' || event.key === 'ArrowUp') {
+          const { from, to } = view.state.selection
+          if (from === 1 && to === 1) {
+            event.preventDefault()
+            if (titleInputRef.current) {
+              titleInputRef.current.focus()
+              const len = titleInputRef.current.value.length
+              titleInputRef.current.setSelectionRange(len, len)
+            }
+            return true
+          }
+        }
+        return false
       },
       handlePaste: (view, event) => {
         const items = event.clipboardData?.items
@@ -257,6 +460,24 @@ export const LightEditor = forwardRef(function LightEditor(
         }
         return false
       },
+    },
+    onSelectionUpdate: ({ editor }) => {
+      const attrs = editor.getAttributes('textAppearance')
+      if (attrs.fontFamily) {
+        const found = FONT_FAMILIES.find(f => f.value === attrs.fontFamily || attrs.fontFamily.includes(f.label))
+        if (found) setSelectedFont(found.label)
+      } else {
+        setSelectedFont('微软雅黑')
+      }
+
+      if (attrs.fontSize) {
+        const sizeNum = String(attrs.fontSize).replace(/[^0-9]/g, '')
+        if (sizeNum && FONT_SIZES.includes(sizeNum)) {
+          setSelectedSize(sizeNum)
+        }
+      } else {
+        setSelectedSize('12')
+      }
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
@@ -396,6 +617,42 @@ export const LightEditor = forwardRef(function LightEditor(
     <div className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden">
       {/* 1:1 Parity Desktop Toolbar */}
       <div className="flex items-center gap-1.5 px-6 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs select-none overflow-x-auto shrink-0 whitespace-nowrap no-scrollbar">
+        {/* Undo Button */}
+        <button
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
+            editor.can().undo()
+              ? 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-40'
+          }`}
+          title="撤销 (Ctrl+Z)"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 7v6h6" />
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+          </svg>
+        </button>
+
+        {/* Redo Button */}
+        <button
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
+            editor.can().redo()
+              ? 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-40'
+          }`}
+          title="重做 (Ctrl+Y)"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 7v6h-6" />
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+          </svg>
+        </button>
+
+        <div className="w-[1px] h-3.5 bg-zinc-200 dark:bg-zinc-700 mx-0.5 shrink-0" />
+
         {/* Font Family Dropdown */}
         <select
           value={selectedFont}
@@ -642,12 +899,13 @@ export const LightEditor = forwardRef(function LightEditor(
         }}
       >
         <input
+          ref={titleInputRef}
           type="text"
           placeholder="无标题"
           value={title || ''}
           onChange={e => onUpdateTitle && onUpdateTitle(e.target.value)}
           onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === 'Tab') {
+            if (e.key === 'Enter' || e.key === 'Tab' || e.key === 'ArrowDown') {
               e.preventDefault()
               editor?.commands.focus('start')
             }
@@ -670,6 +928,30 @@ export const LightEditor = forwardRef(function LightEditor(
         onSave={handleSaveMath}
         onDelete={handleDeleteMath}
       />
+
+      {/* Fullscreen Image Lightbox Modal */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out select-none"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <button
+            onClick={() => setLightboxSrc(null)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition cursor-pointer"
+            title="关闭 (Esc)"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={lightboxSrc}
+            alt="大图预览"
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl cursor-default"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 })

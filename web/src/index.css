@@ -69,6 +69,8 @@
   line-height: 1.65;
   color: inherit;
   cursor: text;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .tiptap-editor-wrapper {
@@ -168,6 +170,8 @@
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
   font-family: monospace;
+  overflow-x: auto;
+  white-space: pre;
 }
 
 .dark .ProseMirror pre {
