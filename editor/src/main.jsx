@@ -1051,6 +1051,12 @@ function EditorApp() {
     window.addEventListener('focus', onWindowFocus)
 
     const onBodyClick = (e) => {
+      // If text is selected via drag, do not alter selection or refocus
+      const sel = window.getSelection()
+      if (sel && !sel.isCollapsed && sel.toString().length > 0) {
+        return
+      }
+
       if (
         e.target.closest('.math-modal-card') ||
         e.target.closest('button') ||
@@ -1062,13 +1068,16 @@ function EditorApp() {
       if (!editor) return
       if (editor.isEmpty) {
         editor.commands.focus('start')
-      } else if (
-        e.target === document.body ||
-        e.target.id === 'root' ||
-        e.target === editor.view.dom ||
-        !e.target.closest('.tiptap')
-      ) {
+      } else if (e.target === document.body || e.target.id === 'root') {
         editor.commands.focus('end')
+      } else if (e.target === editor.view.dom) {
+        const lastChild = editor.view.dom.lastElementChild
+        if (lastChild) {
+          const rect = lastChild.getBoundingClientRect()
+          if (e.clientY > rect.bottom) {
+            editor.commands.focus('end')
+          }
+        }
       }
     }
     document.addEventListener('click', onBodyClick)
