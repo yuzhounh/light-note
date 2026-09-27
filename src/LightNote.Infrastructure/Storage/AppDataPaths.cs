@@ -42,6 +42,8 @@ public sealed class AppDataPaths
 
     public string WebViewDataDirectory => Path.Combine(RootDirectory, "webview2");
 
+    public string ThumbnailCacheDirectory => Path.Combine(RootDirectory, "cache", "thumbnails");
+
     public void EnsureCreated()
     {
         lock (_ensureGate)
@@ -60,6 +62,7 @@ public sealed class AppDataPaths
             Directory.CreateDirectory(BackupsDirectory);
             Directory.CreateDirectory(RecoveryDirectory);
             Directory.CreateDirectory(WebViewDataDirectory);
+            Directory.CreateDirectory(ThumbnailCacheDirectory);
             _isCreated = true;
         }
     }

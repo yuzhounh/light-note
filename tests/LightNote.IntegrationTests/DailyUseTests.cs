@@ -100,6 +100,45 @@ public sealed class DailyUseTests : IDisposable
     }
 
     [Fact]
+    public void NoteListItemCachesCenterCroppedSquareThumbnailToDisk()
+    {
+        var paths = new AppDataPaths(_testDirectory);
+        paths.EnsureCreated();
+
+        var relPath = "test-image.png";
+        var fullPath = Path.Combine(paths.AttachmentsDirectory, relPath);
+        var writeBmp = new System.Windows.Media.Imaging.RenderTargetBitmap(200, 100, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(writeBmp));
+        using (var fs = File.Create(fullPath))
+        {
+            encoder.Save(fs);
+        }
+
+        var note = new Note
+        {
+            Id = "n-thumb",
+            Title = "带缩略图笔记",
+            BodyText = "正文",
+            BodyHtml = $"<p>正文</p><p><img src=\"https://lightnote.attachments/{relPath}\" /></p>",
+            BodyJson = "{}",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+
+        var item = new NoteListItem(note, attachmentsDirectory: paths.AttachmentsDirectory, thumbnailCacheDirectory: paths.ThumbnailCacheDirectory);
+        Assert.True(item.HasThumbnail);
+        Assert.NotNull(item.ThumbnailSource);
+
+        var cachedFiles = Directory.GetFiles(paths.ThumbnailCacheDirectory, "*.png");
+        Assert.Single(cachedFiles);
+
+        var item2 = new NoteListItem(note, attachmentsDirectory: paths.AttachmentsDirectory, thumbnailCacheDirectory: paths.ThumbnailCacheDirectory);
+        Assert.True(item2.HasThumbnail);
+        Assert.NotNull(item2.ThumbnailSource);
+    }
+
+    [Fact]
     public void CorruptSettingsFallBackToDefaults()
     {
         var paths = new AppDataPaths(_testDirectory);
@@ -175,7 +214,7 @@ public sealed class DailyUseTests : IDisposable
                     return;
                 }
 
-                if ((e.Key == System.Windows.Input.Key.Tab && (e.KeyboardDevice.Modifiers == System.Windows.Input.ModifierKeys.None || System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.None)) ||
+                if ((e.Key == System.Windows.Input.Key.Tab && !e.KeyboardDevice.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift)) ||
                     e.Key == System.Windows.Input.Key.Enter)
                 {
                     e.Handled = true;

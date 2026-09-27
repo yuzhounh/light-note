@@ -1,8 +1,11 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -103,6 +106,8 @@ public sealed partial class MainViewModel(
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         _isInitializing = true;
+        NoteListItem.DefaultAttachmentsDirectory = _paths?.AttachmentsDirectory;
+        NoteListItem.DefaultThumbnailCacheDirectory = _paths?.ThumbnailCacheDirectory;
         await ReloadNotebooksAsync(cancellationToken: cancellationToken);
         SelectedNotebook = Notebooks.FirstOrDefault();
         _isInitializing = false;
@@ -1050,7 +1055,7 @@ public sealed partial class MainViewModel(
             {
                 var note = rawNotes[i];
                 var nbName = GetNotebookName(note.NotebookId);
-                return new NoteListItem(note, hit.Snippet, query, nbName, showBadge, _paths?.AttachmentsDirectory);
+                return new NoteListItem(note, hit.Snippet, query, nbName, showBadge, _paths?.AttachmentsDirectory, _paths?.ThumbnailCacheDirectory);
             }).ToArray();
         }
 
@@ -1089,7 +1094,7 @@ public sealed partial class MainViewModel(
         return resolvedNotes.Select(note =>
         {
             var nbName = GetNotebookName(note.NotebookId);
-            return new NoteListItem(note, notebookName: nbName, showNotebookBadge: isMultiNotebook, attachmentsDirectory: _paths?.AttachmentsDirectory);
+            return new NoteListItem(note, notebookName: nbName, showNotebookBadge: isMultiNotebook, attachmentsDirectory: _paths?.AttachmentsDirectory, thumbnailCacheDirectory: _paths?.ThumbnailCacheDirectory);
         }).ToArray();
     }
 
@@ -1334,9 +1339,12 @@ public sealed class NoteListItem : ObservableObject
     private static readonly ConcurrentDictionary<string, ImageSource?> ThumbnailCache = new(StringComparer.OrdinalIgnoreCase);
 
     public static string? DefaultAttachmentsDirectory { get; set; }
+    public static string? DefaultThumbnailCacheDirectory { get; set; }
 
     private readonly string? _previewOverride;
     private readonly string? _attachmentsDirectory;
+    private readonly string? _thumbnailCacheDirectory;
+    private ImageSource? _thumbnailSource;
 
     public NoteListItem(
         Note note,
@@ -1344,7 +1352,8 @@ public sealed class NoteListItem : ObservableObject
         string matchQuery = "",
         string? notebookName = null,
         bool showNotebookBadge = false,
-        string? attachmentsDirectory = null)
+        string? attachmentsDirectory = null,
+        string? thumbnailCacheDirectory = null)
     {
         Model = note;
         _previewOverride = previewOverride;
@@ -1352,6 +1361,7 @@ public sealed class NoteListItem : ObservableObject
         NotebookName = notebookName;
         ShowNotebookBadge = showNotebookBadge && !string.IsNullOrWhiteSpace(notebookName);
         _attachmentsDirectory = attachmentsDirectory ?? DefaultAttachmentsDirectory;
+        _thumbnailCacheDirectory = thumbnailCacheDirectory ?? DefaultThumbnailCacheDirectory;
         RefreshThumbnail();
     }
 
@@ -1373,20 +1383,84 @@ public sealed class NoteListItem : ObservableObject
 
     public bool ShowNotebookBadge { get; private set; }
 
-    public ImageSource? ThumbnailSource { get; private set; }
+    public ImageSource? ThumbnailSource
+    {
+        get => _thumbnailSource;
+        private set
+        {
+            if (SetProperty(ref _thumbnailSource, value))
+            {
+                OnPropertyChanged(nameof(HasThumbnail));
+            }
+        }
+    }
 
     public bool HasThumbnail => ThumbnailSource is not null;
 
     private void RefreshThumbnail()
     {
-        ThumbnailSource = ResolveThumbnail(Model.BodyHtml, _attachmentsDirectory ?? DefaultAttachmentsDirectory);
+        var attachDir = _attachmentsDirectory ?? DefaultAttachmentsDirectory;
+        var cacheDir = _thumbnailCacheDirectory ?? DefaultThumbnailCacheDirectory;
+
+        var (fastImage, needBg, src, cacheKey) = ResolveThumbnailFast(Model.BodyHtml, attachDir, cacheDir);
+        if (fastImage is not null)
+        {
+            ThumbnailSource = fastImage;
+            return;
+        }
+
+        if (!needBg || string.IsNullOrEmpty(src) || string.IsNullOrEmpty(cacheKey))
+        {
+            ThumbnailSource = null;
+            return;
+        }
+
+        // If in test or no WPF application dispatcher, run synchronously
+        if (Application.Current?.Dispatcher is null)
+        {
+            try
+            {
+                var img = GenerateThumbnailFromSource(src, attachDir, cacheDir, cacheKey);
+                ThumbnailCache[cacheKey] = img;
+                ThumbnailSource = img;
+            }
+            catch
+            {
+                ThumbnailCache[cacheKey] = null;
+                ThumbnailSource = null;
+            }
+            return;
+        }
+
+        Task.Run(() =>
+        {
+            try
+            {
+                var img = GenerateThumbnailFromSource(src, attachDir, cacheDir, cacheKey);
+                ThumbnailCache[cacheKey] = img;
+                if (img is not null)
+                {
+                    Application.Current?.Dispatcher?.InvokeAsync(() =>
+                    {
+                        ThumbnailSource = img;
+                    });
+                }
+            }
+            catch
+            {
+                ThumbnailCache[cacheKey] = null;
+            }
+        });
     }
 
-    private static ImageSource? ResolveThumbnail(string? bodyHtml, string? attachmentsDirectory)
+    private static (ImageSource? Image, bool NeedBackground, string? Src, string? CacheKey) ResolveThumbnailFast(
+        string? bodyHtml,
+        string? attachmentsDirectory,
+        string? cacheDirectory)
     {
         if (string.IsNullOrWhiteSpace(bodyHtml))
         {
-            return null;
+            return (null, false, null, null);
         }
 
         foreach (Match match in ImgTagRegex.Matches(bodyHtml))
@@ -1416,35 +1490,56 @@ public sealed class NoteListItem : ObservableObject
                 }
             }
 
-            if (ThumbnailCache.TryGetValue(src, out var cached))
+            var cacheKey = ComputeHash(src);
+
+            // 1. In-memory cache hit
+            if (ThumbnailCache.TryGetValue(cacheKey, out var cached))
             {
                 if (cached is not null)
                 {
-                    return cached;
+                    return (cached, false, null, null);
                 }
                 continue;
             }
 
-            try
+            // 2. On-disk cache hit
+            if (!string.IsNullOrEmpty(cacheDirectory))
             {
-                var img = LoadImageSource(src, attachmentsDirectory);
-                ThumbnailCache[src] = img;
-                if (img is not null)
+                var diskPath = Path.Combine(cacheDirectory, $"{cacheKey}.png");
+                if (File.Exists(diskPath))
                 {
-                    return img;
+                    try
+                    {
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.UriSource = new Uri(diskPath, UriKind.Absolute);
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.EndInit();
+                        bitmap.Freeze();
+                        ThumbnailCache[cacheKey] = bitmap;
+                        return (bitmap, false, null, null);
+                    }
+                    catch
+                    {
+                        try { File.Delete(diskPath); } catch { }
+                    }
                 }
             }
-            catch
-            {
-                ThumbnailCache[src] = null;
-            }
+
+            return (null, true, src, cacheKey);
         }
 
-        return null;
+        return (null, false, null, null);
     }
 
-    private static ImageSource? LoadImageSource(string src, string? attachmentsDirectory)
+    private static BitmapSource? GenerateThumbnailFromSource(
+        string src,
+        string? attachmentsDirectory,
+        string? cacheDirectory,
+        string cacheKey)
     {
+        string? cachePath = cacheDirectory is not null ? Path.Combine(cacheDirectory, $"{cacheKey}.png") : null;
+
         if (src.StartsWith("https://lightnote.attachments/", StringComparison.OrdinalIgnoreCase))
         {
             if (string.IsNullOrWhiteSpace(attachmentsDirectory) || !Uri.TryCreate(src, UriKind.Absolute, out var uri))
@@ -1459,14 +1554,7 @@ public sealed class NoteListItem : ObservableObject
                 return null;
             }
 
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.UriSource = new Uri(fullPath, UriKind.Absolute);
-            bitmap.DecodePixelWidth = 112;
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
+            return GenerateCroppedThumbnail(fullPath, null, cachePath);
         }
 
         if (src.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
@@ -1475,43 +1563,124 @@ public sealed class NoteListItem : ObservableObject
             if (commaIndex < 0) return null;
             var base64 = src[(commaIndex + 1)..];
             var bytes = Convert.FromBase64String(base64);
-            var stream = new MemoryStream(bytes);
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.StreamSource = stream;
-            bitmap.DecodePixelWidth = 112;
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
+            return GenerateCroppedThumbnail(null, bytes, cachePath);
+        }
+
+        if (File.Exists(src))
+        {
+            return GenerateCroppedThumbnail(src, null, cachePath);
         }
 
         if (src.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
             src.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.UriSource = new Uri(src, UriKind.Absolute);
-            bitmap.DecodePixelWidth = 112;
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
-        }
-
-        if (File.Exists(src))
-        {
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.UriSource = new Uri(src, UriKind.Absolute);
-            bitmap.DecodePixelWidth = 112;
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
+            try
+            {
+                using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                var bytes = client.GetByteArrayAsync(src).GetAwaiter().GetResult();
+                return GenerateCroppedThumbnail(null, bytes, cachePath);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         return null;
+    }
+
+    private static BitmapSource? GenerateCroppedThumbnail(string? sourceFilePath, byte[]? sourceBytes, string? cachePath)
+    {
+        try
+        {
+            BitmapDecoder decoder;
+            if (sourceBytes is not null)
+            {
+                var stream = new MemoryStream(sourceBytes);
+                decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+            }
+            else if (!string.IsNullOrEmpty(sourceFilePath) && File.Exists(sourceFilePath))
+            {
+                using var fileStream = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                decoder = BitmapDecoder.Create(fileStream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+            }
+            else
+            {
+                return null;
+            }
+
+            if (decoder.Frames.Count == 0)
+            {
+                return null;
+            }
+
+            var frame = decoder.Frames[0];
+            int origW = frame.PixelWidth;
+            int origH = frame.PixelHeight;
+            if (origW <= 0 || origH <= 0)
+            {
+                return null;
+            }
+
+            int squareSize = Math.Min(origW, origH);
+            int cropX = (origW - squareSize) / 2;
+            int cropY = (origH - squareSize) / 2;
+
+            var cropped = new CroppedBitmap(frame, new Int32Rect(cropX, cropY, squareSize, squareSize));
+
+            // Target size: 120px for crisp high-DPI 60x60 container
+            const int targetSize = 120;
+            double scale = (double)targetSize / squareSize;
+
+            BitmapSource finalBitmap;
+            if (Math.Abs(scale - 1.0) > 0.001)
+            {
+                finalBitmap = new TransformedBitmap(cropped, new ScaleTransform(scale, scale));
+            }
+            else
+            {
+                finalBitmap = cropped;
+            }
+
+            finalBitmap.Freeze();
+
+            if (!string.IsNullOrEmpty(cachePath))
+            {
+                try
+                {
+                    var dir = Path.GetDirectoryName(cachePath);
+                    if (!string.IsNullOrEmpty(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+
+                    var tempPath = $"{cachePath}.tmp_{Guid.NewGuid():N}";
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(finalBitmap));
+                    using (var outStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        encoder.Save(outStream);
+                    }
+                    File.Move(tempPath, cachePath, overwrite: true);
+                }
+                catch
+                {
+                    // Ignore disk write errors
+                }
+            }
+
+            return finalBitmap;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string ComputeHash(string input)
+    {
+        using var md5 = MD5.Create();
+        return Convert.ToHexString(md5.ComputeHash(Encoding.UTF8.GetBytes(input))).ToLowerInvariant();
     }
 
     private static string NormalizePreview(string? text)
@@ -1558,8 +1727,6 @@ public sealed class NoteListItem : ObservableObject
         OnPropertyChanged(nameof(NotebookName));
         OnPropertyChanged(nameof(ShowNotebookBadge));
         OnPropertyChanged(nameof(IsUnsynced));
-        OnPropertyChanged(nameof(ThumbnailSource));
-        OnPropertyChanged(nameof(HasThumbnail));
     }
 }
 

@@ -47,8 +47,8 @@ function NoteCardThumbnail({ src }) {
 
   if (!realSrc) return null
   return (
-    <div className="w-14 h-14 shrink-0 rounded-md overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center">
-      <img src={realSrc} alt="" className="w-full h-full object-cover" />
+    <div className="w-[60px] h-[60px] shrink-0 rounded-md overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center">
+      <img src={realSrc} alt="" className="w-full h-full object-cover object-center" />
     </div>
   )
 }
@@ -186,73 +186,77 @@ export function NoteList({
                       : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200'
                   }`}
                 >
-                  <div className="flex items-start gap-2.5">
-                    <div className="flex-1 min-w-0">
-                      <div className="mb-1 flex items-center gap-1.5">
-                        {note.is_pinned === 1 && (
-                          <Pin size={12} className="text-amber-500 shrink-0 fill-amber-500" />
-                        )}
-                        <h4 className="text-[14.5px] font-semibold truncate text-zinc-900 dark:text-zinc-100">
-                          {highlightMatch(note.title || '无标题', searchQuery)}
-                        </h4>
+                  <div className="flex flex-col">
+                    {/* Top part: Lines 1-3 (Title + Preview on left, Thumbnail on right) */}
+                    <div className="flex items-start gap-2.5">
+                      <div className="flex-1 min-w-0">
+                        <div className="mb-1 flex items-center gap-1.5">
+                          {note.is_pinned === 1 && (
+                            <Pin size={12} className="text-amber-500 shrink-0 fill-amber-500" />
+                          )}
+                          <h4 className="text-[14.5px] font-semibold truncate text-zinc-900 dark:text-zinc-100">
+                            {highlightMatch(note.title || '无标题', searchQuery)}
+                          </h4>
+                        </div>
+
+                        <p className="text-[13px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                          {highlightMatch(getNotePreviewText(note.body_text), searchQuery)}
+                        </p>
                       </div>
 
-                      <p className="text-[13px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed mb-2">
-                        {highlightMatch(getNotePreviewText(note.body_text), searchQuery)}
-                      </p>
+                      {/* Card Thumbnail if note contains image */}
+                      {thumbnailSrc && (
+                        <NoteCardThumbnail src={thumbnailSrc} />
+                      )}
+                    </div>
 
-                      <div className="flex items-center justify-between text-xs text-zinc-400 font-sans mt-auto">
-                        <span className="shrink-0">{formatFullDate(note.updated_at)}</span>
+                    {/* Bottom part: Line 4 (Full width: Date on left, Notebook + actions on right) */}
+                    <div className="flex items-center justify-between text-xs text-zinc-400 font-sans mt-2">
+                      <span className="shrink-0">{formatFullDate(note.updated_at)}</span>
 
-                        <div className="flex items-center gap-1.5 ml-2 min-w-0">
-                          {!isSingleNotebook && (
-                            <span
-                              className={`truncate text-[11px] px-1.5 py-0.5 rounded max-w-[100px] transition ${
-                                isSelected
-                                  ? 'bg-blue-100/80 dark:bg-sky-900/60 text-blue-700 dark:text-sky-300'
-                                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
-                              }`}
-                              title={getNotebookName(note.notebook_id)}
+                      <div className="flex items-center gap-1.5 ml-2 min-w-0">
+                        {!isSingleNotebook && (
+                          <span
+                            className={`truncate text-[11px] px-1.5 py-0.5 rounded max-w-[100px] transition ${
+                              isSelected
+                                ? 'bg-blue-100/80 dark:bg-sky-900/60 text-blue-700 dark:text-sky-300'
+                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                            }`}
+                            title={getNotebookName(note.notebook_id)}
+                          >
+                            {getNotebookName(note.notebook_id)}
+                          </span>
+                        )}
+
+                        {/* Quick action on hover */}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                          {onTogglePin && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onTogglePin(note.id)
+                              }}
+                              className={`p-0.5 rounded transition ${note.is_pinned === 1 ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
+                              title={note.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
                             >
-                              {getNotebookName(note.notebook_id)}
-                            </span>
+                              <Pin size={13} />
+                            </button>
                           )}
-
-                          {/* Quick action on hover */}
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
-                            {onTogglePin && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onTogglePin(note.id)
-                                }}
-                                className={`p-0.5 rounded transition ${note.is_pinned === 1 ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
-                                title={note.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
-                              >
-                                <Pin size={13} />
-                              </button>
-                            )}
-                            {onSoftDelete && (
-                              <button
-                                onClick={(e) => { 
-                                  e.stopPropagation()
-                                  if (confirm('确定移入回收站？')) onSoftDelete(note.id)
-                                }}
-                                className="p-0.5 hover:text-rose-500 rounded transition text-zinc-400"
-                                title="移入回收站"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            )}
-                          </div>
+                          {onSoftDelete && (
+                            <button
+                              onClick={(e) => { 
+                                e.stopPropagation()
+                                if (confirm('确定移入回收站？')) onSoftDelete(note.id)
+                              }}
+                              className="p-0.5 hover:text-rose-500 rounded transition text-zinc-400"
+                              title="移入回收站"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
-
-                    {/* Card Thumbnail if note contains image */}
-                    {thumbnailSrc && (
-                      <NoteCardThumbnail src={thumbnailSrc} />
-                    )}
                   </div>
                 </div>
               )
