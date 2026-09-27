@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Configuration = "Debug"
 )
 
@@ -26,6 +26,11 @@ try {
 finally {
     Pop-Location
 }
+
+Get-Process "LightNote" -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -and $_.Path.StartsWith($outputDirectory, [System.StringComparison]::OrdinalIgnoreCase) } |
+    Stop-Process -Force
+Start-Sleep -Milliseconds 300
 
 if (Test-Path -LiteralPath $outputDirectory) {
     Remove-Item -LiteralPath $outputDirectory -Recurse -Force

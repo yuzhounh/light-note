@@ -822,7 +822,7 @@
                         </TextBlock>
                     </StackPanel>
                 </Border>
-                <Border Grid.Row="2" Margin="18,10,0,18" BorderThickness="0" Background="Transparent">
+                <Border Grid.Row="2" Margin="18,10,5,18" BorderThickness="0" Background="Transparent">
                     <Grid x:Name="EditorWebViewHost">
                         <wv2:WebView2 x:Name="EditorWebView" />
                     </Grid>
