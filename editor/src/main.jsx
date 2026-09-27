@@ -1050,6 +1050,29 @@ function EditorApp() {
     }
     window.addEventListener('focus', onWindowFocus)
 
+    const onBodyClick = (e) => {
+      if (
+        e.target.closest('.math-modal-card') ||
+        e.target.closest('button') ||
+        e.target.closest('a') ||
+        e.target.closest('input')
+      ) {
+        return
+      }
+      if (!editor) return
+      if (editor.isEmpty) {
+        editor.commands.focus('start')
+      } else if (
+        e.target === document.body ||
+        e.target.id === 'root' ||
+        e.target === editor.view.dom ||
+        !e.target.closest('.tiptap')
+      ) {
+        editor.commands.focus('end')
+      }
+    }
+    document.addEventListener('click', onBodyClick)
+
     window.lightNoteEditor = {
       getSnapshot,
       focus: (position = 'start') => {
@@ -1065,6 +1088,7 @@ function EditorApp() {
     return () => {
       clearTimeout(changeTimerRef.current)
       window.removeEventListener('focus', onWindowFocus)
+      document.removeEventListener('click', onBodyClick)
       window.chrome?.webview?.removeEventListener('message', onMessage)
       delete window.lightNoteEditor
     }
@@ -1072,7 +1096,7 @@ function EditorApp() {
 
   return (
     <>
-      <EditorContent editor={editor} />
+      <EditorContent editor={editor} className="tiptap-editor-wrapper" />
       {mathModal && (
         <div className="math-modal-overlay" onClick={() => setMathModal(null)}>
           <div className="math-modal-card" onClick={e => e.stopPropagation()}>

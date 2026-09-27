@@ -7,7 +7,9 @@ export function NoteDetail({
   onUpdateTitle,
   onUpdateContent,
   onBackMobile,
-  isMobile
+  isMobile,
+  autoFocus = false,
+  onFocused,
 }) {
   const editorRef = useRef(null)
 
@@ -44,12 +46,15 @@ export function NoteDetail({
       {/* Editor component with toolbar at top, title below toolbar, and content */}
       <div className="flex-1 overflow-hidden">
         <LightEditor
+          key={note.id}
           ref={editorRef}
           title={note.title || ''}
           onUpdateTitle={onUpdateTitle}
           content={note.body_html || ''}
           onChange={onUpdateContent}
           isMobile={isMobile}
+          autoFocus={autoFocus}
+          onFocused={onFocused}
         />
       </div>
     </div>

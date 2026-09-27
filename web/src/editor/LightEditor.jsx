@@ -191,7 +191,7 @@ const FONT_FAMILIES = [
 const FONT_SIZES = ['11', '12', '13', '14', '15', '16', '18', '20', '24']
 
 export const LightEditor = forwardRef(function LightEditor(
-  { title, onUpdateTitle, content, onChange, isMobile = false },
+  { title, onUpdateTitle, content, onChange, isMobile = false, autoFocus = false, onFocused },
   ref
 ) {
   const [selectedFont, setSelectedFont] = useState('微软雅黑')
@@ -282,6 +282,16 @@ export const LightEditor = forwardRef(function LightEditor(
       editor.commands.setContent(content || '', false)
     }
   }, [content, editor])
+
+  useEffect(() => {
+    if (autoFocus && editor) {
+      const timer = setTimeout(() => {
+        editor.commands.focus('start')
+        if (onFocused) onFocused()
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [autoFocus, editor, onFocused])
 
   if (!editor) return null
 
@@ -577,10 +587,30 @@ export const LightEditor = forwardRef(function LightEditor(
 
       {/* Editor Content Area: Title is directly below toolbar, strictly left-aligned at px-6 */}
       <div
-        className="flex-1 overflow-y-auto px-6 py-5"
+        className="flex-1 overflow-y-auto px-6 py-5 flex flex-col cursor-text"
         onClick={e => {
-          if (e.target === e.currentTarget && editor) {
-            editor.commands.focus()
+          if (
+            e.target.closest('input') ||
+            e.target.closest('button') ||
+            e.target.closest('a') ||
+            e.target.closest('.math-node') ||
+            e.target.closest('.math-modal-card')
+          ) {
+            return
+          }
+          if (!editor) return
+
+          if (editor.isEmpty) {
+            editor.commands.focus('start')
+            return
+          }
+
+          if (
+            e.target === e.currentTarget ||
+            !e.target.closest('.ProseMirror') ||
+            e.target === editor.view.dom
+          ) {
+            editor.commands.focus('end')
           }
         }}
       >
@@ -595,9 +625,9 @@ export const LightEditor = forwardRef(function LightEditor(
               editor?.commands.focus('start')
             }
           }}
-          className="w-full text-[21px] font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-3 tracking-tight"
+          className="w-full text-[21px] font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-3 tracking-tight shrink-0 cursor-text"
         />
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} className="tiptap-editor-wrapper flex-1 flex flex-col cursor-text" />
       </div>
 
       {/* Interactive LaTeX Formula Modal with Left Code & Right Live Preview */}

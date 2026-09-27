@@ -23,6 +23,7 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [syncStatus, setSyncStatus] = useState(() => syncService.getSyncState())
+  const [shouldFocusEditor, setShouldFocusEditor] = useState(false)
   
   // Theme state
   const [theme, setTheme] = useState(() => {
@@ -181,6 +182,7 @@ export function App() {
 
     setNotes(prev => [newNote, ...prev])
     setActiveNote(newNote)
+    setShouldFocusEditor(true)
     if (isMobile) {
       setMobileView('detail')
     }
@@ -352,6 +354,8 @@ export function App() {
                 onUpdateTitle={handleUpdateTitle}
                 onUpdateContent={handleUpdateContent}
                 isMobile={false}
+                autoFocus={shouldFocusEditor}
+                onFocused={() => setShouldFocusEditor(false)}
               />
             </div>
           </>
@@ -430,6 +434,8 @@ export function App() {
                   onUpdateContent={handleUpdateContent}
                   onBackMobile={() => setMobileView('list')}
                   isMobile={true}
+                  autoFocus={shouldFocusEditor}
+                  onFocused={() => setShouldFocusEditor(false)}
                 />
               </div>
             )}

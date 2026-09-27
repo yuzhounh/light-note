@@ -59,9 +59,19 @@
 .ProseMirror {
   outline: none;
   min-height: 100%;
+  flex: 1 1 auto;
   font-size: 14.5px;
   line-height: 1.65;
   color: inherit;
+  cursor: text;
+}
+
+.tiptap-editor-wrapper {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  cursor: text;
 }
 
 .ProseMirror p {
