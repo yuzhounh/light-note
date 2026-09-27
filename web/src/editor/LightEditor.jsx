@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useImperativeHandle, forwardRef } from 'react'
+import React, { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
@@ -197,6 +197,8 @@ export const LightEditor = forwardRef(function LightEditor(
   const [selectedFont, setSelectedFont] = useState('微软雅黑')
   const [selectedSize, setSelectedSize] = useState('12')
 
+  const lastDispatchedHtml = useRef(content || '')
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -257,9 +259,11 @@ export const LightEditor = forwardRef(function LightEditor(
       },
     },
     onUpdate: ({ editor }) => {
+      const html = editor.getHTML()
+      lastDispatchedHtml.current = html
       if (onChange) {
         onChange({
-          html: editor.getHTML(),
+          html,
           text: editor.getText(),
         })
       }
@@ -278,8 +282,11 @@ export const LightEditor = forwardRef(function LightEditor(
   }))
 
   useEffect(() => {
-    if (editor && content !== undefined && editor.getHTML() !== content) {
-      editor.commands.setContent(content || '', false)
+    if (editor && content !== undefined) {
+      if (content !== lastDispatchedHtml.current && editor.getHTML() !== content) {
+        lastDispatchedHtml.current = content
+        editor.commands.setContent(content || '', false)
+      }
     }
   }, [content, editor])
 
@@ -593,6 +600,12 @@ export const LightEditor = forwardRef(function LightEditor(
       <div
         className="flex-1 overflow-y-auto px-6 py-5 flex flex-col cursor-text"
         onClick={e => {
+          // If the user has selected text via mouse drag, do NOT refocus or alter selection
+          const sel = window.getSelection()
+          if (sel && !sel.isCollapsed && sel.toString().length > 0) {
+            return
+          }
+
           if (
             e.target.closest('input') ||
             e.target.closest('button') ||
@@ -609,12 +622,22 @@ export const LightEditor = forwardRef(function LightEditor(
             return
           }
 
-          if (
-            e.target === e.currentTarget ||
-            !e.target.closest('.ProseMirror') ||
-            e.target === editor.view.dom
-          ) {
+          // If clicking strictly on the outer container below the editor content
+          if (e.target === e.currentTarget) {
             editor.commands.focus('end')
+            return
+          }
+
+          // If clicking on the ProseMirror root container itself
+          if (e.target === editor.view.dom) {
+            const lastChild = editor.view.dom.lastElementChild
+            if (lastChild) {
+              const rect = lastChild.getBoundingClientRect()
+              // Only focus end if click is physically below the last paragraph/element
+              if (e.clientY > rect.bottom) {
+                editor.commands.focus('end')
+              }
+            }
           }
         }}
       >
