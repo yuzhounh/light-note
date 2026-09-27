@@ -143,14 +143,14 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
     setIsResizing(true)
 
     const startX = e.clientX
-    const startWidth = imageRef.current ? imageRef.current.offsetWidth : 300
+    const startWidth = containerRef.current ? containerRef.current.offsetWidth : (imageRef.current ? imageRef.current.offsetWidth : 300)
     const parentWidth = containerRef.current?.parentElement?.offsetWidth || window.innerWidth
 
     const onMouseMove = (moveEvent) => {
       const deltaX = moveEvent.clientX - startX
-      const newWidth = Math.max(60, Math.min(parentWidth, startWidth + deltaX))
-      if (imageRef.current) {
-        imageRef.current.style.width = `${newWidth}px`
+      const newWidth = Math.max(80, Math.min(parentWidth, startWidth + deltaX))
+      if (containerRef.current) {
+        containerRef.current.style.width = `${newWidth}px`
       }
     }
 
@@ -159,7 +159,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
       window.removeEventListener('mouseup', onMouseUp)
       setIsResizing(false)
       const deltaX = upEvent.clientX - startX
-      const finalWidth = Math.max(60, Math.min(parentWidth, startWidth + deltaX))
+      const finalWidth = Math.max(80, Math.min(parentWidth, startWidth + deltaX))
       updateAttributes({ width: `${Math.round(finalWidth)}px` })
     }
 
@@ -188,16 +188,20 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
       as="span"
       ref={containerRef}
       className="resizable-image-wrapper"
+      style={{ width: currentWidth, maxWidth: '100%', display: 'inline-block' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <span className={`resizable-image-box ${selected ? 'is-selected' : ''}`}>
+      <span
+        className={`resizable-image-box ${selected ? 'is-selected' : ''}`}
+        style={{ width: '100%', display: 'inline-block' }}
+      >
         <img
           ref={imageRef}
           src={resolvedSrc}
           alt={node.attrs.alt || ''}
           data-attachment-id={node.attrs.attachmentId}
-          style={{ width: currentWidth, maxWidth: '100%', display: 'block' }}
+          style={{ width: '100%', maxWidth: '100%', display: 'block' }}
           className="resizable-image-img"
           onDoubleClick={handleDoubleClick}
         />

@@ -174,14 +174,14 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
     e.stopPropagation()
     setIsResizing(true)
     const startX = e.clientX
-    const startWidth = imageRef.current ? imageRef.current.offsetWidth : 300
+    const startWidth = containerRef.current ? containerRef.current.offsetWidth : (imageRef.current ? imageRef.current.offsetWidth : 300)
     const parentWidth = containerRef.current?.parentElement?.offsetWidth || window.innerWidth
 
     const onMouseMove = (moveEvent) => {
       const deltaX = moveEvent.clientX - startX
       const newWidth = Math.max(80, Math.min(parentWidth, startWidth + deltaX))
-      if (imageRef.current) {
-        imageRef.current.style.width = `${newWidth}px`
+      if (containerRef.current) {
+        containerRef.current.style.width = `${newWidth}px`
       }
     }
 
@@ -218,19 +218,23 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
     <NodeViewWrapper
       as="span"
       ref={containerRef}
+      style={{ width: currentWidth, maxWidth: '100%', display: 'inline-block' }}
       className="inline-block relative my-2 max-w-full group select-none align-middle"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <span className={`relative inline-block max-w-full rounded-lg overflow-visible ${
-        selected ? 'ring-2 ring-amber-500 ring-offset-2' : ''
-      }`}>
+      <span
+        style={{ width: '100%', display: 'inline-block' }}
+        className={`relative inline-block max-w-full rounded-lg overflow-visible ${
+          selected ? 'ring-2 ring-amber-500 ring-offset-2' : ''
+        }`}
+      >
         <img
           ref={imageRef}
           src={resolvedSrc}
           alt={node.attrs.alt || ''}
           data-attachment-id={node.attrs['data-attachment-id']}
-          style={{ width: currentWidth, maxWidth: '100%', display: 'block' }}
+          style={{ width: '100%', maxWidth: '100%', display: 'block' }}
           className="rounded-lg shadow-xs cursor-pointer object-contain transition-all"
           onDoubleClick={handleDoubleClick}
         />
