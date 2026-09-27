@@ -7,7 +7,7 @@
 <p align="center"><strong>Windows 优先、本地优先的轻量笔记应用。</strong></p>
 
 <p align="center">
-  <a href="https://light-note.pages.dev/"><img src="https://img.shields.io/badge/Cloudflare_Pages-online-F38020?logo=cloudflare" alt="Cloudflare Pages online"></a>
+  <a href="https://light-note.web.app/"><img src="https://img.shields.io/badge/Firebase_Hosting-online-FFA000?logo=firebase" alt="Firebase Hosting online"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-f59e0b.svg" alt="License: MIT"></a>
 </p>
 
@@ -15,7 +15,7 @@ LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，�
 
 ## 在线访问
 
-<https://light-note.pages.dev/>
+<https://light-note.web.app/>
 
 <p align="center">
   <img src="screenshots/ss_1.png" width="800" alt="LightNote 界面截图" />
