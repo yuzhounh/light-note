@@ -10,7 +10,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-f59e0b.svg" alt="License: MIT"></a>
 </p>
 
-LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，支持毫秒级 SQLite FTS5 全文搜索、多级分组、KaTeX 数学公式、多版本历史记录与可选的云端同步。当前版本为 **V1.8 数学公式与数据一致性版**。
+LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，支持毫秒级 SQLite FTS5 全文搜索、多级分组、KaTeX 数学公式、多版本历史记录、系统托盘常驻与可选的云端同步。当前版本为 **V2.2.0 系统托盘与编辑器增强版**。
 
 <p align="center">
   <img src="screenshots/ss_1.png" width="800" alt="LightNote 界面截图" />
