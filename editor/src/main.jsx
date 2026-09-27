@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { EditorContent, useEditor } from '@tiptap/react'
+import { EditorContent, useEditor, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { Node, Mark, InputRule, mergeAttributes } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
@@ -129,10 +129,161 @@ const TextAppearance = Mark.create({
   },
 })
 
+function ResizableImageComponent({ node, updateAttributes, selected, deleteNode }) {
+  const [hovered, setHovered] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
+  const containerRef = useRef(null)
+  const imageRef = useRef(null)
+
+  const resolvedSrc = node.attrs.src || (node.attrs.attachmentId ? `https://${ATTACHMENT_HOST}/${node.attrs.attachmentId}` : '')
+
+  const handleResizeStart = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+
+    const startX = e.clientX
+    const startWidth = imageRef.current ? imageRef.current.offsetWidth : 300
+    const parentWidth = containerRef.current?.parentElement?.offsetWidth || window.innerWidth
+
+    const onMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX
+      const newWidth = Math.max(60, Math.min(parentWidth, startWidth + deltaX))
+      if (imageRef.current) {
+        imageRef.current.style.width = `${newWidth}px`
+      }
+    }
+
+    const onMouseUp = (upEvent) => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+      setIsResizing(false)
+      const deltaX = upEvent.clientX - startX
+      const finalWidth = Math.max(60, Math.min(parentWidth, startWidth + deltaX))
+      updateAttributes({ width: `${Math.round(finalWidth)}px` })
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
+
+  const handleSetPresetWidth = (widthVal, e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    updateAttributes({ width: widthVal })
+  }
+
+  const handleDoubleClick = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (typeof window.__openImageLightbox === 'function') {
+      window.__openImageLightbox(resolvedSrc)
+    }
+  }
+
+  const currentWidth = node.attrs.width || '100%'
+
+  return (
+    <NodeViewWrapper
+      as="span"
+      ref={containerRef}
+      className="resizable-image-wrapper"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <span className={`resizable-image-box ${selected ? 'is-selected' : ''}`}>
+        <img
+          ref={imageRef}
+          src={resolvedSrc}
+          alt={node.attrs.alt || ''}
+          data-attachment-id={node.attrs.attachmentId}
+          style={{ width: currentWidth, maxWidth: '100%', display: 'block' }}
+          className="resizable-image-img"
+          onDoubleClick={handleDoubleClick}
+        />
+
+        {/* Floating Quick Action Toolbar */}
+        {(hovered || selected || isResizing) && (
+          <span className="resizable-image-toolbar">
+            <button
+              type="button"
+              onClick={(e) => handleSetPresetWidth('25%', e)}
+              className={`preset-btn ${currentWidth === '25%' ? 'active' : ''}`}
+              title="25% 宽度"
+            >
+              25%
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSetPresetWidth('50%', e)}
+              className={`preset-btn ${currentWidth === '50%' ? 'active' : ''}`}
+              title="50% 宽度"
+            >
+              50%
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSetPresetWidth('75%', e)}
+              className={`preset-btn ${currentWidth === '75%' ? 'active' : ''}`}
+              title="75% 宽度"
+            >
+              75%
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSetPresetWidth('100%', e)}
+              className={`preset-btn ${currentWidth === '100%' ? 'active' : ''}`}
+              title="100% 原始/全宽"
+            >
+              100%
+            </button>
+            <span className="toolbar-divider" />
+            <button
+              type="button"
+              onClick={handleDoubleClick}
+              className="action-btn"
+              title="查看大图"
+            >
+              🔍
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteNode?.() }}
+              className="action-btn delete-btn"
+              title="删除图片"
+            >
+              🗑️
+            </button>
+          </span>
+        )}
+
+        {/* Bottom-right Drag Resize Handle */}
+        {(hovered || selected || isResizing) && (
+          <span
+            onMouseDown={handleResizeStart}
+            className="resizable-image-handle"
+            title="拖拽调节大小"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <path d="M21 15v6h-6M21 21l-9-9" />
+            </svg>
+          </span>
+        )}
+      </span>
+    </NodeViewWrapper>
+  )
+}
+
 const LocalImage = Image.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+      src: {
+        default: null,
+      },
+      alt: {
+        default: null,
+      },
       attachmentId: {
         default: null,
         parseHTML: element => element.getAttribute('data-attachment-id'),
@@ -142,8 +293,14 @@ const LocalImage = Image.extend({
       },
       width: {
         default: null,
-        parseHTML: element => Number(element.getAttribute('width')) || null,
-        renderHTML: attributes => attributes.width ? { width: attributes.width } : {},
+        parseHTML: element => element.getAttribute('width') || element.style?.width || null,
+        renderHTML: attributes => {
+          if (!attributes.width) return {}
+          return {
+            width: attributes.width,
+            style: `width: ${attributes.width}`,
+          }
+        },
       },
       height: {
         default: null,
@@ -152,7 +309,10 @@ const LocalImage = Image.extend({
       },
     }
   },
-}).configure({ allowBase64: false, inline: false })
+  addNodeView() {
+    return ReactNodeViewRenderer(ResizableImageComponent)
+  },
+}).configure({ allowBase64: true, inline: false })
 
 const InlineMath = Node.create({
   name: 'inlineMath',
@@ -643,6 +803,7 @@ function EditorApp() {
   const [, setStatus] = useState('编辑器桥接初始化中')
   const [mathModal, setMathModal] = useState(null)
   const [mathLatex, setMathLatex] = useState('')
+  const [lightboxSrc, setLightboxSrc] = useState(null)
   const editorRef = useRef(null)
   const noteIdRef = useRef(null)
   const changeTimerRef = useRef(null)
@@ -1059,6 +1220,9 @@ function EditorApp() {
 
       if (
         e.target.closest('.math-modal-card') ||
+        e.target.closest('.image-lightbox-overlay') ||
+        e.target.closest('.resizable-image-toolbar') ||
+        e.target.closest('.resizable-image-handle') ||
         e.target.closest('button') ||
         e.target.closest('a') ||
         e.target.closest('input')
@@ -1082,6 +1246,8 @@ function EditorApp() {
     }
     document.addEventListener('click', onBodyClick)
 
+    window.__openImageLightbox = (src) => setLightboxSrc(src)
+
     window.lightNoteEditor = {
       getSnapshot,
       focus: (position = 'start') => {
@@ -1099,9 +1265,20 @@ function EditorApp() {
       window.removeEventListener('focus', onWindowFocus)
       document.removeEventListener('click', onBodyClick)
       window.chrome?.webview?.removeEventListener('message', onMessage)
+      delete window.__openImageLightbox
       delete window.lightNoteEditor
     }
   }, [editor])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && lightboxSrc) {
+        setLightboxSrc(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [lightboxSrc])
 
   return (
     <>
@@ -1163,6 +1340,27 @@ function EditorApp() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {lightboxSrc && (
+        <div
+          className="image-lightbox-overlay"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxSrc(null)}
+            className="image-lightbox-close"
+            title="关闭 (Esc)"
+          >
+            ✕
+          </button>
+          <img
+            src={lightboxSrc}
+            alt="大图预览"
+            className="image-lightbox-img"
+            onClick={e => e.stopPropagation()}
+          />
         </div>
       )}
     </>

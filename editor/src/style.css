@@ -217,6 +217,161 @@ body::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-ho
   border-radius: 6px;
   box-shadow: 0 0 0 1px var(--border-color);
 }
+.tiptap .resizable-image-wrapper {
+  display: inline-block;
+  position: relative;
+  margin: 12px 0;
+  max-width: 100%;
+  vertical-align: middle;
+}
+.tiptap .resizable-image-box {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 6px;
+}
+.tiptap .resizable-image-box.is-selected {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+.tiptap .resizable-image-box .resizable-image-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--border-color);
+  cursor: pointer;
+  object-fit: contain;
+  transition: all 0.15s ease;
+}
+.resizable-image-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 3px 6px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  z-index: 20;
+  user-select: none;
+  backdrop-filter: blur(8px);
+}
+.resizable-image-toolbar .preset-btn {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: var(--muted-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.resizable-image-toolbar .preset-btn:hover {
+  background: var(--code-bg);
+  color: var(--text-color);
+}
+.resizable-image-toolbar .preset-btn.active {
+  background: rgba(245, 158, 11, 0.2);
+  color: #d97706;
+  font-weight: bold;
+}
+.resizable-image-toolbar .toolbar-divider {
+  width: 1px;
+  height: 12px;
+  background: var(--border-color);
+  margin: 0 2px;
+}
+.resizable-image-toolbar .action-btn {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.resizable-image-toolbar .action-btn:hover {
+  background: var(--code-bg);
+}
+.resizable-image-toolbar .delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+.resizable-image-handle {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  background: #f59e0b;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: se-resize;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+  z-index: 20;
+  user-select: none;
+}
+.resizable-image-handle:hover {
+  transform: scale(1.25);
+}
+.resizable-image-handle svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* Lightbox Modal */
+.image-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: zoom-out;
+  user-select: none;
+  animation: mathFadeIn 0.15s ease-out;
+}
+.image-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.image-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.image-lightbox-img {
+  max-height: 90vh;
+  max-width: 90vw;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
 .tiptap.ProseMirror-focused { caret-color: var(--accent-color); }
 
 /* Math rendering styling */
