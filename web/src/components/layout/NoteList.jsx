@@ -4,8 +4,19 @@ import { syncService } from '../../core/sync/syncService'
 
 function extractFirstImage(bodyHtml) {
   if (!bodyHtml) return null
-  const match = bodyHtml.match(/<img[^>]+src=["']([^"']+)["']/i)
-  return match ? match[1] : null
+  const imgMatches = bodyHtml.matchAll(/<img\b([^>]*?)\/?>/gi)
+  for (const m of imgMatches) {
+    const attrs = m[1]
+    const srcMatch = attrs.match(/\bsrc=["']([^"']+)["']/i)
+    if (!srcMatch) continue
+    const wMatch = attrs.match(/\bwidth=["']?(\d+)/i)
+    const hMatch = attrs.match(/\bheight=["']?(\d+)/i)
+    if (wMatch && hMatch && parseInt(wMatch[1], 10) < 32 && parseInt(hMatch[1], 10) < 32) {
+      continue
+    }
+    return srcMatch[1]
+  }
+  return null
 }
 
 function getNotePreviewText(bodyText) {

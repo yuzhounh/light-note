@@ -1,9 +1,15 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LightNote.Core.Abstractions;
 using LightNote.Core.Models;
+using LightNote.Infrastructure.Storage;
 
 namespace LightNote.App;
 
@@ -11,11 +17,13 @@ public sealed partial class MainViewModel(
     INoteRepository noteRepository,
     INotebookRepository notebookRepository,
     IAppLogger logger,
+    AppDataPaths? paths = null,
     IAttachmentService? attachmentService = null,
     ITagRepository? tagRepository = null,
     INoteHistoryRepository? historyRepository = null,
     IRecoveryService? recoveryService = null) : ObservableObject
 {
+    private readonly AppDataPaths? _paths = paths;
     private const int NotePageSize = 50;
     private readonly Dictionary<string, Note> _knownNotes = [];
     private readonly Dictionary<string, PendingSave> _pendingSaves = [];
@@ -1042,7 +1050,7 @@ public sealed partial class MainViewModel(
             {
                 var note = rawNotes[i];
                 var nbName = GetNotebookName(note.NotebookId);
-                return new NoteListItem(note, hit.Snippet, query, nbName, showBadge);
+                return new NoteListItem(note, hit.Snippet, query, nbName, showBadge, _paths?.AttachmentsDirectory);
             }).ToArray();
         }
 
@@ -1081,7 +1089,7 @@ public sealed partial class MainViewModel(
         return resolvedNotes.Select(note =>
         {
             var nbName = GetNotebookName(note.NotebookId);
-            return new NoteListItem(note, notebookName: nbName, showNotebookBadge: isMultiNotebook);
+            return new NoteListItem(note, notebookName: nbName, showNotebookBadge: isMultiNotebook, attachmentsDirectory: _paths?.AttachmentsDirectory);
         }).ToArray();
     }
 
@@ -1308,16 +1316,46 @@ public sealed partial class MainViewModel(
     }
 }
 
-public sealed class NoteListItem(
-    Note note,
-    string? previewOverride = null,
-    string matchQuery = "",
-    string? notebookName = null,
-    bool showNotebookBadge = false) : ObservableObject
+public sealed class NoteListItem : ObservableObject
 {
-    private readonly string? _previewOverride = previewOverride;
+    private static readonly Regex ImgTagRegex = new(
+        @"<img\b(?<attrs>[^>]*?)/?>",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex SrcAttrRegex = new(
+        @"\bsrc\s*=\s*[""'](?<src>[^""']+)[""']",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex WidthAttrRegex = new(
+        @"\bwidth\s*=\s*[""']?(?<width>\d+)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex HeightAttrRegex = new(
+        @"\bheight\s*=\s*[""']?(?<height>\d+)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public Note Model { get; private set; } = note;
+    private static readonly ConcurrentDictionary<string, ImageSource?> ThumbnailCache = new(StringComparer.OrdinalIgnoreCase);
+
+    public static string? DefaultAttachmentsDirectory { get; set; }
+
+    private readonly string? _previewOverride;
+    private readonly string? _attachmentsDirectory;
+
+    public NoteListItem(
+        Note note,
+        string? previewOverride = null,
+        string matchQuery = "",
+        string? notebookName = null,
+        bool showNotebookBadge = false,
+        string? attachmentsDirectory = null)
+    {
+        Model = note;
+        _previewOverride = previewOverride;
+        MatchQuery = matchQuery;
+        NotebookName = notebookName;
+        ShowNotebookBadge = showNotebookBadge && !string.IsNullOrWhiteSpace(notebookName);
+        _attachmentsDirectory = attachmentsDirectory ?? DefaultAttachmentsDirectory;
+        RefreshThumbnail();
+    }
+
+    public Note Model { get; private set; }
 
     public string Title => Model.Title;
 
@@ -1325,15 +1363,156 @@ public sealed class NoteListItem(
 
     public string Preview => NormalizePreview(_previewOverride ?? Model.BodyText);
 
-    public string MatchQuery { get; } = matchQuery;
+    public string MatchQuery { get; }
 
     public string UpdatedLabel => Model.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
 
     public bool IsUnsynced => Model.SyncState == SyncState.Dirty;
 
-    public string? NotebookName { get; private set; } = notebookName;
+    public string? NotebookName { get; private set; }
 
-    public bool ShowNotebookBadge { get; private set; } = showNotebookBadge && !string.IsNullOrWhiteSpace(notebookName);
+    public bool ShowNotebookBadge { get; private set; }
+
+    public ImageSource? ThumbnailSource { get; private set; }
+
+    public bool HasThumbnail => ThumbnailSource is not null;
+
+    private void RefreshThumbnail()
+    {
+        ThumbnailSource = ResolveThumbnail(Model.BodyHtml, _attachmentsDirectory ?? DefaultAttachmentsDirectory);
+    }
+
+    private static ImageSource? ResolveThumbnail(string? bodyHtml, string? attachmentsDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(bodyHtml))
+        {
+            return null;
+        }
+
+        foreach (Match match in ImgTagRegex.Matches(bodyHtml))
+        {
+            var attrs = match.Groups["attrs"].Value;
+            var srcMatch = SrcAttrRegex.Match(attrs);
+            if (!srcMatch.Success)
+            {
+                continue;
+            }
+
+            var src = srcMatch.Groups["src"].Value.Trim();
+            if (string.IsNullOrEmpty(src))
+            {
+                continue;
+            }
+
+            var widthMatch = WidthAttrRegex.Match(attrs);
+            var heightMatch = HeightAttrRegex.Match(attrs);
+            if (widthMatch.Success && heightMatch.Success &&
+                int.TryParse(widthMatch.Groups["width"].Value, out var w) &&
+                int.TryParse(heightMatch.Groups["height"].Value, out var h))
+            {
+                if (w < 32 && h < 32)
+                {
+                    continue;
+                }
+            }
+
+            if (ThumbnailCache.TryGetValue(src, out var cached))
+            {
+                if (cached is not null)
+                {
+                    return cached;
+                }
+                continue;
+            }
+
+            try
+            {
+                var img = LoadImageSource(src, attachmentsDirectory);
+                ThumbnailCache[src] = img;
+                if (img is not null)
+                {
+                    return img;
+                }
+            }
+            catch
+            {
+                ThumbnailCache[src] = null;
+            }
+        }
+
+        return null;
+    }
+
+    private static ImageSource? LoadImageSource(string src, string? attachmentsDirectory)
+    {
+        if (src.StartsWith("https://lightnote.attachments/", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(attachmentsDirectory) || !Uri.TryCreate(src, UriKind.Absolute, out var uri))
+            {
+                return null;
+            }
+
+            var relativePath = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/')).Replace('/', Path.DirectorySeparatorChar);
+            var fullPath = Path.Combine(attachmentsDirectory, relativePath);
+            if (!File.Exists(fullPath))
+            {
+                return null;
+            }
+
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(fullPath, UriKind.Absolute);
+            bitmap.DecodePixelWidth = 112;
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        if (src.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+        {
+            var commaIndex = src.IndexOf(',');
+            if (commaIndex < 0) return null;
+            var base64 = src[(commaIndex + 1)..];
+            var bytes = Convert.FromBase64String(base64);
+            var stream = new MemoryStream(bytes);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.StreamSource = stream;
+            bitmap.DecodePixelWidth = 112;
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        if (src.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            src.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(src, UriKind.Absolute);
+            bitmap.DecodePixelWidth = 112;
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        if (File.Exists(src))
+        {
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(src, UriKind.Absolute);
+            bitmap.DecodePixelWidth = 112;
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        return null;
+    }
 
     private static string NormalizePreview(string? text)
     {
@@ -1342,7 +1521,7 @@ public sealed class NoteListItem(
             return "空笔记";
         }
 
-        var match = System.Text.RegularExpressions.Regex.Match(text, @"^\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*");
+        var match = Regex.Match(text, @"^\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*");
         if (match.Success)
         {
             var contentAfterTimestamp = text[match.Length..].Trim();
@@ -1370,6 +1549,7 @@ public sealed class NoteListItem(
         {
             ShowNotebookBadge = showNotebookBadge.Value;
         }
+        RefreshThumbnail();
         OnPropertyChanged(nameof(Model));
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(TitleDisplay));
@@ -1378,6 +1558,8 @@ public sealed class NoteListItem(
         OnPropertyChanged(nameof(NotebookName));
         OnPropertyChanged(nameof(ShowNotebookBadge));
         OnPropertyChanged(nameof(IsUnsynced));
+        OnPropertyChanged(nameof(ThumbnailSource));
+        OnPropertyChanged(nameof(HasThumbnail));
     }
 }
 
