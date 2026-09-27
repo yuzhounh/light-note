@@ -55,6 +55,12 @@ if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish 失败，退出代码：$LASTEXITCODE"
 }
 
+$devScript = Join-Path $PSScriptRoot "build-dev.ps1"
+if (Test-Path -LiteralPath $devScript) {
+    Write-Host "正在同步更新当前开发版 (artifacts/development/current/win-x64)..."
+    & $devScript
+}
+
 $isccCommand = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
 $isccPath = if ($isccCommand) {
     $isccCommand.Source
