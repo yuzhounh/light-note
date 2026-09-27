@@ -341,6 +341,8 @@ export function App() {
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 currentNotebookName={currentNotebookName}
+                notebooks={notebooks}
+                currentNotebookId={currentNotebookId}
                 onTogglePin={handleTogglePin}
                 onSoftDelete={handleSoftDelete}
                 isMobile={false}
@@ -406,6 +408,8 @@ export function App() {
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
                   currentNotebookName={currentNotebookName}
+                  notebooks={notebooks}
+                  currentNotebookId={currentNotebookId}
                   onOpenSidebar={() => setIsSidebarOpen(true)}
                   onTogglePin={handleTogglePin}
                   onSoftDelete={handleSoftDelete}

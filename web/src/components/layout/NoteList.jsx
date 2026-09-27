@@ -49,12 +49,25 @@ export function NoteList({
   searchQuery,
   onSearchChange,
   currentNotebookName,
+  notebooks = [],
+  currentNotebookId = null,
   onOpenSidebar,
   onTogglePin,
   onSoftDelete,
   isMobile
 }) {
   const [visibleCount, setVisibleCount] = useState(25)
+
+  // Check if all displayed notes belong to the same notebook
+  const isSingleNotebook = Boolean(currentNotebookId) || (
+    notes.length > 0 && notes.every(n => (n.notebook_id || null) === (notes[0].notebook_id || null))
+  )
+
+  function getNotebookName(notebookId) {
+    if (!notebookId) return '未归类'
+    const found = notebooks.find(nb => nb.id === notebookId)
+    return found ? found.name : '未归类'
+  }
 
   // Reset pagination when filter or notes change
   useEffect(() => {
@@ -177,35 +190,50 @@ export function NoteList({
                         {highlightMatch(getNotePreviewText(note.body_text), searchQuery)}
                       </p>
 
-                      <div className="flex items-center justify-between text-xs text-zinc-400 font-sans">
-                        <span>{formatFullDate(note.updated_at)}</span>
+                      <div className="flex items-center justify-between text-xs text-zinc-400 font-sans mt-auto">
+                        <span className="shrink-0">{formatFullDate(note.updated_at)}</span>
 
-                        {/* Quick action on hover */}
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                          {onTogglePin && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onTogglePin(note.id)
-                              }}
-                              className={`p-0.5 rounded transition ${note.is_pinned === 1 ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
-                              title={note.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
+                        <div className="flex items-center gap-1.5 ml-2 min-w-0">
+                          {!isSingleNotebook && (
+                            <span
+                              className={`truncate text-[11px] px-1.5 py-0.5 rounded max-w-[100px] transition ${
+                                isSelected
+                                  ? 'bg-blue-100/80 dark:bg-sky-900/60 text-blue-700 dark:text-sky-300'
+                                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                              }`}
+                              title={getNotebookName(note.notebook_id)}
                             >
-                              <Pin size={13} />
-                            </button>
+                              {getNotebookName(note.notebook_id)}
+                            </span>
                           )}
-                          {onSoftDelete && (
-                            <button
-                              onClick={(e) => { 
-                                e.stopPropagation()
-                                if (confirm('确定移入回收站？')) onSoftDelete(note.id)
-                              }}
-                              className="p-0.5 hover:text-rose-500 rounded transition text-zinc-400"
-                              title="移入回收站"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
+
+                          {/* Quick action on hover */}
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                            {onTogglePin && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onTogglePin(note.id)
+                                }}
+                                className={`p-0.5 rounded transition ${note.is_pinned === 1 ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
+                                title={note.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
+                              >
+                                <Pin size={13} />
+                              </button>
+                            )}
+                            {onSoftDelete && (
+                              <button
+                                onClick={(e) => { 
+                                  e.stopPropagation()
+                                  if (confirm('确定移入回收站？')) onSoftDelete(note.id)
+                                }}
+                                className="p-0.5 hover:text-rose-500 rounded transition text-zinc-400"
+                                title="移入回收站"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
