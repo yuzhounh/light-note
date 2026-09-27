@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { NotesRepository } from './core/db/notesRepository'
-import { syncService, subscribeSyncState } from './core/sync/syncService'
+import { seedInitialData } from './core/db/database'
+import { syncService, subscribeSyncState, getSyncState } from './core/sync/syncService'
 import { useResponsive } from './hooks/useResponsive'
 import { useBackButton } from './hooks/useBackButton'
 import { Sidebar } from './components/layout/Sidebar'
@@ -8,6 +9,7 @@ import { NoteList } from './components/layout/NoteList'
 import { NoteDetail } from './components/layout/NoteDetail'
 import { SettingsModal } from './components/modals/SettingsModal'
 import { loginWithGoogle, logoutFirebase, subscribeAuth } from './core/auth/firebaseAuth'
+import { Plus } from 'lucide-react'
 
 export function App() {
   const { isMobile, isTablet, isDesktop } = useResponsive()

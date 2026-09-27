@@ -104,6 +104,7 @@ const DEMO_TITLES = new Set([
 ])
 
 export const syncService = {
+  getSyncState,
   currentUser: null,
   _unsubscribeSnapshots: null,
   _pushTimeout: null,
