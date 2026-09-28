@@ -169,7 +169,7 @@ export function NoteList({
 
                         {!isSingleNotebook && (
                           <span
-                            className={`truncate text-[11px] px-1.5 py-0.5 rounded max-w-[120px] transition ${
+                            className={`truncate text-[11px] px-1.5 py-0.5 rounded max-w-[140px] transition ${
                               isSelected
                                 ? 'bg-blue-100/80 dark:bg-sky-900/60 text-blue-700 dark:text-sky-300'
                                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'

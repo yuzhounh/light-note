@@ -334,8 +334,8 @@ export function App() {
               />
             </div>
 
-            {/* Column 2: Note List (280px) */}
-            <div className="w-72 shrink-0 h-full">
+            {/* Column 2: Note List (320px) */}
+            <div className="w-80 shrink-0 h-full">
               <NoteList
                 notes={notes}
                 activeNoteId={activeNote?.id}
