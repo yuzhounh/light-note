@@ -15,3 +15,5 @@ editor/dist/
 web/node_modules/
 web/dist/
 .firebase/
+.wrangler/
+.netlify/
