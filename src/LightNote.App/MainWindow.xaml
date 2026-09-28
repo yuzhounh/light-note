@@ -828,8 +828,16 @@
                             <Button x:Name="CodeBlockButton" Tag="codeBlock"
                                     Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="代码块">
-                                <TextBlock Text="&#xE943;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
-                                           VerticalAlignment="Center" />
+                                <Viewbox Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              StrokeThickness="2"
+                                              StrokeStartLineCap="Round"
+                                              StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round"
+                                              Data="M 18,16 L 22,12 L 18,8 M 6,8 L 2,12 L 6,16 M 14.5,4 L 9.5,20" />
+                                    </Canvas>
+                                </Viewbox>
                             </Button>
                             <Button x:Name="TimestampButton" Tag="insertTimestamp"
                                     Style="{StaticResource ToolbarButtonStyle}"
