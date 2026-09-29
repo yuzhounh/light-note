@@ -29,9 +29,25 @@ public partial class App : System.Windows.Application
         _singleInstance = SingleInstanceManager.Acquire();
         if (!_singleInstance.IsPrimary)
         {
-            await _singleInstance.NotifyPrimaryAsync();
-            Shutdown();
-            return;
+            var notified = await _singleInstance.NotifyPrimaryAsync();
+            if (notified)
+            {
+                Shutdown();
+                return;
+            }
+
+            // Primary instance failed to respond (hung or zombie process).
+            // Terminate any stale LightNote processes, dispose previous handle, and retry acquiring primary.
+            _singleInstance.Dispose();
+            KillStaleInstances();
+            await Task.Delay(300);
+
+            _singleInstance = SingleInstanceManager.Acquire();
+            if (!_singleInstance.IsPrimary)
+            {
+                Shutdown();
+                return;
+            }
         }
 
         _singleInstance.ActivationRequested += (_, _) => Dispatcher.BeginInvoke(() =>
@@ -126,11 +142,68 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _services?.GetService<TrayIconService>()?.Dispose();
-        _services?.GetService<IAppLogger>()?.Info("LightNote stopped.");
-        _services?.Dispose();
-        _singleInstance?.Dispose();
-        base.OnExit(e);
+        try
+        {
+            _services?.GetService<TrayIconService>()?.Dispose();
+            _services?.GetService<IAppLogger>()?.Info("LightNote stopped.");
+            _services?.Dispose();
+            _singleInstance?.Dispose();
+            base.OnExit(e);
+        }
+        finally
+        {
+            Environment.Exit(e.ApplicationExitCode);
+        }
+    }
+
+    private static void KillStaleInstances()
+    {
+        try
+        {
+            var currentPid = Environment.ProcessId;
+            var currentExe = Environment.ProcessPath;
+
+            foreach (var process in System.Diagnostics.Process.GetProcessesByName("LightNote"))
+            {
+                if (process.Id == currentPid)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    bool shouldKill = false;
+                    try
+                    {
+                        if (string.IsNullOrWhiteSpace(currentExe) ||
+                            string.Equals(process.MainModule?.FileName, currentExe, StringComparison.OrdinalIgnoreCase))
+                        {
+                            shouldKill = true;
+                        }
+                    }
+                    catch
+                    {
+                        shouldKill = true;
+                    }
+
+                    if (shouldKill)
+                    {
+                        process.Kill();
+                        process.WaitForExit(1000);
+                    }
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
+        }
+        catch
+        {
+        }
     }
 
     private static ServiceProvider ConfigureServices()

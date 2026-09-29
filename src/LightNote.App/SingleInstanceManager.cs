@@ -36,11 +36,11 @@ internal sealed class SingleInstanceManager : IDisposable
         }
     }
 
-    public async Task NotifyPrimaryAsync(CancellationToken cancellationToken = default)
+    public async Task<bool> NotifyPrimaryAsync(CancellationToken cancellationToken = default)
     {
         if (IsPrimary)
         {
-            return;
+            return false;
         }
 
         try
@@ -52,10 +52,12 @@ internal sealed class SingleInstanceManager : IDisposable
                 PipeOptions.Asynchronous);
             await client.ConnectAsync(1500, cancellationToken);
             await client.WriteAsync("activate"u8.ToArray(), cancellationToken);
+            return true;
         }
         catch (Exception exception) when (
             exception is IOException or TimeoutException or OperationCanceledException)
         {
+            return false;
         }
     }
 
@@ -99,8 +101,16 @@ internal sealed class SingleInstanceManager : IDisposable
             {
                 return;
             }
-            catch (IOException)
+            catch (Exception)
             {
+                try
+                {
+                    await Task.Delay(250, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
             }
         }
     }
