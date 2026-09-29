@@ -1,4 +1,4 @@
-import { db } from './database'
+import { db, DEFAULT_NOTEBOOK_ID } from './database'
 import { syncService } from '../sync/syncService'
 
 export function getFormattedLocalTimestamp() {
@@ -17,12 +17,23 @@ export const NotesRepository = {
   },
 
   async createNotebook(name) {
+    const trimmed = name.trim()
+    if (!trimmed) return null
+
+    // Check if notebook with same name already exists
+    const existing = await db.notebooks
+      .filter(nb => !nb.deleted_at && (nb.name || '').trim().toLowerCase() === trimmed.toLowerCase())
+      .first()
+    if (existing) {
+      return existing
+    }
+
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
     const count = await db.notebooks.count()
     const notebook = {
       id,
-      name: name.trim() || '未命名笔记本',
+      name: trimmed,
       group_id: null,
       sort_order: count + 1,
       created_at: now,
@@ -88,9 +99,16 @@ export const NotesRepository = {
     const cleanTitle = title.trim() || '无标题笔记'
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
+
+    let targetNotebookId = notebookId
+    if (!targetNotebookId) {
+      const firstNb = await db.notebooks.filter(nb => !nb.deleted_at).first()
+      targetNotebookId = firstNb ? firstNb.id : DEFAULT_NOTEBOOK_ID
+    }
+
     const note = {
       id,
-      notebook_id: notebookId,
+      notebook_id: targetNotebookId,
       title: cleanTitle,
       body_html: bodyHtml,
       body_text: bodyText,

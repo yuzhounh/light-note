@@ -875,8 +875,27 @@ public sealed class FirebaseSyncService(
                 purged_at = excluded.purged_at;
             DELETE FROM sync_outbox WHERE entity_type = 'note' AND entity_id = $id;
             """;
+        var rawNotebookId = GetOptionalString(fields, "notebookId");
+        object dbNotebookId = DBNull.Value;
+        if (!string.IsNullOrWhiteSpace(rawNotebookId))
+        {
+            await using var checkNotebook = connection.CreateCommand();
+            checkNotebook.Transaction = transaction;
+            checkNotebook.CommandText = "SELECT COUNT(*) FROM notebooks WHERE id = $nbId;";
+            checkNotebook.Parameters.AddWithValue("$nbId", rawNotebookId);
+            var exists = Convert.ToInt64(await checkNotebook.ExecuteScalarAsync(cancellationToken)) > 0;
+            if (exists)
+            {
+                dbNotebookId = rawNotebookId;
+            }
+            else
+            {
+                logger.Info($"Note '{id}' references non-existent notebook '{rawNotebookId}', falling back to null to preserve note integrity.");
+            }
+        }
+
         upsert.Parameters.AddWithValue("$id", id);
-        upsert.Parameters.AddWithValue("$notebookId", DbString(GetOptionalString(fields, "notebookId")));
+        upsert.Parameters.AddWithValue("$notebookId", dbNotebookId);
         upsert.Parameters.AddWithValue("$title", GetString(fields, "title"));
         upsert.Parameters.AddWithValue("$bodyJson", GetString(fields, "bodyJson"));
         upsert.Parameters.AddWithValue("$bodyHtml", GetString(fields, "bodyHtml"));

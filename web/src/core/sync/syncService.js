@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore'
 import { getStorage, ref, getDownloadURL } from 'firebase/storage'
 import { initFirebase } from '../auth/firebaseAuth'
-import { db } from '../db/database'
+import { db, deduplicateNotebooks } from '../db/database'
 
 let firestoreInstance = null
 let storageInstance = null
@@ -214,6 +214,25 @@ export const syncService = {
         const rDeleted = toNullableIsoString(rNb.deletedAt)
 
         if (!local) {
+          const normRemoteName = (rNb.name || '').trim().toLowerCase()
+          const existingSameName = await db.notebooks
+            .filter(nb => !nb.deleted_at && (nb.name || '').trim().toLowerCase() === normRemoteName)
+            .first()
+
+          if (existingSameName && existingSameName.id !== rNb.id) {
+            const notesToMove = await db.notes.where('notebook_id').equals(existingSameName.id).toArray()
+            for (const n of notesToMove) {
+              await db.notes.update(n.id, { notebook_id: rNb.id })
+            }
+            const outboxItems = await db.sync_outbox.where('entity_type').equals('notebook').toArray()
+            for (const item of outboxItems) {
+              if (item.entity_id === existingSameName.id) {
+                await db.sync_outbox.delete(item.id)
+              }
+            }
+            await db.notebooks.delete(existingSameName.id)
+          }
+
           await db.notebooks.put({
             id: rNb.id,
             name: rNb.name || '未命名笔记本',
@@ -233,6 +252,8 @@ export const syncService = {
           })
         }
       }
+
+      await deduplicateNotebooks()
 
       // 6. Merge remote notes into Dexie
       const pendingOutbox = await db.sync_outbox.where('entity_type').equals('note').toArray()
@@ -459,6 +480,28 @@ export const syncService = {
         const rCreated = toIsoString(rNb.createdAt)
         const rDeleted = toNullableIsoString(rNb.deletedAt)
 
+        const local = await db.notebooks.get(rNb.id)
+        if (!local) {
+          const normRemoteName = (rNb.name || '').trim().toLowerCase()
+          const existingSameName = await db.notebooks
+            .filter(nb => !nb.deleted_at && (nb.name || '').trim().toLowerCase() === normRemoteName)
+            .first()
+
+          if (existingSameName && existingSameName.id !== rNb.id) {
+            const notesToMove = await db.notes.where('notebook_id').equals(existingSameName.id).toArray()
+            for (const n of notesToMove) {
+              await db.notes.update(n.id, { notebook_id: rNb.id })
+            }
+            const outboxItems = await db.sync_outbox.where('entity_type').equals('notebook').toArray()
+            for (const item of outboxItems) {
+              if (item.entity_id === existingSameName.id) {
+                await db.sync_outbox.delete(item.id)
+              }
+            }
+            await db.notebooks.delete(existingSameName.id)
+          }
+        }
+
         await db.notebooks.put({
           id: rNb.id,
           name: rNb.name || '未命名笔记本',
@@ -468,6 +511,7 @@ export const syncService = {
           updated_at: rUpdated,
           deleted_at: rDeleted
         })
+        await deduplicateNotebooks()
         changed = true
       }
 

@@ -54,16 +54,100 @@ export async function purgeLegacyDemoNotes() {
   }
 }
 
+export const CANONICAL_NOTEBOOKS = {
+  '默认': '4002cfd9-501b-4292-b405-9b58128259a5',
+  'LightNote 开发记录': 'lightnote-dev-history'
+}
+export const DEFAULT_NOTEBOOK_ID = '4002cfd9-501b-4292-b405-9b58128259a5'
+
+/**
+ * Deduplicate notebooks by name, merging any duplicates into canonical notebooks,
+ * reassigning orphaned notes, and removing redundant local notebooks.
+ */
+export async function deduplicateNotebooks() {
+  try {
+    const allNbs = await db.notebooks.toArray()
+    if (!allNbs.length) return
+
+    // Group by normalized name (trimmed, lowercased)
+    const groups = new Map()
+    for (const nb of allNbs) {
+      const normName = (nb.name || '').trim().toLowerCase()
+      if (!groups.has(normName)) {
+        groups.set(normName, [])
+      }
+      groups.get(normName).push(nb)
+    }
+
+    for (const [normName, nbs] of groups.entries()) {
+      if (nbs.length <= 1) continue
+
+      // Find canonical notebook:
+      // 1. Check known canonical IDs from desktop / Firestore
+      let canonical = nbs.find(nb => 
+        nb.id === '4002cfd9-501b-4292-b405-9b58128259a5' || 
+        nb.id === 'lightnote-dev-history'
+      )
+      // 2. Otherwise pick non-deleted or first
+      if (!canonical) {
+        canonical = nbs.find(nb => !nb.deleted_at) || nbs[0]
+      }
+
+      for (const nb of nbs) {
+        if (nb.id === canonical.id) continue
+
+        // Reassign all notes under nb.id to canonical.id
+        const notesToMove = await db.notes.where('notebook_id').equals(nb.id).toArray()
+        for (const note of notesToMove) {
+          await db.notes.update(note.id, { 
+            notebook_id: canonical.id,
+            updated_at: new Date().toISOString()
+          })
+          // Queue outbox for note update so cloud receives the canonical notebookId
+          await db.sync_outbox.add({
+            entity_type: 'note',
+            entity_id: note.id,
+            action: 'upsert',
+            created_at: new Date().toISOString()
+          })
+        }
+
+        // Clean outbox entries for the duplicate notebook to prevent remote accidental deletes
+        const outboxItems = await db.sync_outbox.where('entity_type').equals('notebook').toArray()
+        for (const item of outboxItems) {
+          if (item.entity_id === nb.id) {
+            await db.sync_outbox.delete(item.id)
+          }
+        }
+
+        // Delete redundant notebook from local database
+        await db.notebooks.delete(nb.id)
+      }
+    }
+
+    // Also repair any notes whose notebook_id doesn't exist at all
+    const remainingNbs = await db.notebooks.toArray()
+    const validNbIds = new Set(remainingNbs.map(n => n.id))
+    const orphanNotes = await db.notes.filter(n => n.notebook_id && !validNbIds.has(n.notebook_id)).toArray()
+    for (const on of orphanNotes) {
+      await db.notes.update(on.id, { notebook_id: DEFAULT_NOTEBOOK_ID })
+    }
+  } catch (e) {
+    console.warn('Failed to deduplicate notebooks:', e)
+  }
+}
+
 /**
  * Initialize clean state: ensure at least one default notebook exists if completely empty, but ZERO fake notes.
  */
 export async function seedInitialData() {
   await purgeLegacyDemoNotes()
+  await deduplicateNotebooks()
   const count = await db.notebooks.count()
   if (count === 0) {
     const now = new Date().toISOString()
     await db.notebooks.add({
-      id: crypto.randomUUID(),
+      id: DEFAULT_NOTEBOOK_ID,
       name: '默认',
       group_id: null,
       sort_order: 1,
