@@ -652,7 +652,7 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`h-[26px] px-2.5 rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('paragraph') && !editor.isActive('heading')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white font-medium shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 font-normal'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100 font-normal'
           }`}
         >
           正文
@@ -664,7 +664,7 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('heading', { level: 1 })
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white font-medium shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 font-normal'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100 font-normal'
           }`}
         >
           H₁
@@ -675,7 +675,7 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
             editor.isActive('heading', { level: 2 })
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white font-medium shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 font-normal'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100 font-normal'
           }`}
         >
           H₂
@@ -689,7 +689,7 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center font-bold text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('bold')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100'
           }`}
           title="粗体 (Ctrl+B)"
         >
@@ -701,7 +701,7 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center italic text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('italic')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100'
           }`}
           title="斜体 (Ctrl+I)"
         >
@@ -713,7 +713,7 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center underline text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('underline')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100'
           }`}
           title="下划线 (Ctrl+U)"
         >
@@ -725,7 +725,7 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center line-through text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('strike')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100'
           }`}
           title="删除线"
         >
@@ -737,7 +737,7 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`relative w-[26px] h-[26px] rounded-md flex flex-col items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('highlight')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100'
           }`}
           title="文本荧光高亮"
         >
@@ -747,7 +747,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         <button
           onClick={handleInsertMath}
-          className="w-[26px] h-[26px] rounded-md flex items-center justify-center italic font-serif text-xs font-semibold shrink-0 whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 transition cursor-pointer"
+          className="w-[26px] h-[26px] rounded-md flex items-center justify-center italic font-serif text-xs font-semibold shrink-0 whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100 transition cursor-pointer"
           title="插入数学公式 (KaTeX)"
         >
           fx
@@ -761,11 +761,11 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('bulletList')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100'
           }`}
           title="无序列表"
         >
-          •≡
+          •☰
         </button>
 
         <button
@@ -773,23 +773,23 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('orderedList')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100'
           }`}
           title="编号列表"
         >
-          1≡
+          1☰
         </button>
 
         <button
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs font-serif shrink-0 whitespace-nowrap transition cursor-pointer ${
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('blockquote')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100'
           }`}
           title="引用"
         >
-          ”
+          ❞
         </button>
 
         {/* Code block */}
@@ -798,7 +798,7 @@ export const LightEditor = forwardRef(function LightEditor(
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('codeBlock')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100'
           }`}
           title="代码块"
         >
@@ -812,7 +812,7 @@ export const LightEditor = forwardRef(function LightEditor(
         {/* Timestamp */}
         <button
           onClick={handleInsertTimestamp}
-          className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100"
+          className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100"
           title="插入当前时间"
         >
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

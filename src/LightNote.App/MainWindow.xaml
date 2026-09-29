@@ -813,7 +813,9 @@
                             <Button x:Name="FormulaButton" Tag="inlineMath"
                                     Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="数学公式（Ctrl+M）">
-                                <TextBlock Text="fx" FontFamily="Segoe UI" FontWeight="SemiBold" FontStyle="Italic" FontSize="13" />
+                                <TextBlock Text="fx" FontFamily="Times New Roman, Cambria, Georgia, serif"
+                                           FontWeight="SemiBold" FontStyle="Italic" FontSize="15"
+                                           VerticalAlignment="Center" />
                             </Button>
                             <Separator Margin="5,0" />
                             <Button x:Name="BulletListButton" Content="•☰" Tag="bulletList"
@@ -828,7 +830,7 @@
                             <Button x:Name="CodeBlockButton" Tag="codeBlock"
                                     Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="代码块">
-                                <Viewbox Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Viewbox Width="15" Height="15" HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <Canvas Width="24" Height="24">
                                         <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                                               StrokeThickness="2"
@@ -842,8 +844,19 @@
                             <Button x:Name="TimestampButton" Tag="insertTimestamp"
                                     Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="插入当前时间">
-                                <TextBlock Text="&#xE823;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
-                                           VerticalAlignment="Center" />
+                                <Viewbox Width="15" Height="15" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Ellipse Canvas.Left="2" Canvas.Top="2" Width="20" Height="20"
+                                                 Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                 StrokeThickness="2" />
+                                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              StrokeThickness="2"
+                                              StrokeStartLineCap="Round"
+                                              StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round"
+                                              Data="M 12,6 L 12,12 L 16,14" />
+                                    </Canvas>
+                                </Viewbox>
                             </Button>
                         </StackPanel>
                     </ScrollViewer>
