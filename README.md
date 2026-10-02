@@ -1,14 +1,20 @@
 <p align="center">
-  <img src="images/pen-note-icon-yellow-1024.png" width="104" alt="LightNote brand icon" />
+  <img src="images/pen-note-icon-yellow-1024.png" width="112" alt="Light Note logo">
 </p>
 
-<h1 align="center">LightNote</h1>
+<h1 align="center">Light Note</h1>
 
-<p align="center"><strong>Windows 优先、本地优先的轻量笔记应用。</strong></p>
+<p align="center"><strong>本地优先的 Windows 笔记，支持全文检索、数学公式与可选云同步。</strong></p>
 
 <p align="center">
-  <a href="https://light-note.web.app/"><img src="https://img.shields.io/badge/Firebase_Hosting-online-FFA000?logo=firebase" alt="Firebase Hosting online"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-f59e0b.svg" alt="License: MIT"></a>
+  <a href="https://light-note.web.app/"><img src="https://img.shields.io/badge/Website-Firebase-ffca28?style=flat&amp;logo=firebase&amp;logoColor=white" alt="Website: Firebase"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-f59e0b?style=flat" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/Platform-Windows-0078d4?style=flat" alt="Platform: Windows">
+  <img src="https://img.shields.io/badge/C%23-.NET-512bd4?style=flat&amp;logo=dotnet&amp;logoColor=white" alt="C#: .NET">
+</p>
+
+<p align="center">
+  <a href="https://light-note.web.app/">在线体验</a> · <a href="https://github.com/yuzhounh/light-note/releases/latest">发布版本</a> · <a href="#开发">快速开始</a> · <a href="LICENSE">开源协议</a>
 </p>
 
 LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，支持毫秒级 SQLite FTS5 全文搜索、多级分组、KaTeX 数学公式、多版本历史记录、系统托盘常驻与可选的云端同步。当前版本为 **V2.2.1 卡片排版重构与体验优化版**。
@@ -21,7 +27,7 @@ LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，�
   <img src="screenshots/ss_1.png" width="800" alt="LightNote 界面截图" />
 </p>
 
-## 亮点特性 (Features)
+## 功能特点
 
 ### 笔记组织与检索
 
@@ -150,6 +156,6 @@ dotnet test LightNote.slnx
 - [markdown-viewer](https://github.com/yuzhounh/markdown-viewer)：专门阅读 Markdown 文件的轻量 Windows 阅读器。
 - [page-trace](https://github.com/yuzhounh/page-trace)：网页速记与云端剪藏工具。
 
-## 开源协议 (License)
+## 开源协议
 
 本项目采用 [MIT 许可证](LICENSE)。
