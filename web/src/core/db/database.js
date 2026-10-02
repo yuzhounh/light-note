@@ -1,4 +1,5 @@
 import Dexie from 'dexie'
+import { noteDrafts } from '../sync/noteDrafts.js'
 
 export class LightNoteDatabase extends Dexie {
   constructor() {
@@ -33,9 +34,12 @@ export async function purgeLegacyDemoNotes() {
 
   try {
     const notes = await db.notes.toArray()
+    const pending = new Set((await db.sync_outbox.where('entity_type').equals('note').toArray())
+      .map(item => item.entity_id))
     for (const n of notes) {
       // If note was created as demo or matches demo title with demo date
-      if (n.is_demo === 1 || (demoTitles.has(n.title) && n.created_at?.includes('2026-09-25T10:02'))) {
+      if (!pending.has(n.id) && !noteDrafts.has(n.id) &&
+        (n.is_demo === 1 || (demoTitles.has(n.title) && n.created_at?.includes('2026-09-25T10:02')))) {
         await db.notes.delete(n.id)
       }
     }
@@ -65,13 +69,19 @@ export const DEFAULT_NOTEBOOK_ID = '4002cfd9-501b-4292-b405-9b58128259a5'
  * reassigning orphaned notes, and removing redundant local notebooks.
  */
 export async function deduplicateNotebooks() {
-  try {
+  const merge = async () => {
     const allNbs = await db.notebooks.toArray()
     if (!allNbs.length) return
+    const pending = await db.sync_outbox.toArray()
+    const pendingNotebooks = new Set(pending.filter(item => item.entity_type === 'notebook')
+      .map(item => item.entity_id))
+    const pendingNotes = new Set(pending.filter(item => item.entity_type === 'note')
+      .map(item => item.entity_id))
 
     // Group by normalized name (trimmed, lowercased)
     const groups = new Map()
     for (const nb of allNbs) {
+      if (nb.deleted_at) continue
       const normName = (nb.name || '').trim().toLowerCase()
       if (!groups.has(normName)) {
         groups.set(normName, [])
@@ -81,6 +91,11 @@ export async function deduplicateNotebooks() {
 
     for (const [normName, nbs] of groups.entries()) {
       if (nbs.length <= 1) continue
+      if (nbs.some(nb => pendingNotebooks.has(nb.id))) continue
+      const ids = new Set(nbs.map(nb => nb.id))
+      const protectedNotes = await db.notes.filter(note => ids.has(note.notebook_id) &&
+        (pendingNotes.has(note.id) || noteDrafts.has(note.id))).count()
+      if (protectedNotes) continue
 
       // Find canonical notebook:
       // 1. Check known canonical IDs from desktop / Firestore
@@ -97,7 +112,8 @@ export async function deduplicateNotebooks() {
         if (nb.id === canonical.id) continue
 
         // Reassign all notes under nb.id to canonical.id
-        const notesToMove = await db.notes.where('notebook_id').equals(nb.id).toArray()
+        const notesToMove = await db.notes.where('notebook_id').equals(nb.id)
+          .and(note => !note.purged_at).toArray()
         for (const note of notesToMove) {
           await db.notes.update(note.id, { 
             notebook_id: canonical.id,
@@ -128,10 +144,14 @@ export async function deduplicateNotebooks() {
     // Also repair any notes whose notebook_id doesn't exist at all
     const remainingNbs = await db.notebooks.toArray()
     const validNbIds = new Set(remainingNbs.map(n => n.id))
-    const orphanNotes = await db.notes.filter(n => n.notebook_id && !validNbIds.has(n.notebook_id)).toArray()
+    const orphanNotes = await db.notes.filter(n => !n.purged_at && n.notebook_id &&
+      !validNbIds.has(n.notebook_id) && !pendingNotes.has(n.id) && !noteDrafts.has(n.id)).toArray()
     for (const on of orphanNotes) {
       await db.notes.update(on.id, { notebook_id: DEFAULT_NOTEBOOK_ID })
     }
+  }
+  try {
+    await db.transaction('rw', db.notebooks, db.notes, db.sync_outbox, merge)
   } catch (e) {
     console.warn('Failed to deduplicate notebooks:', e)
   }

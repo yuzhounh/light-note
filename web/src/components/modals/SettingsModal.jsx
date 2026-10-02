@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { X, Download, Upload, Trash2, Sun, Moon, Database } from 'lucide-react'
 import { db } from '../../core/db/database'
+import { NotesRepository } from '../../core/db/notesRepository'
 import { APP_DISPLAY_VERSION } from '../../core/version'
 
 export function SettingsModal({
@@ -68,7 +69,7 @@ export function SettingsModal({
   // Clear Trash
   async function handleEmptyTrash() {
     if (confirm('确定清空回收站中的所有笔记吗？此操作无法撤销。')) {
-      await db.notes.filter(n => !!n.is_deleted).delete()
+      await NotesRepository.emptyTrash()
       setMsg('回收站已清空。')
       if (onDataImported) onDataImported()
     }

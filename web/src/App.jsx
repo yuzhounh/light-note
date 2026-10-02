@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { NotesRepository } from './core/db/notesRepository'
 import { seedInitialData } from './core/db/database'
 import { syncService, subscribeSyncState, getSyncState } from './core/sync/syncService'
+import { noteDrafts } from './core/sync/noteDrafts'
 import { useResponsive } from './hooks/useResponsive'
 import { useBackButton } from './hooks/useBackButton'
 import { Sidebar } from './components/layout/Sidebar'
@@ -46,8 +47,8 @@ export function App() {
     onBackToList: () => setMobileView('list'),
   })
 
-  // Debounced auto-save timer ref
-  const saveTimeoutRef = useRef(null)
+  const viewRef = useRef(null)
+  viewRef.current = { currentNotebookId, currentView, searchQuery, isMobile }
 
   // Initialize theme class on document element
   useEffect(() => {
@@ -76,10 +77,13 @@ export function App() {
     const unsubscribeSync = subscribeSyncState(status => {
       setSyncStatus(status)
     })
+    const unsubscribeDrafts = noteDrafts.subscribe(setSaveStatus)
 
     return () => {
       unsubscribeAuth()
       unsubscribeSync()
+      unsubscribeDrafts()
+      noteDrafts.flushAll().catch(err => console.warn('Final save failed:', err))
       syncService.stopRealtimeSync()
     }
   }, [])
@@ -114,11 +118,12 @@ export function App() {
 
   // Manual trigger sync
   async function handleManualSync() {
-    if (!currentUser) {
-      await handleGoogleLogin()
-      return
-    }
     try {
+      await noteDrafts.flushAll()
+      if (!currentUser) {
+        await handleGoogleLogin()
+        return
+      }
       await syncService.syncNow(currentUser, () => refreshData())
       await refreshData()
     } catch (err) {
@@ -132,32 +137,42 @@ export function App() {
   }, [currentNotebookId, currentView, searchQuery])
 
   async function refreshData() {
+    const draftGeneration = noteDrafts.generation
+    const view = viewRef.current
     const nbs = await NotesRepository.getAllNotebooks()
     setNotebooks(nbs)
     const list = await NotesRepository.getNotes({
-      notebookId: currentNotebookId,
-      view: currentView,
-      searchQuery,
+      notebookId: view.currentNotebookId,
+      view: view.currentView,
+      searchQuery: view.searchQuery,
     })
-    setNotes(list)
+    if (draftGeneration !== noteDrafts.generation) return refreshData()
+    setNotes(prev => draftGeneration === noteDrafts.generation
+      ? list.map(note => noteDrafts.get(note.id) || note) : prev)
     setActiveNote(prev => {
-      if (!prev) return (!isMobile && list.length > 0) ? list[0] : null
+      if (draftGeneration !== noteDrafts.generation) return prev
+      if (!prev) return (!view.isMobile && list.length > 0) ? list[0] : null
+      const draft = noteDrafts.get(prev.id)
+      if (draft) return draft
       const updated = list.find(n => n.id === prev.id)
-      return updated || ((!isMobile && list.length > 0) ? list[0] : null)
+      return updated || ((!view.isMobile && list.length > 0) ? list[0] : null)
     })
   }
 
   async function loadNotes() {
+    const draftGeneration = noteDrafts.generation
     const list = await NotesRepository.getNotes({
       notebookId: currentNotebookId,
       view: currentView,
       searchQuery,
     })
-    setNotes(list)
+    if (draftGeneration !== noteDrafts.generation) return loadNotes()
+    setNotes(prev => draftGeneration === noteDrafts.generation
+      ? list.map(note => noteDrafts.get(note.id) || note) : prev)
     
     // Auto-select first note if desktop and no note active
     if (!isMobile && list.length > 0 && !activeNote) {
-      setActiveNote(list[0])
+      setActiveNote(prev => prev || noteDrafts.get(list[0].id) || list[0])
     }
   }
 
@@ -165,7 +180,7 @@ export function App() {
   function handleSelectNote(id) {
     const found = notes.find(n => n.id === id)
     if (found) {
-      setActiveNote(found)
+      setActiveNote(noteDrafts.get(id) || found)
       if (isMobile) {
         setMobileView('detail')
       }
@@ -200,9 +215,9 @@ export function App() {
   }
 
   // Update Note Body Content
-  function handleUpdateContent({ html, text }) {
+  function handleUpdateContent({ html, text, json }) {
     if (!activeNote) return
-    const updated = { ...activeNote, body_html: html, body_text: text }
+    const updated = { ...activeNote, body_html: html, body_text: text, body_json: JSON.stringify(json) }
     setActiveNote(updated)
     setNotes(prev => prev.map(n => n.id === updated.id ? updated : n))
     triggerAutoSave(updated)
@@ -210,19 +225,9 @@ export function App() {
 
   // 500ms Debounced Auto-Save
   function triggerAutoSave(noteToSave) {
-    setSaveStatus('saving')
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-
-    saveTimeoutRef.current = setTimeout(async () => {
-      await NotesRepository.saveNote(noteToSave.id, {
-        title: noteToSave.title,
-        bodyHtml: noteToSave.body_html,
-        bodyText: noteToSave.body_text,
-      })
-      setSaveStatus('saved')
-    }, 500)
+    noteDrafts.schedule(noteToSave, note => NotesRepository.saveNote(note.id, {
+      title: note.title, bodyHtml: note.body_html, bodyText: note.body_text, bodyJson: note.body_json,
+    }))
   }
 
   // Toggle Note Pin
@@ -236,6 +241,7 @@ export function App() {
 
   // Soft Delete Note (Move to Trash)
   async function handleSoftDelete(id) {
+    await noteDrafts.flush(id)
     await NotesRepository.softDeleteNote(id)
     await loadNotes()
     if (activeNote && activeNote.id === id) {
@@ -287,14 +293,7 @@ export function App() {
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        if (activeNote && saveTimeoutRef.current) {
-          clearTimeout(saveTimeoutRef.current)
-          NotesRepository.saveNote(activeNote.id, {
-            title: activeNote.title,
-            bodyHtml: activeNote.body_html,
-            bodyText: activeNote.body_text,
-          }).then(() => setSaveStatus('saved'))
-        }
+        noteDrafts.flushAll().catch(err => console.warn('Save failed:', err))
       }
     }
 

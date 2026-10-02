@@ -4,14 +4,14 @@ import {
   doc, 
   getDocs, 
   setDoc, 
-  deleteDoc, 
   onSnapshot, 
-  serverTimestamp, 
-  Timestamp 
 } from 'firebase/firestore'
 import { getStorage, ref, getDownloadURL } from 'firebase/storage'
-import { initFirebase } from '../auth/firebaseAuth'
-import { db, deduplicateNotebooks } from '../db/database'
+import { initFirebase } from '../auth/firebaseAuth.js'
+import { db } from '../db/database.js'
+import { mergeRemoteNote, mergeRemoteNotebook, pushPendingChanges, toIsoString } from './syncStore.js'
+import { buildSyncPayload } from './syncPayload.js'
+import { noteDrafts } from './noteDrafts.js'
 
 let firestoreInstance = null
 let storageInstance = null
@@ -57,43 +57,6 @@ export function getSyncState() {
 // In-memory cache for storage download URLs: relativePath -> downloadUrl
 const attachmentUrlCache = new Map()
 
-/**
- * Format timestamp value to ISO string
- */
-function toIsoString(val) {
-  if (!val) return new Date().toISOString()
-  if (typeof val.toDate === 'function') {
-    return val.toDate().toISOString()
-  }
-  if (val instanceof Date) {
-    return val.toISOString()
-  }
-  if (typeof val === 'string') {
-    return val
-  }
-  if (typeof val === 'number') {
-    return new Date(val).toISOString()
-  }
-  return new Date().toISOString()
-}
-
-/**
- * Format nullable timestamp value
- */
-function toNullableIsoString(val) {
-  if (!val) return null
-  if (typeof val.toDate === 'function') {
-    return val.toDate().toISOString()
-  }
-  if (val instanceof Date) {
-    return val.toISOString()
-  }
-  if (typeof val === 'string') {
-    return val
-  }
-  return null
-}
-
 const DEMO_TITLES = new Set([
   '具身智能',
   'AI 模型发布日报 | 9月24日',
@@ -109,6 +72,7 @@ export const syncService = {
   _unsubscribeSnapshots: null,
   _pushTimeout: null,
   _isSyncing: false,
+  _pushPromise: null,
 
   onDataChange: null,
 
@@ -133,14 +97,14 @@ export const syncService = {
     }
   },
 
-  notifyOutboxChanged() {
+  notifyOutboxChanged(delay = 1500) {
     if (!this.currentUser) return
     if (this._pushTimeout) clearTimeout(this._pushTimeout)
     this._pushTimeout = setTimeout(() => {
       this.pushOutbox(this.currentUser).catch(err => {
         console.warn('Auto-push outbox failed:', err)
       })
-    }, 1500)
+    }, delay)
   },
 
   /**
@@ -206,90 +170,17 @@ export const syncService = {
         await this._cleanDemoNotes(remoteNotes.map(n => n.id))
       }
 
-      // 5. Merge remote notebooks into Dexie
+      // Use the same transactional merge rules for full pulls and snapshots.
       for (const rNb of remoteNotebooks) {
-        const local = await db.notebooks.get(rNb.id)
-        const rUpdated = toIsoString(rNb.updatedAt)
-        const rCreated = toIsoString(rNb.createdAt)
-        const rDeleted = toNullableIsoString(rNb.deletedAt)
-
-        if (!local) {
-          const normRemoteName = (rNb.name || '').trim().toLowerCase()
-          const existingSameName = await db.notebooks
-            .filter(nb => !nb.deleted_at && (nb.name || '').trim().toLowerCase() === normRemoteName)
-            .first()
-
-          if (existingSameName && existingSameName.id !== rNb.id) {
-            const notesToMove = await db.notes.where('notebook_id').equals(existingSameName.id).toArray()
-            for (const n of notesToMove) {
-              await db.notes.update(n.id, { notebook_id: rNb.id })
-            }
-            const outboxItems = await db.sync_outbox.where('entity_type').equals('notebook').toArray()
-            for (const item of outboxItems) {
-              if (item.entity_id === existingSameName.id) {
-                await db.sync_outbox.delete(item.id)
-              }
-            }
-            await db.notebooks.delete(existingSameName.id)
-          }
-
-          await db.notebooks.put({
-            id: rNb.id,
-            name: rNb.name || '未命名笔记本',
-            group_id: rNb.groupId || null,
-            sort_order: Number(rNb.sortOrder ?? 0),
-            created_at: rCreated,
-            updated_at: rUpdated,
-            deleted_at: rDeleted
-          })
-        } else if (new Date(rUpdated) >= new Date(local.updated_at || 0)) {
-          await db.notebooks.update(rNb.id, {
-            name: rNb.name || local.name,
-            group_id: rNb.groupId !== undefined ? rNb.groupId : local.group_id,
-            sort_order: rNb.sortOrder !== undefined ? Number(rNb.sortOrder) : local.sort_order,
-            updated_at: rUpdated,
-            deleted_at: rDeleted
-          })
-        }
+        await mergeRemoteNotebook(rNb)
       }
-
-      await deduplicateNotebooks()
 
       // 6. Merge remote notes into Dexie
-      const pendingOutbox = await db.sync_outbox.where('entity_type').equals('note').toArray()
-      const pendingNoteIds = new Set(pendingOutbox.map(o => o.entity_id))
-
       for (const rNote of remoteNotes) {
-        const local = await db.notes.get(rNote.id)
-        const rUpdated = toIsoString(rNote.updatedAt)
-        const rCreated = toIsoString(rNote.createdAt)
-        const rDeleted = toNullableIsoString(rNote.deletedAt)
-        const isDeleted = (rDeleted || rNote.isDeleted) ? 1 : 0
-        const isPinned = rNote.isPinned ? 1 : 0
-
-        // If local note is newer or equal (especially with unpushed changes), keep local
-        if (local && new Date(local.updated_at) >= new Date(rUpdated)) {
-          continue
-        }
-
-        const noteRecord = {
-          id: rNote.id,
-          notebook_id: rNote.notebookId || null,
-          title: rNote.title || '',
-          body_html: rNote.bodyHtml || '',
-          body_text: rNote.bodyText || '',
-          body_json: rNote.bodyJson || null,
-          is_pinned: isPinned,
-          is_deleted: isDeleted,
-          sort_order: Number(rNote.sortOrder ?? 1),
-          created_at: rCreated,
-          updated_at: rUpdated,
-          deleted_at: rDeleted,
-          version: Number(rNote.version || 1)
-        }
-
-        await db.notes.put(noteRecord)
+        await mergeRemoteNote(rNote)
       }
+
+      await this.pushOutbox(user)
 
       // Update outbox count
       const remainingOutbox = await db.sync_outbox.count()
@@ -302,13 +193,6 @@ export const syncService = {
       const cb = onDataChange || this.onDataChange
       if (cb) {
         cb()
-      }
-
-      // 7. Push any pending local outbox changes
-      try {
-        await this.pushOutbox(user)
-      } catch (pushErr) {
-        console.warn('Post-pull push outbox warning:', pushErr)
       }
 
       return {
@@ -331,73 +215,35 @@ export const syncService = {
    */
   async pushOutbox(user = this.currentUser) {
     if (!user || !user.uid) return
-    const { firestore } = getServices()
-    const uid = user.uid
-
-    const items = await db.sync_outbox.toArray()
-    if (!items.length) {
-      syncState.outboxCount = 0
-      notifyListeners()
-      return
-    }
-
-    for (const item of items) {
+    if (this._pushPromise) return this._pushPromise
+    this._pushPromise = (async () => {
       try {
-        if (item.entity_type === 'note') {
-          const noteRef = doc(firestore, 'users', uid, 'notes', item.entity_id)
-          if (item.action === 'delete') {
-            await deleteDoc(noteRef)
-          } else {
-            const note = await db.notes.get(item.entity_id)
-            if (note) {
-              const payload = {
-                notebookId: note.notebook_id || null,
-                title: note.title || '',
-                bodyJson: note.body_json || JSON.stringify({ type: 'doc', content: [] }),
-                bodyHtml: note.body_html || '',
-                bodyText: note.body_text || '',
-                isPinned: note.is_pinned === 1,
-                createdAt: note.created_at ? Timestamp.fromDate(new Date(note.created_at)) : Timestamp.now(),
-                updatedAt: note.updated_at ? Timestamp.fromDate(new Date(note.updated_at)) : Timestamp.now(),
-                deletedAt: note.deleted_at ? Timestamp.fromDate(new Date(note.deleted_at)) : null,
-                version: (note.version || 1) + 1,
-                purgedAt: null,
-                deviceId: 'web',
-                tags: [],
-                serverUpdatedAt: serverTimestamp()
-              }
-              await setDoc(noteRef, payload, { merge: true })
-            }
-          }
-        } else if (item.entity_type === 'notebook') {
-          const nbRef = doc(firestore, 'users', uid, 'notebooks', item.entity_id)
-          if (item.action === 'delete') {
-            await deleteDoc(nbRef)
-          } else {
-            const nb = await db.notebooks.get(item.entity_id)
-            if (nb) {
-              const payload = {
-                name: nb.name || '未命名笔记本',
-                sortOrder: nb.sort_order || 0,
-                createdAt: nb.created_at ? Timestamp.fromDate(new Date(nb.created_at)) : Timestamp.now(),
-                updatedAt: nb.updated_at ? Timestamp.fromDate(new Date(nb.updated_at)) : Timestamp.now(),
-                deletedAt: nb.deleted_at ? Timestamp.fromDate(new Date(nb.deleted_at)) : null,
-                serverUpdatedAt: serverTimestamp()
-              }
-              await setDoc(nbRef, payload, { merge: true })
-            }
-          }
-        }
-        await db.sync_outbox.delete(item.id)
+        await pushPendingChanges((entityType, id, record) => this._uploadRecord(user, entityType, id, record))
+        syncState.status = 'synced'
+        syncState.error = null
+        syncState.lastSyncedAt = new Date().toISOString()
       } catch (err) {
-        console.warn(`Failed to push outbox item ${item.id}:`, err)
-        break // Stop on error and retry later
+        syncState.status = 'error'
+        syncState.error = err.message || '上传失败'
+        throw err
+      } finally {
+        syncState.outboxCount = await db.sync_outbox.count()
+        notifyListeners()
       }
+    })()
+    try {
+      await this._pushPromise
+    } finally {
+      this._pushPromise = null
+      if (syncState.outboxCount) this.notifyOutboxChanged(syncState.error ? 15000 : 1500)
     }
+  },
 
-    const count = await db.sync_outbox.count()
-    syncState.outboxCount = count
-    notifyListeners()
+  async _uploadRecord(user, entityType, id, record) {
+    const { firestore } = getServices()
+    const document = doc(firestore, 'users', user.uid,
+      entityType === 'note' ? 'notes' : 'notebooks', id)
+    await setDoc(document, buildSyncPayload(entityType, record), { merge: true })
   },
 
   /**
@@ -415,47 +261,7 @@ export const syncService = {
       let changed = false
       for (const change of snapshot.docChanges()) {
         const rNote = { id: change.doc.id, ...change.doc.data() }
-        const rUpdated = toIsoString(rNote.updatedAt)
-        const local = await db.notes.get(rNote.id)
-
-        if (change.type === 'removed') {
-          if (local) {
-            await db.notes.delete(rNote.id)
-            changed = true
-          }
-          continue
-        }
-
-        const pendingOutbox = await db.sync_outbox
-          .where('entity_type').equals('note')
-          .and(o => o.entity_id === rNote.id)
-          .first()
-
-        if (pendingOutbox && local && new Date(local.updated_at) > new Date(rUpdated)) {
-          continue
-        }
-
-        const rCreated = toIsoString(rNote.createdAt)
-        const rDeleted = toNullableIsoString(rNote.deletedAt)
-        const isDeleted = (rDeleted || rNote.isDeleted) ? 1 : 0
-        const isPinned = rNote.isPinned ? 1 : 0
-
-        await db.notes.put({
-          id: rNote.id,
-          notebook_id: rNote.notebookId || null,
-          title: rNote.title || '',
-          body_html: rNote.bodyHtml || '',
-          body_text: rNote.bodyText || '',
-          body_json: rNote.bodyJson || null,
-          is_pinned: isPinned,
-          is_deleted: isDeleted,
-          sort_order: Number(rNote.sortOrder ?? 1),
-          created_at: rCreated,
-          updated_at: rUpdated,
-          deleted_at: rDeleted,
-          version: Number(rNote.version || 1)
-        })
-        changed = true
+        changed = await mergeRemoteNote(rNote, change.type) || changed
       }
 
       const cb = onDataChange || this.onDataChange
@@ -470,49 +276,7 @@ export const syncService = {
       let changed = false
       for (const change of snapshot.docChanges()) {
         const rNb = { id: change.doc.id, ...change.doc.data() }
-        if (change.type === 'removed') {
-          await db.notebooks.delete(rNb.id)
-          changed = true
-          continue
-        }
-
-        const rUpdated = toIsoString(rNb.updatedAt)
-        const rCreated = toIsoString(rNb.createdAt)
-        const rDeleted = toNullableIsoString(rNb.deletedAt)
-
-        const local = await db.notebooks.get(rNb.id)
-        if (!local) {
-          const normRemoteName = (rNb.name || '').trim().toLowerCase()
-          const existingSameName = await db.notebooks
-            .filter(nb => !nb.deleted_at && (nb.name || '').trim().toLowerCase() === normRemoteName)
-            .first()
-
-          if (existingSameName && existingSameName.id !== rNb.id) {
-            const notesToMove = await db.notes.where('notebook_id').equals(existingSameName.id).toArray()
-            for (const n of notesToMove) {
-              await db.notes.update(n.id, { notebook_id: rNb.id })
-            }
-            const outboxItems = await db.sync_outbox.where('entity_type').equals('notebook').toArray()
-            for (const item of outboxItems) {
-              if (item.entity_id === existingSameName.id) {
-                await db.sync_outbox.delete(item.id)
-              }
-            }
-            await db.notebooks.delete(existingSameName.id)
-          }
-        }
-
-        await db.notebooks.put({
-          id: rNb.id,
-          name: rNb.name || '未命名笔记本',
-          group_id: rNb.groupId || null,
-          sort_order: Number(rNb.sortOrder ?? 0),
-          created_at: rCreated,
-          updated_at: rUpdated,
-          deleted_at: rDeleted
-        })
-        await deduplicateNotebooks()
-        changed = true
+        changed = await mergeRemoteNotebook(rNb, change.type) || changed
       }
 
       const cbNb = onDataChange || this.onDataChange
@@ -530,6 +294,8 @@ export const syncService = {
   },
 
   stopRealtimeSync() {
+    clearTimeout(this._pushTimeout)
+    this._pushTimeout = null
     if (this._unsubscribeSnapshots) {
       this._unsubscribeSnapshots()
       this._unsubscribeSnapshots = null
@@ -587,8 +353,9 @@ export const syncService = {
 
     for (const note of localNotes) {
       // If it's a seeded demo note (marked or matches title) and has not been edited by user and is not on remote
-      const isDemo = note.is_demo === 1 || DEMO_TITLES.has(note.title)
-      if (isDemo && !outboxNoteIds.has(note.id) && !remoteIdSet.has(note.id)) {
+      const isDemo = note.is_demo === 1 ||
+        (DEMO_TITLES.has(note.title) && note.created_at?.includes('2026-09-25T10:02'))
+      if (isDemo && !noteDrafts.has(note.id) && !outboxNoteIds.has(note.id) && !remoteIdSet.has(note.id)) {
         await db.notes.delete(note.id)
       }
     }

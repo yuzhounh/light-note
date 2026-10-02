@@ -52,6 +52,15 @@ public sealed class FirebaseSyncTests : IDisposable
         Assert.Equal(3, first.Uploaded);
         Assert.Equal(0, second.Uploaded);
         Assert.Equal(3, handler.PatchedDocuments.Count);
+        var uploadedNote = JsonDocument.Parse(handler.CommittedBodies
+            .Single(body => body.Contains($"/notes/{note.Id}", StringComparison.Ordinal)));
+        using (uploadedNote)
+        {
+            var uploadedTags = uploadedNote.RootElement.GetProperty("writes")[0].GetProperty("update")
+                .GetProperty("fields").GetProperty("tags").GetProperty("arrayValue").GetProperty("values")
+                .EnumerateArray().Select(value => value.GetProperty("stringValue").GetString()!).ToArray();
+            Assert.Equal(["local", "sync"], uploadedTags);
+        }
         Assert.Single(handler.StorageUploads);
         Assert.DoesNotContain(
             "test-id-token",
@@ -147,6 +156,51 @@ public sealed class FirebaseSyncTests : IDisposable
     }
 
     [Fact]
+    public async Task WebEditWithPreservedTagNamesRetainsDesktopTags()
+    {
+        var (paths, factory, notes) = await CreateServicesAsync();
+        var note = CreateNote("Desktop", "desktop body");
+        await notes.UpsertAsync(note);
+        var tags = new SqliteTagRepository(factory);
+        await tags.SetForNoteAsync(note.Id, ["研究", "desktop"]);
+        var handler = new RecordingFirebaseHandler
+        {
+            RemoteNoteResponse = BuildRemoteNote(note.Id, DateTimeOffset.UtcNow.AddMinutes(5),
+                title: "Web edit", tags: ["研究", "desktop"]),
+        };
+        var service = new FirebaseSyncService(paths, factory, new HttpClient(handler), new NullLogger());
+        await service.SignInAsync("test@example.com", "password123");
+        await service.SyncAsync();
+
+        Assert.Equal("Web edit", (await notes.GetAsync(note.Id))?.Title);
+        Assert.Equal(["desktop", "研究"], (await tags.ListForNoteAsync(note.Id)).Select(tag => tag.Name));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task WebDeletionFieldsProduceMatchingDesktopVisibility(bool deleted, bool purged)
+    {
+        var (paths, factory, notes) = await CreateServicesAsync();
+        var id = Guid.NewGuid().ToString();
+        var handler = new RecordingFirebaseHandler
+        {
+            RemoteNoteResponse = BuildRemoteNote(id, DateTimeOffset.UtcNow,
+                deleted: deleted, purged: purged),
+        };
+        var service = new FirebaseSyncService(paths, factory, new HttpClient(handler), new NullLogger());
+        await service.SignInAsync("test@example.com", "password123");
+        await service.SyncAsync();
+
+        var active = await notes.ListAsync(null, allNotebooks: true, deletedOnly: false);
+        var trash = await notes.ListAsync(null, allNotebooks: true, deletedOnly: true);
+        Assert.Equal(!deleted && !purged, active.Any(note => note.Id == id));
+        Assert.Equal(deleted && !purged, trash.Any(note => note.Id == id));
+        Assert.Equal(purged, await notes.GetAsync(id) is null);
+    }
+
+    [Fact]
     public async Task SignInWithGoogleSavesSessionAndReturnsAccount()
     {
         var (paths, factory, _) = await CreateServicesAsync();
@@ -216,7 +270,8 @@ public sealed class FirebaseSyncTests : IDisposable
         UpdatedAt = DateTimeOffset.UtcNow,
     };
 
-    private static string BuildRemoteNote(string id, DateTimeOffset updatedAt, string title = "Remote title")
+    private static string BuildRemoteNote(string id, DateTimeOffset updatedAt, string title = "Remote title",
+        string[]? tags = null, bool deleted = false, bool purged = false)
     {
         var fields = new Dictionary<string, object>
         {
@@ -228,10 +283,13 @@ public sealed class FirebaseSyncTests : IDisposable
             ["isPinned"] = new { booleanValue = false },
             ["createdAt"] = new { timestampValue = updatedAt.AddHours(-1).ToString("O") },
             ["updatedAt"] = new { timestampValue = updatedAt.ToString("O") },
-            ["deletedAt"] = new { nullValue = (object?)null },
+            ["deletedAt"] = deleted ? (object)new { timestampValue = updatedAt.ToString("O") }
+                : new { nullValue = (object?)null },
+            ["purgedAt"] = purged ? (object)new { timestampValue = updatedAt.ToString("O") }
+                : new { nullValue = (object?)null },
             ["version"] = new { integerValue = "2" },
             ["deviceId"] = new { stringValue = "remote-device" },
-            ["tags"] = new { arrayValue = new { values = Array.Empty<object>() } },
+            ["tags"] = new { arrayValue = new { values = (tags ?? []).Select(name => new { stringValue = name }).ToArray() } },
         };
         return JsonSerializer.Serialize(new[]
         {
@@ -252,6 +310,7 @@ public sealed class FirebaseSyncTests : IDisposable
     private sealed class RecordingFirebaseHandler : HttpMessageHandler
     {
         public List<string> PatchedDocuments { get; } = [];
+        public List<string> CommittedBodies { get; } = [];
 
         public List<string> StorageUploads { get; } = [];
 
@@ -314,6 +373,7 @@ public sealed class FirebaseSyncTests : IDisposable
                 request.Method == HttpMethod.Post)
             {
                 PatchedDocuments.Add(url);
+                CommittedBodies.Add(await request.Content!.ReadAsStringAsync(cancellationToken));
                 return JsonResponse("{}");
             }
 

@@ -490,6 +490,7 @@ export const LightEditor = forwardRef(function LightEditor(
         onChange({
           html,
           text: editor.getText(),
+          json: editor.getJSON(),
         })
       }
     },
