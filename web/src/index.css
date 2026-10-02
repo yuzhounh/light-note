@@ -189,3 +189,155 @@
   border-left: 3px solid #3f3f46;
   color: #a1a1aa;
 }
+
+/* Fit the app to browser chrome changes and preserve device safe areas. */
+#root {
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
+}
+
+.lightnote-app {
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+.mobile-sidebar {
+  width: min(340px, calc(100vw - 24px));
+  padding: var(--safe-top) 0 var(--safe-bottom) var(--safe-left);
+  background: white;
+}
+
+.dark .mobile-sidebar {
+  background: #09090b;
+}
+
+.app-modal {
+  padding: max(12px, var(--safe-top)) max(12px, var(--safe-right)) max(12px, var(--safe-bottom)) max(12px, var(--safe-left));
+}
+
+.lightnote-app .app-dialog {
+  max-height: calc(100dvh - max(12px, var(--safe-top)) - max(12px, var(--safe-bottom)));
+}
+
+.modal-scroll,
+.editor-content,
+.note-list-scroll,
+.sidebar-navigation {
+  overscroll-behavior: contain;
+}
+
+.math-modal-card .modal-scroll {
+  grid-auto-rows: max-content;
+  align-content: start;
+}
+
+.math-modal-card .modal-scroll > div {
+  min-width: 0;
+}
+
+@media (max-width: 1023px) {
+  .lightnote-app button,
+  .lightnote-app select,
+  .app-dialog label:has(input[type="file"]) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .lightnote-app input:not([type="file"]):not(.note-title),
+  .lightnote-app textarea,
+  .lightnote-app select {
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .note-list input,
+  .note-sidebar input {
+    min-height: 44px;
+    flex: 1 1 0;
+  }
+
+  .editor-toolbar {
+    padding: 8px 12px;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .editor-toolbar button {
+    font-size: 14px;
+  }
+
+  .editor-content {
+    padding: 16px;
+  }
+
+  .ProseMirror {
+    font-size: 16px;
+  }
+
+  .note-actions,
+  .notebook-row > button {
+    opacity: 1;
+  }
+
+  .note-card-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .note-actions {
+    justify-self: end;
+  }
+
+  .notebook-row > div {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .sidebar-navigation form input {
+    width: 0;
+  }
+
+  .latex-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .latex-modes {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: center;
+  }
+
+  .latex-header > button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .latex-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .latex-footer > div:last-child {
+    margin-left: auto;
+  }
+
+  .latex-footer > div:last-child > span {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-new-note {
+    right: calc(20px + var(--safe-right));
+    bottom: calc(24px + var(--safe-bottom));
+  }
+
+  .note-list-scroll {
+    padding-bottom: calc(90px + var(--safe-bottom));
+  }
+}

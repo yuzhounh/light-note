@@ -130,13 +130,16 @@ export function LatexModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm select-none">
+    <div className="app-modal fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm select-none">
       <div 
-        className="w-full max-w-2xl max-h-[90vh] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
+        className="app-dialog math-modal-card w-full max-w-2xl max-h-[90vh] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
+        role="dialog"
+        aria-modal="true"
+        aria-label="数学公式"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+        <div className="latex-header flex items-center justify-between px-5 py-3.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
           <div className="flex items-center gap-2">
             <span className="font-serif italic font-bold text-base text-zinc-900 dark:text-zinc-100 px-1">
               fx
@@ -147,7 +150,7 @@ export function LatexModal({
           </div>
 
           {/* Mode switch pills */}
-          <div className="flex items-center gap-1 p-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+          <div className="latex-modes flex items-center gap-1 p-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
             <button
               type="button"
               onClick={() => setIsBlock(false)}
@@ -182,7 +185,7 @@ export function LatexModal({
         </div>
 
         {/* Two-Column Split Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="modal-scroll flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Left Column: Code Input */}
           <div className="flex flex-col gap-2 min-h-0">
             <div className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400 font-medium">
@@ -269,7 +272,7 @@ export function LatexModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/40 shrink-0">
+        <div className="latex-footer flex items-center justify-between px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/40 shrink-0">
           <div>
             {isExisting && onDelete && (
               <button

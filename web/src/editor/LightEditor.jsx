@@ -621,7 +621,7 @@ export const LightEditor = forwardRef(function LightEditor(
   return (
     <div className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden">
       {/* 1:1 Parity Desktop Toolbar */}
-      <div className="flex items-center gap-1.5 px-6 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs select-none overflow-x-auto shrink-0 whitespace-nowrap no-scrollbar">
+      <div className="editor-toolbar flex items-center gap-1.5 px-6 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs select-none overflow-x-auto shrink-0 whitespace-nowrap no-scrollbar">
 
         {/* Font Family Dropdown */}
         <select
@@ -825,7 +825,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
       {/* Editor Content Area: Title is directly below toolbar, strictly left-aligned at px-6 */}
       <div
-        className="flex-1 overflow-y-auto px-6 py-5 flex flex-col cursor-text"
+        className="editor-content flex-1 min-h-0 overflow-y-auto px-6 py-5 flex flex-col cursor-text"
         onClick={e => {
           // If the user has selected text via mouse drag, do NOT refocus or alter selection
           const sel = window.getSelection()
@@ -880,7 +880,7 @@ export const LightEditor = forwardRef(function LightEditor(
               editor?.commands.focus('start')
             }
           }}
-          className="w-full text-[21px] font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-3 tracking-tight shrink-0 cursor-text"
+          className="note-title w-full text-[21px] font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-3 tracking-tight shrink-0 cursor-text"
         />
         <EditorContent editor={editor} className="tiptap-editor-wrapper flex-1 flex flex-col cursor-text" />
       </div>

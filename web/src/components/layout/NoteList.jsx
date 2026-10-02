@@ -84,13 +84,14 @@ export function NoteList({
   const visibleNotes = notes.slice(0, visibleCount)
 
   return (
-    <div className="flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
+    <div className="note-list flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
       {/* Top Search Input */}
       <div className="p-3 pb-1.5 space-y-2 shrink-0">
         <div className="flex items-center gap-2">
           {isMobile && (
             <button
               onClick={onOpenSidebar}
+              aria-label="打开笔记导航"
               className="p-1.5 -ml-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 cursor-pointer"
             >
               <Menu size={18} />
@@ -122,7 +123,7 @@ export function NoteList({
       {/* Note Cards List (Progressive Loading on Scroll) */}
       <div 
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-2 py-1 space-y-1"
+        className="note-list-scroll flex-1 min-h-0 overflow-y-auto px-2 py-1 space-y-1"
       >
         {notes.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-zinc-400 text-sm text-center p-6 space-y-2 select-none">
@@ -163,7 +164,7 @@ export function NoteList({
                     </div>
 
                     {/* Bottom part: Line 4 (Date on left, Notebook immediately behind, Actions on far right) */}
-                    <div className="flex items-center justify-between text-xs text-zinc-400 font-sans mt-2">
+                    <div className="note-card-footer flex items-center justify-between text-xs text-zinc-400 font-sans mt-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
                         <span className="shrink-0">{formatFullDate(note.updated_at)}</span>
 
@@ -182,7 +183,7 @@ export function NoteList({
                       </div>
 
                       {/* Quick action on hover */}
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                      <div className="note-actions flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
                         {onTogglePin && (
                           <button
                             onClick={(e) => {

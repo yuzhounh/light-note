@@ -38,7 +38,15 @@ export function Sidebar({
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
+    <div className="note-sidebar flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
+      {isMobile && (
+        <div className="flex items-center justify-between px-3 pt-2 shrink-0">
+          <span className="text-sm font-medium">笔记导航</span>
+          <button onClick={onCloseMobile} aria-label="关闭笔记导航" className="flex items-center justify-center rounded-lg text-zinc-500">
+            <X size={20} />
+          </button>
+        </div>
+      )}
       {/* Top Action: '+ 新建笔记' pill button */}
       <div className="px-3 pt-3 pb-2">
         <button
@@ -62,7 +70,7 @@ export function Sidebar({
       </div>
 
       {/* Main Navigation List */}
-      <div className="flex-1 overflow-y-auto px-2 space-y-1">
+      <div className="sidebar-navigation flex-1 min-h-0 overflow-y-auto px-2 space-y-1">
         {/* 全部笔记 */}
         <button
           onClick={() => {
@@ -115,7 +123,7 @@ export function Sidebar({
                       onSelectNotebook(nb.id)
                       if (isMobile) onCloseMobile()
                     }}
-                    className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13.5px] cursor-pointer transition ${
+                    className={`notebook-row group flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13.5px] cursor-pointer transition ${
                       isActive
                         ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white font-medium'
                         : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900'
@@ -154,12 +162,13 @@ export function Sidebar({
                       onChange={e => setNewNotebookName(e.target.value)}
                       className="w-full text-xs bg-transparent outline-none text-zinc-800 dark:text-zinc-200 px-1"
                     />
-                    <button type="submit" className="p-0.5 text-emerald-600">
+                    <button type="submit" aria-label="创建笔记本" className="p-0.5 text-emerald-600">
                       <Check size={13} />
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsAddingNotebook(false)}
+                      aria-label="取消新建笔记本"
                       className="p-0.5 text-zinc-400"
                     >
                       <X size={13} />
@@ -173,7 +182,7 @@ export function Sidebar({
       </div>
 
       {/* Bottom Footer: User Profile / Google Login and Settings gear icon */}
-      <div className="relative flex items-center justify-between px-3.5 py-2.5 border-t border-zinc-200 dark:border-zinc-800 text-[13.5px] text-zinc-600 dark:text-zinc-400">
+      <div className="relative shrink-0 flex items-center justify-between px-3.5 py-2.5 border-t border-zinc-200 dark:border-zinc-800 text-[13.5px] text-zinc-600 dark:text-zinc-400">
         {currentUser ? (
           <button
             onClick={() => setIsProfileModalOpen(!isProfileModalOpen)}

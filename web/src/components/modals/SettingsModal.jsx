@@ -76,9 +76,12 @@ export function SettingsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm select-none">
+    <div className="app-modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm select-none">
       <div 
-        className="w-full max-w-xl max-h-[85vh] sm:h-[420px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
+        className="app-dialog w-full max-w-xl max-h-[85vh] sm:h-[420px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
+        role="dialog"
+        aria-modal="true"
+        aria-label="设置"
         onClick={e => e.stopPropagation()}
       >
         {/* Mobile Header (Hidden on sm and above) */}
@@ -88,6 +91,7 @@ export function SettingsModal({
           </h3>
           <button
             onClick={onClose}
+            aria-label="关闭设置"
             className="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
             title="关闭"
           >
@@ -167,6 +171,7 @@ export function SettingsModal({
           <div className="hidden sm:flex items-center justify-end px-4 pt-3.5 pb-1">
             <button
               onClick={onClose}
+              aria-label="关闭设置"
               className="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
               title="关闭"
             >
@@ -175,7 +180,7 @@ export function SettingsModal({
           </div>
 
           {/* Scrollable Tab Body */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:pb-6 sm:pt-1 text-xs text-zinc-700 dark:text-zinc-300 space-y-4">
+          <div className="modal-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:pb-6 sm:pt-1 text-xs text-zinc-700 dark:text-zinc-300 space-y-4">
             {msg && (
               <div className="p-2.5 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-800 dark:text-zinc-200">
                 {msg}

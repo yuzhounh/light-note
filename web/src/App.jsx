@@ -304,14 +304,14 @@ export function App() {
   const currentNotebookName = notebooks.find(n => n.id === currentNotebookId)?.name
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
+    <div className="lightnote-app flex h-full w-full overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
       {/* Main Multi-Column or Mobile Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 min-w-0 min-h-0 flex overflow-hidden">
         {/* --- DESKTOP / TABLET (3-column / 2-column) --- */}
         {!isMobile && (
           <>
             {/* Column 1: Sidebar (200px) */}
-            <div className="w-52 shrink-0 h-full">
+            <div className={`${isDesktop ? 'block' : 'hidden'} w-52 shrink-0 h-full`}>
               <Sidebar
                 notebooks={notebooks}
                 currentNotebookId={currentNotebookId}
@@ -334,7 +334,7 @@ export function App() {
             </div>
 
             {/* Column 2: Note List (320px) */}
-            <div className="w-80 shrink-0 h-full">
+            <div className={`${isTablet ? 'w-72' : 'w-80'} shrink-0 h-full`}>
               <NoteList
                 notes={notes}
                 activeNoteId={activeNote?.id}
@@ -346,12 +346,13 @@ export function App() {
                 currentNotebookId={currentNotebookId}
                 onTogglePin={handleTogglePin}
                 onSoftDelete={handleSoftDelete}
-                isMobile={false}
+                onOpenSidebar={() => setIsSidebarOpen(true)}
+                isMobile={isTablet}
               />
             </div>
 
             {/* Column 3: Note Detail & Editor (Flexible) */}
-            <div className="flex-1 h-full overflow-hidden">
+            <div className="flex-1 min-w-0 h-full overflow-hidden">
               <NoteDetail
                 note={activeNote}
                 onUpdateTitle={handleUpdateTitle}
@@ -364,9 +365,9 @@ export function App() {
           </>
         )}
 
-        {/* --- MOBILE VIEW (< 768px, Navigation Stack & Drawer) --- */}
-        {isMobile && (
-          <div className="relative w-full h-full flex flex-col overflow-hidden">
+        {/* Phone navigation stack; shared phone/tablet drawer */}
+        {(isMobile || isTablet) && (
+          <div className={isMobile ? 'relative w-full h-full flex flex-col overflow-hidden' : 'contents'}>
             {/* Drawer Sidebar Overlay */}
             {isSidebarOpen && (
               <div className="fixed inset-0 z-50 flex">
@@ -374,7 +375,7 @@ export function App() {
                   className="fixed inset-0 bg-black/50 backdrop-blur-sm"
                   onClick={() => setIsSidebarOpen(false)}
                 />
-                <div className="relative z-10 w-72 h-full shadow-2xl animate-in slide-in-from-left duration-200">
+                <div className="mobile-sidebar relative z-10 h-full shadow-2xl" role="dialog" aria-modal="true" aria-label="笔记导航">
                   <Sidebar
                     notebooks={notebooks}
                     currentNotebookId={currentNotebookId}
@@ -400,7 +401,7 @@ export function App() {
             )}
 
             {/* Mobile Screen: List View */}
-            {mobileView === 'list' && (
+            {isMobile && mobileView === 'list' && (
               <div className="relative w-full h-full flex flex-col">
                 <NoteList
                   notes={notes}
@@ -421,7 +422,7 @@ export function App() {
                 {currentView !== 'trash' && (
                   <button
                     onClick={handleCreateNote}
-                    className="fixed right-5 bottom-6 w-11 h-11 rounded-full bg-[#00b87a] text-white shadow-md hover:shadow-lg flex items-center justify-center active:scale-90 transition z-40 cursor-pointer"
+                    className="mobile-new-note fixed right-5 bottom-6 w-11 h-11 rounded-full bg-[#00b87a] text-white shadow-md hover:shadow-lg flex items-center justify-center active:scale-90 transition z-40 cursor-pointer"
                     title="新建笔记"
                   >
                     <Plus size={22} strokeWidth={2.5} />
@@ -431,7 +432,7 @@ export function App() {
             )}
 
             {/* Mobile Screen: Detail View */}
-            {mobileView === 'detail' && (
+            {isMobile && mobileView === 'detail' && (
               <div className="w-full h-full flex flex-col">
                 <NoteDetail
                   note={activeNote}
