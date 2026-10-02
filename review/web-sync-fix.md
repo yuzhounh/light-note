@@ -1,6 +1,6 @@
 # LightNote 网页同步修复记录
 
-日期：2026-10-02。状态：本地源码已修复，自动化回归通过；尚未部署线上。
+日期：2026-10-02。状态：修复已推送 GitHub main，并部署至 Firebase Hosting 和 Cloudflare Pages；本地回归、GitHub CI 和线上静态资源校验通过。
 
 ## 已确认并修复
 
@@ -20,6 +20,14 @@
 
 ## 验证范围与后续
 
-自动化验证使用模拟 IndexedDB 和 Firebase HTTP/上传传输；未使用真实账户修改云端数据，也未进行真实双设备在线验收。本次未发布网页或重新打包 Android APK。已被旧版本清空的云端标签、已上传的无墓碑物理删除不在本次自动恢复范围内；需要原始本地数据或备份才能恢复。
+自动化验证使用模拟 IndexedDB 和 Firebase HTTP/上传传输；线上检查仅核对静态资源，未读写真实用户笔记，也未进行真实双设备在线验收。本次未重新打包 Android APK。已被旧版本清空的云端标签、已上传的无墓碑物理删除不在本次自动恢复范围内；需要原始本地数据或备份才能恢复。
 
-发布本次修改后，可用独立测试笔记验收桌面加标签 → 网页改正文 → 桌面同步，以及两端软删除、恢复、永久删除和网页离线编辑后重连。
+后续可用独立测试笔记验收桌面加标签 → 网页改正文 → 桌面同步，以及两端软删除、恢复、永久删除和网页离线编辑后重连。
+
+## 发布记录
+
+- 修复源码提交：[cd7f4ea](https://github.com/yuzhounh/light-note/commit/cd7f4ea)，已推送 `main`；此前本地已有的 4 个提交同时推送。
+- [GitHub CI](https://github.com/yuzhounh/light-note/actions/runs/37006262087)：成功。
+- Firebase Hosting：[light-note.web.app](https://light-note.web.app)，项目 `lightnote-sync`，站点 `light-note`。
+- Cloudflare Pages：[light-note.pages.dev](https://light-note.pages.dev)，生产环境 `main`，部署 ID `067e2152-8073-4432-abce-5c8304c85c19`；[该次部署](https://067e2152.light-note.pages.dev)。
+- 两个正式域名均返回本次入口脚本 `assets/index-bPN6PZpb.js`；脚本与 `sw.js` 的 SHA-256 均与本地生产构建一致。
