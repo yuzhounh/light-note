@@ -104,7 +104,7 @@ export function Sidebar({
                 setIsAddingNotebook(true)
                 setIsGroupOpen(true)
               }}
-              className="p-0.5 hover:text-zinc-900 dark:hover:text-white"
+              className="p-1 min-w-[28px] min-h-[28px] flex items-center justify-center rounded hover:bg-zinc-200/60 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white"
               title="新建笔记本"
             >
               <Plus size={14} />
@@ -141,7 +141,7 @@ export function Sidebar({
                           onDeleteNotebook(nb.id)
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-500 rounded text-zinc-400 transition"
+                      className="opacity-0 group-hover:opacity-100 p-1 min-w-[28px] min-h-[28px] flex items-center justify-center hover:text-rose-500 rounded text-zinc-400 transition"
                       title="删除笔记本"
                     >
                       <Trash2 size={14} />
@@ -214,7 +214,7 @@ export function Sidebar({
         ) : (
           <button
             onClick={onLoginGoogle}
-            className="hover:text-zinc-900 dark:hover:text-white transition cursor-pointer text-[13.5px]"
+            className="flex items-center min-h-[36px] px-2.5 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white transition cursor-pointer text-[13.5px]"
           >
             Google 登录
           </button>

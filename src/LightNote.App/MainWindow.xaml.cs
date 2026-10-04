@@ -1047,7 +1047,48 @@ public partial class MainWindow : Window
     private void OnPaneSplitterDragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) =>
         QueueLayoutSave();
 
-    private void OnWindowLayoutChanged(object? sender, EventArgs e) => QueueLayoutSave();
+    private bool _isCompactMode;
+    private double _savedNotebookWidth = 220;
+
+    private void UpdateCompactMode()
+    {
+        if (!_windowLoaded || WindowState == WindowState.Minimized) return;
+
+        if (ActualWidth < 740)
+        {
+            if (!_isCompactMode)
+            {
+                _isCompactMode = true;
+                if (NotebookColumn.ActualWidth > 50)
+                {
+                    _savedNotebookWidth = NotebookColumn.ActualWidth;
+                }
+                NotebookColumn.MinWidth = 0;
+                NotebookColumn.Width = new GridLength(0);
+                NotebookSplitterColumn.Width = new GridLength(0);
+                NotebookSplitter.Visibility = Visibility.Collapsed;
+                SidebarPanel.Visibility = Visibility.Collapsed;
+            }
+        }
+        else
+        {
+            if (_isCompactMode)
+            {
+                _isCompactMode = false;
+                NotebookColumn.MinWidth = 170;
+                NotebookColumn.Width = new GridLength(_savedNotebookWidth > 50 ? _savedNotebookWidth : 220);
+                NotebookSplitterColumn.Width = new GridLength(7);
+                NotebookSplitter.Visibility = Visibility.Visible;
+                SidebarPanel.Visibility = Visibility.Visible;
+            }
+        }
+    }
+
+    private void OnWindowLayoutChanged(object? sender, EventArgs e)
+    {
+        UpdateCompactMode();
+        QueueLayoutSave();
+    }
 
     private void QueueLayoutSave()
     {
@@ -2127,9 +2168,11 @@ public partial class MainWindow : Window
 
     private void ApplyWindowSettings()
     {
-        Width = _settings.WindowWidth;
-        Height = _settings.WindowHeight;
-        NotebookColumn.Width = new GridLength(_settings.NotebookPaneWidth);
+        var workArea = SystemParameters.WorkArea;
+        Width = Math.Min(_settings.WindowWidth, Math.Max(MinWidth, workArea.Width - 40));
+        Height = Math.Min(_settings.WindowHeight, Math.Max(MinHeight, workArea.Height - 40));
+        _savedNotebookWidth = _settings.NotebookPaneWidth > 50 ? _settings.NotebookPaneWidth : 220;
+        NotebookColumn.Width = new GridLength(_savedNotebookWidth);
         NoteListColumn.Width = new GridLength(_settings.NoteListPaneWidth);
 
         if (double.IsFinite(_settings.WindowLeft) && double.IsFinite(_settings.WindowTop) &&
@@ -2152,6 +2195,7 @@ public partial class MainWindow : Window
     private void SaveWindowSettings()
     {
         var bounds = WindowState == WindowState.Maximized ? RestoreBounds : new Rect(Left, Top, Width, Height);
+        var nbWidth = _isCompactMode ? _savedNotebookWidth : NotebookColumn.ActualWidth;
         _settings = _settings with
         {
             WindowLeft = bounds.Left,
@@ -2159,7 +2203,7 @@ public partial class MainWindow : Window
             WindowWidth = bounds.Width,
             WindowHeight = bounds.Height,
             WindowMaximized = WindowState == WindowState.Maximized,
-            NotebookPaneWidth = NotebookColumn.ActualWidth,
+            NotebookPaneWidth = nbWidth > 50 ? nbWidth : _savedNotebookWidth,
             NoteListPaneWidth = NoteListColumn.ActualWidth,
         };
         _settingsService.Save(_settings);

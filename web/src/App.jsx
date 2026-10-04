@@ -47,6 +47,14 @@ export function App() {
     onBackToList: () => setMobileView('list'),
   })
 
+  const prevIsMobileRef = useRef(isMobile)
+  useEffect(() => {
+    if (!prevIsMobileRef.current && isMobile && activeNote) {
+      setMobileView('detail')
+    }
+    prevIsMobileRef.current = isMobile
+  }, [isMobile, activeNote])
+
   const viewRef = useRef(null)
   viewRef.current = { currentNotebookId, currentView, searchQuery, isMobile }
 
@@ -181,9 +189,7 @@ export function App() {
     const found = notes.find(n => n.id === id)
     if (found) {
       setActiveNote(noteDrafts.get(id) || found)
-      if (isMobile) {
-        setMobileView('detail')
-      }
+      setMobileView('detail')
     }
   }
 
@@ -200,9 +206,7 @@ export function App() {
     setNotes(prev => [newNote, ...prev])
     setActiveNote(newNote)
     setShouldFocusEditor(true)
-    if (isMobile) {
-      setMobileView('detail')
-    }
+    setMobileView('detail')
   }
 
   // Update Note Title

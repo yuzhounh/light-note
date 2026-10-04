@@ -41,10 +41,16 @@ public sealed class TrayIconService : IDisposable
             HasDropShadow = false,
         };
 
+        _trayContextMenu.Resources = new ResourceDictionary
+        {
+            Source = new Uri("/LightNote;component/Styles/TrayMenu.xaml", UriKind.Relative)
+        };
+        _trayContextMenu.Style = (Style)_trayContextMenu.Resources[typeof(ContextMenu)];
+
         var openItem = new MenuItem
         {
             Header = "打开 LightNote",
-            FontWeight = FontWeights.SemiBold,
+            FontWeight = FontWeights.Normal,
         };
         openItem.Click += (_, _) => ShowMainWindow();
         _trayContextMenu.Items.Add(openItem);
