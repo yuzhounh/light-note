@@ -274,19 +274,8 @@
     font-size: 16px;
   }
 
-  .note-actions,
   .notebook-row > button {
     opacity: 1;
-  }
-
-  .note-card-footer {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-  }
-
-  .note-actions {
-    justify-self: end;
   }
 
   .notebook-row > div {

@@ -445,6 +445,11 @@ export function App() {
                   onUpdateTitle={handleUpdateTitle}
                   onUpdateContent={handleUpdateContent}
                   onBackMobile={() => setMobileView('list')}
+                  onTogglePin={handleTogglePin}
+                  onSoftDelete={(id) => {
+                    handleSoftDelete(id)
+                    setMobileView('list')
+                  }}
                   isMobile={true}
                   autoFocus={shouldFocusEditor}
                   onFocused={() => setShouldFocusEditor(false)}

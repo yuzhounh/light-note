@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Menu, Trash2, Pin, FileText } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Menu, Trash2, Pin, FileText, X } from 'lucide-react'
 
 function getNotePreviewText(bodyText) {
   if (!bodyText) return '无附加正文...'
@@ -28,6 +28,53 @@ export function NoteList({
   isMobile
 }) {
   const [visibleCount, setVisibleCount] = useState(25)
+  const [activeActionNote, setActiveActionNote] = useState(null)
+  const longPressTimerRef = useRef(null)
+  const touchStartPosRef = useRef({ x: 0, y: 0 })
+  const isLongPressActiveRef = useRef(false)
+
+  const handleTouchStart = (e, note) => {
+    if (!isMobile) return
+    const touch = e.touches[0]
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY }
+    isLongPressActiveRef.current = false
+
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressActiveRef.current = true
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try {
+          navigator.vibrate(40)
+        } catch (_) {}
+      }
+      setActiveActionNote(note)
+    }, 450)
+  }
+
+  const handleTouchMove = (e) => {
+    if (!longPressTimerRef.current) return
+    const touch = e.touches[0]
+    const dx = Math.abs(touch.clientX - touchStartPosRef.current.x)
+    const dy = Math.abs(touch.clientY - touchStartPosRef.current.y)
+    if (dx > 10 || dy > 10) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  const handleTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  const handleNoteCardClick = (noteId) => {
+    if (isLongPressActiveRef.current) {
+      isLongPressActiveRef.current = false
+      return
+    }
+    onSelectNote(noteId)
+  }
 
   // Check if all displayed notes belong to the same notebook
   const isSingleNotebook = Boolean(currentNotebookId) || (
@@ -166,8 +213,18 @@ export function NoteList({
               return (
                 <div
                   key={note.id}
-                  onClick={() => onSelectNote(note.id)}
-                  className={`group relative p-3 rounded-md cursor-pointer transition ${
+                  onClick={() => handleNoteCardClick(note.id)}
+                  onTouchStart={(e) => handleTouchStart(e, note)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchCancel={handleTouchEnd}
+                  onContextMenu={(e) => {
+                    if (isMobile) {
+                      e.preventDefault()
+                      setActiveActionNote(note)
+                    }
+                  }}
+                  className={`group relative p-3 rounded-md cursor-pointer transition select-none ${
                     isSelected
                       ? 'bg-[#e8f0fe] dark:bg-sky-950/40 text-zinc-900 dark:text-zinc-100'
                       : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200'
@@ -209,8 +266,8 @@ export function NoteList({
                         )}
                       </div>
 
-                      {/* Quick action on hover */}
-                      <div className="note-actions flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                      {/* Quick action on hover (desktop only) */}
+                      <div className="note-actions hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
                         {onTogglePin && (
                           <button
                             onClick={(e) => {
@@ -250,6 +307,83 @@ export function NoteList({
           </>
         )}
       </div>
+
+      {/* Mobile Long-Press Bottom Action Sheet */}
+      {activeActionNote && (
+        <div 
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setActiveActionNote(null)}
+        >
+          <div 
+            className="w-full max-w-sm mx-auto bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-4 shadow-2xl space-y-3 pb-[calc(1rem+var(--safe-bottom,0px))] sm:pb-4 animate-in slide-in-from-bottom duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Action Sheet Header */}
+            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
+              <div className="min-w-0 flex-1 pr-2">
+                <p className="text-[11px] text-zinc-400 font-medium">笔记快捷操作</p>
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate mt-0.5">
+                  {activeActionNote.title || '无标题笔记'}
+                </h4>
+              </div>
+              <button
+                onClick={() => setActiveActionNote(null)}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 cursor-pointer"
+                title="关闭"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Action Menu Options */}
+            <div className="space-y-1 pt-0.5">
+              {onTogglePin && (
+                <button
+                  onClick={() => {
+                    const id = activeActionNote.id
+                    setActiveActionNote(null)
+                    onTogglePin(id)
+                  }}
+                  className="w-full h-11 flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:bg-zinc-200 dark:active:bg-zinc-700 transition cursor-pointer"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-500 shrink-0">
+                    <Pin size={15} className={activeActionNote.is_pinned === 1 ? 'fill-amber-500' : ''} />
+                  </div>
+                  <span className="flex-1 text-left">
+                    {activeActionNote.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
+                  </span>
+                </button>
+              )}
+
+              {onSoftDelete && (
+                <button
+                  onClick={() => {
+                    const id = activeActionNote.id
+                    setActiveActionNote(null)
+                    if (confirm('确定将该笔记移入回收站？')) {
+                      onSoftDelete(id)
+                    }
+                  }}
+                  className="w-full h-11 flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 active:bg-rose-100 dark:active:bg-rose-950/60 transition cursor-pointer"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-500 shrink-0">
+                    <Trash2 size={15} />
+                  </div>
+                  <span className="flex-1 text-left">移入回收站</span>
+                </button>
+              )}
+            </div>
+
+            {/* Cancel Button */}
+            <button
+              onClick={() => setActiveActionNote(null)}
+              className="w-full h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs hover:bg-zinc-200 dark:hover:bg-zinc-700 active:bg-zinc-300 dark:active:bg-zinc-600 transition cursor-pointer"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

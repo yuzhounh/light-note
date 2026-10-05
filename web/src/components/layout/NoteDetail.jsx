@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Pin, Trash2 } from 'lucide-react'
 import { LightEditor } from '../../editor/LightEditor'
 
 export function NoteDetail({
@@ -7,6 +7,8 @@ export function NoteDetail({
   onUpdateTitle,
   onUpdateContent,
   onBackMobile,
+  onTogglePin,
+  onSoftDelete,
   isMobile,
   autoFocus = false,
   onFocused,
@@ -32,14 +34,43 @@ export function NoteDetail({
     <div className="flex flex-col h-full w-full bg-white dark:bg-zinc-900 overflow-hidden">
       {/* Mobile-only Back Header */}
       {isMobile && (
-        <div className="flex items-center px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
+        <div className="flex items-center justify-between px-3 h-12 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
           <button
             onClick={onBackMobile}
-            className="flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-300 p-1 rounded cursor-pointer"
+            className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
           >
             <ArrowLeft size={16} />
             <span>返回列表</span>
           </button>
+
+          <div className="flex items-center gap-1">
+            {onTogglePin && (
+              <button
+                onClick={() => onTogglePin(note.id)}
+                className={`p-1.5 rounded-lg transition cursor-pointer ${
+                  note.is_pinned === 1 
+                    ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' 
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                }`}
+                title={note.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
+              >
+                <Pin size={17} className={note.is_pinned === 1 ? 'fill-amber-500' : ''} />
+              </button>
+            )}
+            {onSoftDelete && (
+              <button
+                onClick={() => {
+                  if (confirm('确定将该笔记移入回收站？')) {
+                    onSoftDelete(note.id)
+                  }
+                }}
+                className="p-1.5 text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                title="移入回收站"
+              >
+                <Trash2 size={17} />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
