@@ -24,7 +24,7 @@ LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，�
 <https://light-note.web.app/>
 
 <p align="center">
-  <img src="screenshots/ss_1.png" width="800" alt="LightNote 界面截图" />
+  <img src="docs/screenshot.png" width="800" alt="LightNote 界面截图" />
 </p>
 
 ## 功能特点
