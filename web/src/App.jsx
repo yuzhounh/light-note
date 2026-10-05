@@ -352,6 +352,7 @@ export function App() {
                 onSoftDelete={handleSoftDelete}
                 onOpenSidebar={() => setIsSidebarOpen(true)}
                 isMobile={isTablet}
+                isTablet={isTablet}
               />
             </div>
 
@@ -422,6 +423,7 @@ export function App() {
                   onTogglePin={handleTogglePin}
                   onSoftDelete={handleSoftDelete}
                   isMobile={true}
+                  isTablet={false}
                 />
 
                 {/* Floating Action Button (FAB) for mobile new note */}

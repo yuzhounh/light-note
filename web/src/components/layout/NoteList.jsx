@@ -25,7 +25,8 @@ export function NoteList({
   onOpenSidebar,
   onTogglePin,
   onSoftDelete,
-  isMobile
+  isMobile,
+  isTablet = false
 }) {
   const [visibleCount, setVisibleCount] = useState(25)
   const [activeActionNote, setActiveActionNote] = useState(null)
@@ -33,10 +34,11 @@ export function NoteList({
   const touchStartPosRef = useRef({ x: 0, y: 0 })
   const isLongPressActiveRef = useRef(false)
 
-  const handleTouchStart = (e, note) => {
-    if (!isMobile) return
-    const touch = e.touches[0]
-    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY }
+  const isTouchDevice = isMobile || isTablet
+
+  const startLongPress = (note, clientX, clientY) => {
+    if (!isTouchDevice) return
+    touchStartPosRef.current = { x: clientX, y: clientY }
     isLongPressActiveRef.current = false
 
     longPressTimerRef.current = setTimeout(() => {
@@ -48,6 +50,11 @@ export function NoteList({
       }
       setActiveActionNote(note)
     }, 450)
+  }
+
+  const handleTouchStart = (e, note) => {
+    const touch = e.touches[0]
+    startLongPress(note, touch.clientX, touch.clientY)
   }
 
   const handleTouchMove = (e) => {
@@ -62,6 +69,29 @@ export function NoteList({
   }
 
   const handleTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  const handleMouseDown = (e, note) => {
+    if (e.button !== 0) return
+    if (!isTouchDevice) return
+    startLongPress(note, e.clientX, e.clientY)
+  }
+
+  const handleMouseMove = (e) => {
+    if (!longPressTimerRef.current) return
+    const dx = Math.abs(e.clientX - touchStartPosRef.current.x)
+    const dy = Math.abs(e.clientY - touchStartPosRef.current.y)
+    if (dx > 10 || dy > 10) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  const handleMouseUp = () => {
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current)
       longPressTimerRef.current = null
@@ -218,8 +248,11 @@ export function NoteList({
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   onTouchCancel={handleTouchEnd}
+                  onMouseDown={(e) => handleMouseDown(e, note)}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
                   onContextMenu={(e) => {
-                    if (isMobile) {
+                    if (isTouchDevice) {
                       e.preventDefault()
                       setActiveActionNote(note)
                     }
@@ -247,14 +280,14 @@ export function NoteList({
                       </p>
                     </div>
 
-                    {/* Bottom part: Line 4 (Date on left, Notebook immediately behind, Actions on far right) */}
+                    {/* Bottom part: Line 4 (Date on left, Notebook name with expanded width) */}
                     <div className="note-card-footer flex items-center justify-between text-xs text-zinc-400 font-sans mt-2">
-                      <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className="shrink-0">{formatFullDate(note.updated_at)}</span>
 
                         {!isSingleNotebook && (
                           <span
-                            className={`truncate text-[11px] px-1.5 py-0.5 rounded max-w-[140px] transition ${
+                            className={`truncate text-[11px] px-1.5 py-0.5 rounded max-w-[200px] transition ${
                               isSelected
                                 ? 'bg-blue-100/80 dark:bg-sky-900/60 text-blue-700 dark:text-sky-300'
                                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
@@ -266,33 +299,35 @@ export function NoteList({
                         )}
                       </div>
 
-                      {/* Quick action on hover (desktop only) */}
-                      <div className="note-actions hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
-                        {onTogglePin && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onTogglePin(note.id)
-                            }}
-                            className={`p-0.5 rounded transition ${note.is_pinned === 1 ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
-                            title={note.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
-                          >
-                            <Pin size={13} />
-                          </button>
-                        )}
-                        {onSoftDelete && (
-                          <button
-                            onClick={(e) => { 
-                              e.stopPropagation()
-                              if (confirm('确定移入回收站？')) onSoftDelete(note.id)
-                            }}
-                            className="p-0.5 hover:text-rose-500 rounded transition text-zinc-400"
-                            title="移入回收站"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
+                      {/* Quick action on hover (Desktop only, never on mobile or tablet) */}
+                      {!isMobile && !isTablet && (
+                        <div className="note-actions hidden lg:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0 ml-2">
+                          {onTogglePin && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onTogglePin(note.id)
+                              }}
+                              className={`p-0.5 rounded transition ${note.is_pinned === 1 ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
+                              title={note.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
+                            >
+                              <Pin size={13} />
+                            </button>
+                          )}
+                          {onSoftDelete && (
+                            <button
+                              onClick={(e) => { 
+                                e.stopPropagation()
+                                if (confirm('确定移入回收站？')) onSoftDelete(note.id)
+                              }}
+                              className="p-0.5 hover:text-rose-500 rounded transition text-zinc-400"
+                              title="移入回收站"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
