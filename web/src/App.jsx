@@ -374,12 +374,12 @@ export function App() {
           <div className={isMobile ? 'relative w-full h-full flex flex-col overflow-hidden' : 'contents'}>
             {/* Drawer Sidebar Overlay */}
             {isSidebarOpen && (
-              <div className="fixed inset-0 z-50 flex">
+              <div className="fixed inset-0 z-50 flex justify-end animate-in fade-in duration-200">
                 <div 
-                  className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                  className="fixed inset-0 bg-black/45 backdrop-blur-xs"
                   onClick={() => setIsSidebarOpen(false)}
                 />
-                <div className="mobile-sidebar relative z-10 h-full shadow-2xl" role="dialog" aria-modal="true" aria-label="笔记导航">
+                <div className="mobile-sidebar relative z-10 h-full w-[min(72vw,248px)] bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 rounded-l-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-right duration-200" role="dialog" aria-modal="true" aria-label="快捷设置与导航">
                   <Sidebar
                     notebooks={notebooks}
                     currentNotebookId={currentNotebookId}

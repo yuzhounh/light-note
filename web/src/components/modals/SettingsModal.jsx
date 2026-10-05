@@ -92,10 +92,10 @@ export function SettingsModal({
           <button
             onClick={onClose}
             aria-label="关闭设置"
-            className="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+            className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-500 hover:text-emerald-600 hover:border-emerald-500 transition cursor-pointer shadow-xs"
             title="关闭"
           >
-            <X size={16} />
+            <X size={20} />
           </button>
         </div>
 
@@ -172,10 +172,10 @@ export function SettingsModal({
             <button
               onClick={onClose}
               aria-label="关闭设置"
-              className="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+              className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-500 hover:text-emerald-600 hover:border-emerald-500 transition cursor-pointer shadow-xs"
               title="关闭"
             >
-              <X size={16} />
+              <X size={20} />
             </button>
           </div>
 

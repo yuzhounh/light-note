@@ -40,9 +40,19 @@ export function Sidebar({
   return (
     <div className="note-sidebar flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
       {isMobile && (
-        <div className="flex items-center justify-between px-3 pt-2 shrink-0">
-          <span className="text-sm font-medium">笔记导航</span>
-          <button onClick={onCloseMobile} aria-label="关闭笔记导航" className="flex items-center justify-center rounded-lg text-zinc-500">
+        <div className="flex items-center justify-between px-4 min-h-[56px] border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-[#00b87a] flex items-center justify-center text-white">
+              <FileText size={15} strokeWidth={2.5} />
+            </div>
+            <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 tracking-tight">LightNote</span>
+          </div>
+          <button
+            onClick={onCloseMobile}
+            aria-label="关闭菜单"
+            className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-500 hover:text-emerald-600 hover:border-emerald-500 transition cursor-pointer shadow-xs"
+            title="关闭"
+          >
             <X size={20} />
           </button>
         </div>
@@ -182,6 +192,53 @@ export function Sidebar({
       </div>
 
       {/* Bottom Footer: User Profile / Google Login and Settings gear icon */}
+      {isMobile ? (
+        <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 flex flex-col gap-2 shrink-0 bg-white dark:bg-zinc-950">
+          {/* Row 1: 外观主题 */}
+          <div className="flex items-center justify-between min-h-[48px] px-1">
+            <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">外观主题</span>
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-zinc-200 dark:border-zinc-700/80 bg-zinc-50 dark:bg-zinc-900 hover:border-emerald-500 text-zinc-700 dark:text-zinc-200 flex items-center justify-center cursor-pointer transition shadow-xs"
+              title={theme === 'dark' ? '切换为浅色主题' : '切换为深色主题'}
+              aria-label="切换外观主题"
+            >
+              {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+          </div>
+
+          {/* Row 2: 账号/设置 */}
+          {currentUser ? (
+            <div className="flex items-center justify-between min-h-[48px] px-1 border-t border-zinc-100 dark:border-zinc-800/80 pt-1">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="w-8 h-8 rounded-full bg-[#00b87a] text-white font-bold flex items-center justify-center text-xs shrink-0">
+                  {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">{currentUser.displayName || '已登录'}</div>
+                  <div className="text-[10px] text-zinc-400 truncate">{currentUser.email || ''}</div>
+                </div>
+              </div>
+              <button
+                onClick={onLogout}
+                className="w-9 h-9 rounded-full border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition shrink-0"
+                title="退出登录"
+                aria-label="退出登录"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onLoginGoogle}
+              className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-semibold hover:opacity-90 transition cursor-pointer"
+            >
+              <span>登录 Google 账号</span>
+            </button>
+          )}
+        </div>
+      ) : (
       <div className="relative shrink-0 flex items-center justify-between px-3.5 py-2.5 border-t border-zinc-200 dark:border-zinc-800 text-[13.5px] text-zinc-600 dark:text-zinc-400">
         {currentUser ? (
           <button
@@ -350,6 +407,7 @@ export function Sidebar({
           </>
         )}
       </div>
+      )}
     </div>
   )
 }

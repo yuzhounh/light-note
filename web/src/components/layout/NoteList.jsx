@@ -91,10 +91,11 @@ export function NoteList({
           {isMobile && (
             <button
               onClick={onOpenSidebar}
-              aria-label="打开笔记导航"
-              className="p-1.5 -ml-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 cursor-pointer"
+              aria-label="打开导航与设置"
+              title="打开导航与设置"
+              className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:border-emerald-500 hover:text-emerald-500 transition cursor-pointer shadow-xs shrink-0"
             >
-              <Menu size={18} />
+              <Menu size={20} />
             </button>
           )}
           <input
