@@ -3,7 +3,7 @@ import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
-import { Node, Mark, mergeAttributes } from '@tiptap/core'
+import { Node, Mark, mergeAttributes, nodeInputRule, nodePasteRule } from '@tiptap/core'
 import katex from 'katex'
 import { LatexModal } from '../components/modals/LatexModal'
 import { syncService } from '../core/sync/syncService'
@@ -97,20 +97,74 @@ export const MathNode = Node.create({
       },
       isBlock: {
         default: false,
-        parseHTML: element => element.getAttribute('data-block') === 'true',
+        parseHTML: element => element.getAttribute('data-block') === 'true' || element.getAttribute('data-type') === 'block-math' || element.tagName === 'DIV',
         renderHTML: attributes => ({
-          'data-block': attributes.isBlock ? 'true' : 'false'
+          'data-block': attributes.isBlock ? 'true' : 'false',
+          'data-type': attributes.isBlock ? 'block-math' : 'inline-math'
         })
       }
     }
   },
 
   parseHTML() {
-    return [{ tag: 'span[data-latex]' }]
+    return [
+      { tag: 'span[data-latex]' },
+      { tag: 'div[data-latex]' },
+      { tag: 'span[data-type="inline-math"]' },
+      { tag: 'div[data-type="block-math"]' },
+      { tag: 'span.math-node' },
+      { tag: 'div.math-node' },
+    ]
   },
 
   renderHTML({ HTMLAttributes }) {
     return ['span', mergeAttributes(HTMLAttributes), HTMLAttributes['data-latex'] || '']
+  },
+
+  addInputRules() {
+    return [
+      nodeInputRule({
+        find: /\$\$([^$]+)\$\$$/,
+        type: this.type,
+        getAttributes: match => ({ latex: match[1].trim(), isBlock: true }),
+      }),
+      nodeInputRule({
+        find: /(?:^|[^\$])\$([^\s$](?:[^$]*[^\s$])?)\$$/,
+        type: this.type,
+        getAttributes: match => ({ latex: match[1].trim(), isBlock: false }),
+      }),
+    ]
+  },
+
+  addPasteRules() {
+    return [
+      nodePasteRule({
+        find: /\$\$([^$]+)\$\$/g,
+        type: this.type,
+        getAttributes: match => ({ latex: match[1].trim(), isBlock: true }),
+      }),
+      nodePasteRule({
+        find: /(?:^|[^\$])\$([^\s$](?:[^$]*[^\s$])?)\$/g,
+        type: this.type,
+        getAttributes: match => ({ latex: match[1].trim(), isBlock: false }),
+      }),
+    ]
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      'Mod-m': () => {
+        if (typeof window.__openMathDialog === 'function') {
+          window.__openMathDialog({
+            latex: '',
+            isBlock: false,
+            isExisting: false,
+          })
+          return true
+        }
+        return false
+      }
+    }
   },
 
   addNodeView() {
@@ -142,7 +196,24 @@ export const MathNode = Node.create({
         }
       })
 
-      return { dom }
+      return {
+        dom,
+        update: (updatedNode) => {
+          if (updatedNode.type.name !== node.type.name) return false
+          const newBlock = !!updatedNode.attrs.isBlock
+          dom.setAttribute('data-latex', updatedNode.attrs.latex || '')
+          dom.setAttribute('data-block', newBlock ? 'true' : 'false')
+          dom.className = newBlock
+            ? 'math-node block my-2 py-1 px-2 text-center overflow-x-auto cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 rounded-lg transition'
+            : 'math-node inline-block px-1 py-0.5 align-middle cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 rounded transition'
+          try {
+            katex.render(updatedNode.attrs.latex || '', dom, { throwOnError: false, displayMode: newBlock })
+          } catch (err) {
+            dom.textContent = updatedNode.attrs.latex
+          }
+          return true
+        }
+      }
     }
   }
 })
