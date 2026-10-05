@@ -166,9 +166,7 @@ export function NoteList({
       {isMobile ? (
         <div className="flex items-center justify-between px-4 h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#00b87a] flex items-center justify-center text-white shadow-xs">
-              <FileText size={16} strokeWidth={2.5} />
-            </div>
+            <img src="/favicon.svg" alt="LightNote" className="w-7 h-7 rounded-lg shadow-xs shrink-0" />
             <span className="font-bold text-base text-zinc-900 dark:text-zinc-100 tracking-tight">LightNote</span>
             {searchQuery && (
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-medium">

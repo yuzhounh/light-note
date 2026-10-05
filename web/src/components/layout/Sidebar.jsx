@@ -44,9 +44,7 @@ export function Sidebar({
       {isMobile && (
         <div className="flex items-center justify-between px-4 min-h-[56px] border-b border-zinc-200 dark:border-zinc-800 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#00b87a] flex items-center justify-center text-white">
-              <FileText size={15} strokeWidth={2.5} />
-            </div>
+            <img src="/favicon.svg" alt="LightNote" className="w-6 h-6 rounded-md shadow-xs shrink-0" />
             <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 tracking-tight">LightNote</span>
           </div>
           <button
