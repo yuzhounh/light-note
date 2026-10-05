@@ -85,19 +85,33 @@ export function NoteList({
 
   return (
     <div className="note-list flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
-      {/* Top Search Input */}
-      <div className="p-3 pb-1.5 space-y-2 shrink-0">
-        <div className="flex items-center gap-2">
-          {isMobile && (
-            <button
-              onClick={onOpenSidebar}
-              aria-label="打开导航与设置"
-              title="打开导航与设置"
-              className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:border-emerald-500 hover:text-emerald-500 transition cursor-pointer shadow-xs shrink-0"
-            >
-              <Menu size={20} />
-            </button>
-          )}
+      {/* Mobile Top Navbar with Right Hamburger */}
+      {isMobile ? (
+        <div className="flex items-center justify-between px-4 h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#00b87a] flex items-center justify-center text-white shadow-xs">
+              <FileText size={16} strokeWidth={2.5} />
+            </div>
+            <span className="font-bold text-base text-zinc-900 dark:text-zinc-100 tracking-tight">LightNote</span>
+            {searchQuery && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-medium">
+                搜索中
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={onOpenSidebar}
+            aria-label="打开导航与设置"
+            title="打开导航与设置"
+            className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:border-emerald-500 hover:text-emerald-500 transition cursor-pointer shadow-xs shrink-0"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      ) : (
+        /* Desktop Search Input */
+        <div className="p-3 pb-1.5 shrink-0">
           <input
             type="text"
             placeholder="搜索标题和正文"
@@ -106,16 +120,28 @@ export function NoteList({
             className="w-full px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-900 border border-transparent focus:border-zinc-300 dark:focus:border-zinc-700 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none transition"
           />
         </div>
+      )}
 
-        {/* Category & Total Count Header */}
-        <div className="px-1 text-sm text-zinc-800 dark:text-zinc-200 font-medium flex items-center justify-between">
-          <div>
-            <span>{currentNotebookName || '全部笔记'}</span>
-            <span className="ml-1 text-xs text-zinc-500 font-normal">({notes.length}条)</span>
-          </div>
+      {/* Category & Status Subheader */}
+      <div className="px-4 py-2 border-b border-zinc-100 dark:border-zinc-800/60 text-xs text-zinc-700 dark:text-zinc-300 font-medium flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="truncate">
+            {searchQuery ? `搜索: "${searchQuery}"` : (currentNotebookName || '全部笔记')}
+          </span>
+          <span className="text-zinc-400 shrink-0">({notes.length}条)</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {searchQuery && (
+            <button
+              onClick={() => onSearchChange('')}
+              className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+            >
+              清除搜索
+            </button>
+          )}
           {notes.length > visibleNotes.length && (
             <span className="text-[11px] text-zinc-400 font-normal">
-              已载入 {visibleNotes.length} 条
+              已载入 {visibleNotes.length}
             </span>
           )}
         </div>

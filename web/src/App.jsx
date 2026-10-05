@@ -381,6 +381,8 @@ export function App() {
                 />
                 <div className="mobile-sidebar relative z-10 h-full w-[min(72vw,248px)] bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 rounded-l-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-right duration-200" role="dialog" aria-modal="true" aria-label="快捷设置与导航">
                   <Sidebar
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
                     notebooks={notebooks}
                     currentNotebookId={currentNotebookId}
                     currentView={currentView}

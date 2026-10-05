@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
 import { 
-  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2, Sun, Moon, RefreshCw
+  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2, Sun, Moon, RefreshCw, Search
 } from 'lucide-react'
 
 export function Sidebar({
+  searchQuery = '',
+  onSearchChange,
   notebooks,
   currentNotebookId,
   currentView,
@@ -57,8 +59,34 @@ export function Sidebar({
           </button>
         </div>
       )}
+      {/* Mobile Drawer Search Bar (Folded from top) */}
+      {isMobile && onSearchChange && (
+        <div className="px-3 pt-3 pb-1">
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              placeholder="搜索标题和正文..."
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-transparent focus:border-emerald-500 dark:focus:border-emerald-500 text-xs text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none transition"
+            />
+            <Search size={15} className="absolute left-3 text-zinc-400 pointer-events-none" />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange('')}
+                className="absolute right-2 p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
+                title="清除搜索"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Top Action: '+ 新建笔记' pill button */}
-      <div className="px-3 pt-3 pb-2">
+      <div className="px-3 pt-2 pb-2">
         <button
           onClick={() => {
             onCreateNote()
