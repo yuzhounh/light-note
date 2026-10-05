@@ -146,23 +146,28 @@
   display: inline-flex;
   align-items: center;
   border-radius: 4px;
-  padding: 0 4px;
-  background-color: rgba(234, 179, 8, 0.12);
+  padding: 0 2px;
+  background-color: transparent;
   color: inherit;
   cursor: pointer;
-  margin: 0 2px;
+  margin: 0 1px;
+  transition: background-color 0.15s ease;
+}
+
+.math-node:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .math-node:hover {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .math-node.is-block {
   display: flex;
   justify-content: center;
-  padding: 8px 12px;
+  padding: 6px 12px;
   margin: 8px 0;
   overflow-x: auto;
-}
-
-.dark .math-node {
-  background-color: rgba(234, 179, 8, 0.22);
 }
 
 .ProseMirror pre {
