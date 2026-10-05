@@ -262,13 +262,25 @@
   }
 
   .editor-toolbar {
-    padding: 8px 12px;
+    padding: 6px 12px;
     overscroll-behavior-x: contain;
-    scrollbar-width: thin;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   .editor-toolbar button {
-    font-size: 14px;
+    min-width: 28px;
+    min-height: 28px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 13px;
+  }
+
+  .editor-toolbar button.btn-text-pill {
+    min-width: 36px;
+    width: auto;
+    padding: 0 8px;
   }
 
   .editor-content {

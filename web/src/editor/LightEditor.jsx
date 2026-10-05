@@ -691,44 +691,45 @@ export const LightEditor = forwardRef(function LightEditor(
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden">
-      {/* 1:1 Parity Desktop Toolbar */}
-      <div className="editor-toolbar flex items-center gap-1.5 px-6 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs select-none overflow-x-auto shrink-0 whitespace-nowrap no-scrollbar">
+      {/* 1:1 Parity Desktop Toolbar with Responsive Mobile/Tablet Optimization */}
+      <div className="relative border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
+        <div className="editor-toolbar flex items-center gap-1 sm:gap-1.5 px-3 sm:px-6 py-1.5 sm:py-2 text-xs select-none overflow-x-auto whitespace-nowrap no-scrollbar">
 
-        {/* Font Family Dropdown */}
-        <select
-          value={selectedFont}
-          onChange={e => handleFontChange(e.target.value)}
-          className="h-[26px] bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-1.5 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:text-zinc-100 cursor-pointer shrink-0 whitespace-nowrap transition"
-        >
-          {FONT_FAMILIES.map(f => (
-            <option key={f.label} value={f.label}>{f.label}</option>
-          ))}
-        </select>
+          {/* Font Family Dropdown (Desktop Only) */}
+          <select
+            value={selectedFont}
+            onChange={e => handleFontChange(e.target.value)}
+            className="hidden lg:inline-block h-[26px] bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-1.5 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:text-zinc-100 cursor-pointer shrink-0 whitespace-nowrap transition"
+          >
+            {FONT_FAMILIES.map(f => (
+              <option key={f.label} value={f.label}>{f.label}</option>
+            ))}
+          </select>
 
-        {/* Font Size Dropdown */}
-        <select
-          value={selectedSize}
-          onChange={e => handleSizeChange(e.target.value)}
-          className="h-[26px] bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-1.5 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:text-zinc-100 cursor-pointer shrink-0 whitespace-nowrap transition"
-        >
-          {FONT_SIZES.map(s => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+          {/* Font Size Dropdown (Desktop Only) */}
+          <select
+            value={selectedSize}
+            onChange={e => handleSizeChange(e.target.value)}
+            className="hidden lg:inline-block h-[26px] bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-1.5 text-xs text-zinc-800 dark:text-zinc-200 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:text-zinc-100 cursor-pointer shrink-0 whitespace-nowrap transition"
+          >
+            {FONT_SIZES.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
 
-        <div className="w-[1px] h-3.5 bg-zinc-200 dark:bg-zinc-700 mx-0.5 shrink-0" />
+          <div className="hidden lg:block w-[1px] h-3.5 bg-zinc-200 dark:bg-zinc-700 mx-0.5 shrink-0" />
 
-        {/* Paragraph (appropriately sized for text) */}
-        <button
-          onClick={() => editor.chain().focus().setParagraph().run()}
-          className={`h-[26px] px-2.5 rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
-            editor.isActive('paragraph') && !editor.isActive('heading')
-              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white font-medium shadow-xs'
-              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100 font-normal'
-          }`}
-        >
-          正文
-        </button>
+          {/* Paragraph (appropriately sized for text) */}
+          <button
+            onClick={() => editor.chain().focus().setParagraph().run()}
+            className={`btn-text-pill h-[26px] px-2 sm:px-2.5 rounded-md flex items-center justify-center transition text-xs shrink-0 whitespace-nowrap cursor-pointer ${
+              editor.isActive('paragraph') && !editor.isActive('heading')
+                ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white font-medium shadow-xs'
+                : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100 font-normal'
+            }`}
+          >
+            正文
+          </button>
 
         {/* Headings: uniform 26x26 square */}
         <button
@@ -892,6 +893,9 @@ export const LightEditor = forwardRef(function LightEditor(
             <polyline points="12 6 12 12 16 14"></polyline>
           </svg>
         </button>
+        </div>
+        {/* Subtle Right Edge Fade Indicator for Narrow Screens */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-5 bg-gradient-to-l from-white dark:from-zinc-900 to-transparent sm:hidden opacity-90" />
       </div>
 
       {/* Editor Content Area: Title is directly below toolbar, strictly left-aligned at px-6 */}
