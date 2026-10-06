@@ -7,6 +7,9 @@
         <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFFFF" />
         <SolidColorBrush x:Key="SecondaryPanelBrush" Color="#FFF1F3F5" />
         <SolidColorBrush x:Key="BorderBrush" Color="#FFEEF0F2" />
+        <SolidColorBrush x:Key="NewNoteButtonBrush" Color="#FFEAECEF" />
+        <SolidColorBrush x:Key="NewNoteButtonHoverBrush" Color="#FFDFE3E8" />
+        <SolidColorBrush x:Key="NewNoteButtonBorderBrush" Color="#FFD8DCE0" />
         <SolidColorBrush x:Key="TextBrush" Color="#FF1F2328" />
         <SolidColorBrush x:Key="MutedTextBrush" Color="#FF68717D" />
         <SolidColorBrush x:Key="AccentBrush" Color="#FF246BFD" />

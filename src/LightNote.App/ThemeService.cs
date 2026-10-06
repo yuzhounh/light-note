@@ -16,6 +16,9 @@ public sealed class ThemeService
         SetBrush("PanelBrush", IsDark ? "#FF202328" : "#FFFFFFFF");
         SetBrush("SecondaryPanelBrush", IsDark ? "#FF292D32" : "#FFF1F3F5");
         SetBrush("BorderBrush", IsDark ? "#FF2F343A" : "#FFEEF0F2");
+        SetBrush("NewNoteButtonBrush", IsDark ? "#FF2C3036" : "#FFEAECEF");
+        SetBrush("NewNoteButtonHoverBrush", IsDark ? "#FF363B43" : "#FFDFE3E8");
+        SetBrush("NewNoteButtonBorderBrush", IsDark ? "#FF3E444D" : "#FFD8DCE0");
         SetBrush("TextBrush", IsDark ? "#FFF2F4F7" : "#FF1F2328");
         SetBrush("MutedTextBrush", IsDark ? "#FFC4CAD1" : "#FF68717D");
         SetBrush("AccentBrush", IsDark ? "#FF3B82F6" : "#FF246BFD");
