@@ -23,7 +23,8 @@ public interface INoteRepository
         bool deletedOnly,
         CancellationToken cancellationToken = default);
 
-    Task UpsertAsync(Note note, CancellationToken cancellationToken = default);
+    /// <param name="forceSnapshot">为 true 时无论距上次快照多久，都保存修改前的内容（例如恢复历史版本前）。</param>
+    Task UpsertAsync(Note note, CancellationToken cancellationToken = default, bool forceSnapshot = false);
 
     Task DeletePermanentlyAsync(string id, CancellationToken cancellationToken = default);
 

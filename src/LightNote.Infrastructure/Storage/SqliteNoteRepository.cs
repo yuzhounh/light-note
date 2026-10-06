@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using LightNote.Core.Abstractions;
 using LightNote.Core.Models;
@@ -7,6 +8,11 @@ namespace LightNote.Infrastructure.Storage;
 
 public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFactory) : INoteRepository
 {
+    /// <summary>两次历史快照之间至少相隔多久（以笔记的修改时间计）。连续输入期间不会产生细碎版本。</summary>
+    private static readonly TimeSpan SnapshotInterval = TimeSpan.FromMinutes(10);
+
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _lastSnapshotAt = new();
+
     public async Task<Note?> GetAsync(string id, CancellationToken cancellationToken = default)
     {
         await using var connection = await connectionFactory.OpenAsync(cancellationToken);
@@ -215,7 +221,10 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
             : await SearchWithFtsAsync(terms, limit, offset, cancellationToken);
     }
 
-    public async Task UpsertAsync(Note note, CancellationToken cancellationToken = default)
+    public async Task UpsertAsync(
+        Note note,
+        CancellationToken cancellationToken = default,
+        bool forceSnapshot = false)
     {
         await using var connection = await connectionFactory.OpenAsync(cancellationToken);
         await using var transaction = connection.BeginTransaction();
@@ -232,7 +241,7 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
             }
         }
 
-        if (existing is not null && HasVersionedContentChanged(existing, note))
+        if (existing is not null && HasVersionedContentChanged(existing, note) && ShouldSnapshot(note, forceSnapshot))
         {
             await using var versionCommand = connection.CreateCommand();
             versionCommand.Transaction = transaction;
@@ -255,20 +264,8 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
             versionCommand.Parameters.AddWithValue("$bodyText", existing.BodyText);
             await versionCommand.ExecuteNonQueryAsync(cancellationToken);
 
-            await using var trimCommand = connection.CreateCommand();
-            trimCommand.Transaction = transaction;
-            trimCommand.CommandText = """
-                DELETE FROM note_versions
-                WHERE note_id = $noteId
-                  AND id NOT IN (
-                      SELECT id FROM note_versions
-                      WHERE note_id = $noteId
-                      ORDER BY version DESC
-                      LIMIT 20
-                  );
-                """;
-            trimCommand.Parameters.AddWithValue("$noteId", existing.Id);
-            await trimCommand.ExecuteNonQueryAsync(cancellationToken);
+            await NoteVersionRetention.TrimAsync(connection, transaction, existing.Id, cancellationToken);
+            _lastSnapshotAt[existing.Id] = note.UpdatedAt;
         }
 
         await using var command = connection.CreateCommand();
@@ -524,6 +521,12 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         value.Replace("\\", "\\\\", StringComparison.Ordinal)
             .Replace("%", "\\%", StringComparison.Ordinal)
             .Replace("_", "\\_", StringComparison.Ordinal);
+
+    /// <summary>新的编辑时段（距上次快照超过间隔，或本次运行内还没有快照）开始时，保存编辑前的内容。</summary>
+    private bool ShouldSnapshot(Note updated, bool forceSnapshot) =>
+        forceSnapshot ||
+        !_lastSnapshotAt.TryGetValue(updated.Id, out var last) ||
+        updated.UpdatedAt - last >= SnapshotInterval;
 
     private static bool HasVersionedContentChanged(Note existing, Note updated) =>
         existing.Title != updated.Title ||

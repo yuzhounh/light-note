@@ -888,20 +888,7 @@ public sealed class FirebaseSyncService(
             versionCommand.Parameters.AddWithValue("$bodyText", local.BodyText);
             await versionCommand.ExecuteNonQueryAsync(cancellationToken);
 
-            await using var trimCommand = connection.CreateCommand();
-            trimCommand.Transaction = transaction;
-            trimCommand.CommandText = """
-                DELETE FROM note_versions
-                WHERE note_id = $noteId
-                  AND id NOT IN (
-                      SELECT id FROM note_versions
-                      WHERE note_id = $noteId
-                      ORDER BY created_at DESC
-                      LIMIT 20
-                  );
-                """;
-            trimCommand.Parameters.AddWithValue("$noteId", id);
-            await trimCommand.ExecuteNonQueryAsync(cancellationToken);
+            await NoteVersionRetention.TrimAsync(connection, transaction, id, cancellationToken);
         }
 
         await using var upsert = connection.CreateCommand();

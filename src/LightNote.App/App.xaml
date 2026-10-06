@@ -378,6 +378,36 @@
             </Setter>
         </Style>
 
+        <!-- 没有勾选项的菜单（如笔记右键菜单）：去掉左侧为 ✓ 预留的空白列，菜单更紧凑 -->
+        <Style x:Key="CompactMenuItemStyle" TargetType="MenuItem">
+            <Setter Property="MinWidth" Value="168" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="FontFamily" Value="Microsoft YaHei" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="ItemBorder" Padding="{TemplateBinding Padding}"
+                                Background="Transparent" CornerRadius="6">
+                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background"
+                                        Value="{DynamicResource SecondaryPanelBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ItemBorder" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="MenuSeparatorStyle" TargetType="Separator">
             <Setter Property="Height" Value="1" />
             <Setter Property="Margin" Value="0,5" />

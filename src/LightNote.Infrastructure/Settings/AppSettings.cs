@@ -28,7 +28,7 @@ public sealed record AppSettings
 
     public bool CompressImages { get; init; } = true;
 
-    public bool NoteSortByUpdated { get; init; }
+    public bool NoteSortByUpdated { get; init; } = true;
 
     public bool NoteSortDescending { get; init; } = true;
 

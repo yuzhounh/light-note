@@ -1,5 +1,6 @@
 import React, { useRef } from 'react'
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2, History } from 'lucide-react'
+import { countWords, formatInfoTime } from '../../core/noteInfo'
 import { LightEditor } from '../../editor/LightEditor'
 
 export function NoteDetail({
@@ -8,6 +9,7 @@ export function NoteDetail({
   onUpdateContent,
   onBackMobile,
   onSoftDelete,
+  onOpenHistory,
   isMobile,
   autoFocus = false,
   onFocused,
@@ -43,6 +45,15 @@ export function NoteDetail({
           </button>
 
           <div className="flex items-center gap-1">
+            {onOpenHistory && (
+              <button
+                onClick={() => onOpenHistory(note)}
+                className="p-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                title="历史版本"
+              >
+                <History size={17} />
+              </button>
+            )}
             {onSoftDelete && (
               <button
                 onClick={() => {
@@ -74,6 +85,27 @@ export function NoteDetail({
           onFocused={onFocused}
         />
       </div>
+
+      {/* 桌面端底部信息栏：字数、创建与编辑时间，以及历史版本入口 */}
+      {!isMobile && (
+        <div className="h-8 shrink-0 flex items-center justify-between gap-4 px-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400 select-none">
+          <div className="flex items-center gap-4 min-w-0 truncate">
+            <span>字数统计：{countWords(note.body_text)}</span>
+            <span>创建于 {formatInfoTime(note.created_at || note.updated_at)}</span>
+            <span>编辑于 {formatInfoTime(note.updated_at)}</span>
+          </div>
+          {onOpenHistory && (
+            <button
+              onClick={() => onOpenHistory(note)}
+              className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] transition cursor-pointer"
+              title="查看或恢复历史版本"
+            >
+              <History size={13} />
+              <span>历史版本</span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

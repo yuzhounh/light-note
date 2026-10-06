@@ -10,6 +10,53 @@ export function getFormattedLocalTimestamp() {
 }
 
 
+// --- 历史版本策略（与桌面端一致）---
+// 每个编辑时段（两次快照至少相隔 10 分钟）只保存时段开始前的内容；
+// 48 小时以内的版本全部保留，更早的每天只保留最后一个，总数最多 50 个。
+const VERSIONED_FIELDS = ['title', 'body_html', 'body_text', 'body_json']
+const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000
+const THINNING_AGE_MS = 48 * 60 * 60 * 1000
+const MAX_VERSIONS = 50
+const lastSnapshotAt = new Map()
+
+async function snapshotBeforeChange(note, nextUpdatedAt, force) {
+  const last = lastSnapshotAt.get(note.id)
+  if (!force && last !== undefined && Date.parse(nextUpdatedAt) - last < SNAPSHOT_INTERVAL_MS) return
+  await db.note_versions.add({
+    id: crypto.randomUUID(),
+    note_id: note.id,
+    version: note.version || 1,
+    title: note.title,
+    body_html: note.body_html,
+    body_text: note.body_text,
+    body_json: note.body_json,
+    created_at: note.updated_at || nextUpdatedAt,
+  })
+  lastSnapshotAt.set(note.id, Date.parse(nextUpdatedAt))
+  await trimVersions(note.id)
+}
+
+async function trimVersions(noteId) {
+  const all = (await db.note_versions.where('note_id').equals(noteId).toArray())
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const cutoff = new Date(Date.now() - THINNING_AGE_MS).toISOString()
+  const seenDays = new Set()
+  const keep = []
+  for (const version of all) {
+    if (version.created_at >= cutoff) {
+      keep.push(version)
+      continue
+    }
+    const day = version.created_at.slice(0, 10)
+    if (seenDays.has(day)) continue
+    seenDays.add(day)
+    keep.push(version)
+  }
+  const keepIds = new Set(keep.slice(0, MAX_VERSIONS).map(version => version.id))
+  const removeIds = all.filter(version => !keepIds.has(version.id)).map(version => version.id)
+  if (removeIds.length) await db.note_versions.bulkDelete(removeIds)
+}
+
 export const NotesRepository = {
   // --- Notebooks ---
   async getAllNotebooks() {
@@ -148,17 +195,41 @@ export const NotesRepository = {
     })
   },
 
-  async _updateNote(id, changes) {
-    await db.transaction('rw', db.notes, db.sync_outbox, async () => {
+  async _updateNote(id, changes, { forceSnapshot = false } = {}) {
+    await db.transaction('rw', db.notes, db.sync_outbox, db.note_versions, async () => {
       const note = await db.notes.get(id)
       if (!note || note.purged_at) return
+      const applied = typeof changes === 'function' ? changes(note) : changes
+      const updatedAt = new Date().toISOString()
+      if (VERSIONED_FIELDS.some(field => field in applied && applied[field] !== note[field])) {
+        await snapshotBeforeChange(note, updatedAt, forceSnapshot)
+      }
       await db.notes.update(id, {
-        ...(typeof changes === 'function' ? changes(note) : changes),
-        updated_at: new Date().toISOString(), version: (note.version || 1) + 1,
+        ...applied,
+        updated_at: updatedAt, version: (note.version || 1) + 1,
       })
       await queueOutbox('note', id)
     })
     syncService.notifyOutboxChanged()
+  },
+
+  // --- 历史版本 ---
+  async getNoteVersions(noteId) {
+    const versions = await db.note_versions.where('note_id').equals(noteId).toArray()
+    return versions.sort((a, b) => b.created_at.localeCompare(a.created_at))
+  },
+
+  async restoreNoteVersion(noteId, versionId) {
+    const version = await db.note_versions.get(versionId)
+    if (!version || version.note_id !== noteId) return undefined
+    // 恢复前一定保存当前内容，避免丢失尚未形成版本的最新修改
+    await this._updateNote(noteId, {
+      title: version.title,
+      body_html: version.body_html,
+      body_text: version.body_text,
+      body_json: version.body_json,
+    }, { forceSnapshot: true })
+    return db.notes.get(noteId)
   },
 
   async softDeleteNote(id) {
@@ -172,11 +243,12 @@ export const NotesRepository = {
 
   async permanentDeleteNote(id) {
     noteDrafts.discard(id)
-    await db.transaction('rw', db.notes, db.note_tags, db.sync_outbox, async () => {
+    await db.transaction('rw', db.notes, db.note_tags, db.sync_outbox, db.note_versions, async () => {
       const note = await db.notes.get(id)
       if (!note || note.purged_at) return
       await db.notes.put(purgedNote(id, new Date().toISOString(), note))
       await db.note_tags.where('note_id').equals(id).delete()
+      await db.note_versions.where('note_id').equals(id).delete()
       await queueOutbox('note', id)
     })
     noteDrafts.notify()

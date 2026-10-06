@@ -19,7 +19,7 @@ public sealed class SqliteNoteHistoryRepository(
             FROM note_versions
             WHERE note_id = $noteId
             ORDER BY version DESC
-            LIMIT 20;
+            LIMIT 70;
             """;
         command.Parameters.AddWithValue("$noteId", noteId);
 

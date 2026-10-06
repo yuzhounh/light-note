@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Menu, Trash2, FileText, X, ArrowUpDown, Check, Search } from 'lucide-react'
+import { Menu, Trash2, FileText, X, ArrowUpDown, Check, Search, History } from 'lucide-react'
+import { countWords, formatInfoTime } from '../../core/noteInfo'
 
 function getNotePreviewText(bodyText) {
   if (!bodyText) return '无附加正文...'
@@ -44,6 +45,7 @@ export function NoteList({
   currentNotebookId = null,
   onOpenSidebar,
   onSoftDelete,
+  onOpenHistory,
   sort = { by: 'created', descending: true },
   onSortChange,
   density = 'comfortable',
@@ -435,8 +437,30 @@ export function NoteList({
               </button>
             </div>
 
+            {/* 笔记详情：字数、创建与编辑时间 */}
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-5">
+              <div>字数统计：{countWords(activeActionNote.body_text)}</div>
+              <div>创建于 {formatInfoTime(activeActionNote.created_at || activeActionNote.updated_at)}</div>
+              <div>编辑于 {formatInfoTime(activeActionNote.updated_at)}</div>
+            </div>
+
             {/* Action Menu Options */}
             <div className="space-y-1 pt-0.5">
+              {onOpenHistory && (
+                <button
+                  onClick={() => {
+                    const target = activeActionNote
+                    setActiveActionNote(null)
+                    onOpenHistory(target)
+                  }}
+                  className="w-full h-11 flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 shrink-0">
+                    <History size={15} />
+                  </div>
+                  <span className="flex-1 text-left">历史版本</span>
+                </button>
+              )}
               {onSoftDelete && (
                 <button
                   onClick={() => {

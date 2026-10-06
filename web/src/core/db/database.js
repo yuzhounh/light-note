@@ -14,6 +14,11 @@ export class LightNoteDatabase extends Dexie {
       sync_outbox: '++id, entity_type, entity_id, action, created_at',
       settings: 'key'
     })
+
+    // 版本 2：本地历史版本（仅保存在本设备，不参与云端同步）
+    this.version(2).stores({
+      note_versions: 'id, note_id, created_at'
+    })
   }
 }
 

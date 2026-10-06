@@ -45,6 +45,9 @@ public sealed partial class MainViewModel(
     public event EventHandler? NewNotebookRequested;
     public event EventHandler<string>? NewNoteCreated;
 
+    /// <summary>某篇笔记的修改已写入本地数据库（用于触发保存后的快速同步）。</summary>
+    public event EventHandler? NoteSaved;
+
     public ObservableCollection<NotebookListItem> Notebooks { get; } = [];
 
     public ObservableCollection<NoteListItem> Notes { get; } = [];
@@ -437,7 +440,7 @@ public sealed partial class MainViewModel(
             Version = current.Version + 1,
             SyncState = SyncState.Dirty,
         };
-        await noteRepository.UpsertAsync(restored, cancellationToken);
+        await noteRepository.UpsertAsync(restored, cancellationToken, forceSnapshot: true);
         recoveryService?.ClearDraft(noteId);
         _knownNotes[noteId] = restored;
         await ReloadNotesAsync(noteId, cancellationToken);
@@ -1280,6 +1283,7 @@ public sealed partial class MainViewModel(
 
             _knownNotes[noteId] = snapshot;
             Notes.FirstOrDefault(item => item.Model.Id == noteId)?.Update(snapshot);
+            NoteSaved?.Invoke(this, EventArgs.Empty);
 
             if (_pendingSaves.TryGetValue(noteId, out var latest) && latest.Revision == snapshotRevision)
             {

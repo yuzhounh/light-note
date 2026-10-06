@@ -8,6 +8,7 @@ import { useBackButton } from './hooks/useBackButton'
 import { Sidebar } from './components/layout/Sidebar'
 import { NoteList } from './components/layout/NoteList'
 import { NoteDetail } from './components/layout/NoteDetail'
+import { HistoryModal } from './components/modals/HistoryModal'
 import { SettingsModal } from './components/modals/SettingsModal'
 import { loginWithGoogle, logoutFirebase, subscribeAuth } from './core/auth/firebaseAuth'
 import { Plus } from 'lucide-react'
@@ -39,7 +40,8 @@ export function App() {
   const [currentNotebookId, setCurrentNotebookId] = useState(null)
   const [currentView, setCurrentView] = useState('all') // 'all' | 'trash'
   const [searchQuery, setSearchQuery] = useState('')
-  const [noteSort, setNoteSort] = useState(() => readStoredJson('lightnote.noteSort', { by: 'created', descending: true }))
+  const [historyNote, setHistoryNote] = useState(null)
+  const [noteSort, setNoteSort] = useState(() => readStoredJson('lightnote.noteSort', { by: 'updated', descending: true }))
   const [noteDensity, setNoteDensity] = useState(() => {
     const stored = readStoredJson('lightnote.noteDensity', 'comfortable')
     return ['compact', 'comfortable', 'spacious'].includes(stored) ? stored : 'comfortable'
@@ -286,6 +288,22 @@ export function App() {
     }
   }
 
+  // 历史版本：打开前先写入尚未保存的草稿，恢复后刷新列表与编辑器
+  async function handleOpenHistory(note) {
+    await noteDrafts.flush(note.id)
+    setHistoryNote(note)
+  }
+
+  async function handleRestoreVersion(version) {
+    if (!historyNote || !version) return
+    if (!confirm('确定将该笔记恢复到所选版本？当前内容会先保存为一个历史版本。')) return
+    await noteDrafts.flush(historyNote.id)
+    const restored = await NotesRepository.restoreNoteVersion(historyNote.id, version.id)
+    setHistoryNote(null)
+    await loadNotes()
+    if (restored) setActiveNote(restored)
+  }
+
   // Create Notebook
   async function handleCreateNotebook(name) {
     const nb = await NotesRepository.createNotebook(name)
@@ -370,6 +388,7 @@ export function App() {
                 notebooks={notebooks}
                 currentNotebookId={currentNotebookId}
                 onSoftDelete={handleSoftDelete}
+                onOpenHistory={handleOpenHistory}
                 onOpenSidebar={() => setIsSidebarOpen(true)}
                 isMobile={isTablet}
                 isTablet={isTablet}
@@ -382,6 +401,7 @@ export function App() {
                 note={activeNote}
                 onUpdateTitle={handleUpdateTitle}
                 onUpdateContent={handleUpdateContent}
+                onOpenHistory={handleOpenHistory}
                 isMobile={false}
                 autoFocus={shouldFocusEditor}
                 onFocused={() => setShouldFocusEditor(false)}
@@ -445,6 +465,7 @@ export function App() {
                   currentNotebookId={currentNotebookId}
                   onOpenSidebar={() => setIsSidebarOpen(true)}
                   onSoftDelete={handleSoftDelete}
+                  onOpenHistory={handleOpenHistory}
                   isMobile={true}
                   isTablet={false}
                 />
@@ -474,6 +495,7 @@ export function App() {
                     handleSoftDelete(id)
                     setMobileView('list')
                   }}
+                  onOpenHistory={handleOpenHistory}
                   isMobile={true}
                   autoFocus={shouldFocusEditor}
                   onFocused={() => setShouldFocusEditor(false)}
@@ -483,6 +505,15 @@ export function App() {
           </div>
         )}
       </div>
+
+      {/* 历史版本 */}
+      {historyNote && (
+        <HistoryModal
+          note={historyNote}
+          onClose={() => setHistoryNote(null)}
+          onRestore={handleRestoreVersion}
+        />
+      )}
 
       {/* Settings Modal */}
       <SettingsModal
