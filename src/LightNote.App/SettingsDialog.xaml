@@ -191,7 +191,7 @@
                                 Background="{DynamicResource SecondaryPanelBrush}"
                                 Height="38">
                             <Grid>
-                                <TextBox x:Name="SearchBox" Margin="16,0,38,0" BorderThickness="0"
+                                <TextBox x:Name="SearchBox" Margin="16,0,38,0" Padding="0" BorderThickness="0"
                                          Background="Transparent" FontSize="14"
                                          VerticalAlignment="Center" TextChanged="OnSearchTextChanged"
                                          GotKeyboardFocus="OnSearchBoxGotKeyboardFocus"

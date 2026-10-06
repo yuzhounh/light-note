@@ -518,8 +518,8 @@
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="6"
                                 SnapsToDevicePixels="True">
+                            <!-- TextBox 会自己把 Padding 应用到 PART_ContentHost，这里不能再加 Margin，否则内边距翻倍、光标偏右 -->
                             <ScrollViewer x:Name="PART_ContentHost"
-                                          Margin="{TemplateBinding Padding}"
                                           Focusable="False"
                                           HorizontalScrollBarVisibility="Hidden"
                                           VerticalScrollBarVisibility="Hidden" />
