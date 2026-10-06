@@ -9,6 +9,26 @@ namespace LightNote.App;
 
 public partial class WindowTitleBar : UserControl
 {
+    public static readonly DependencyProperty ShowMinMaxProperty = DependencyProperty.Register(
+        nameof(ShowMinMax),
+        typeof(bool),
+        typeof(WindowTitleBar),
+        new PropertyMetadata(true, (d, e) => ((WindowTitleBar)d).ApplyShowMinMax((bool)e.NewValue)));
+
+    /// <summary>对话框只需要关闭按钮时设为 false，隐藏最小化和最大化按钮。</summary>
+    public bool ShowMinMax
+    {
+        get => (bool)GetValue(ShowMinMaxProperty);
+        set => SetValue(ShowMinMaxProperty, value);
+    }
+
+    private void ApplyShowMinMax(bool show)
+    {
+        var visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        MinimizeButton.Visibility = visibility;
+        MaximizeButton.Visibility = visibility;
+    }
+
     public WindowTitleBar()
     {
         InitializeComponent();

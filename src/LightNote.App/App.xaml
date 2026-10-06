@@ -83,20 +83,22 @@
         <SolidColorBrush x:Key="BorderBrush" Color="#FFEEF0F2" />
         <SolidColorBrush x:Key="NavHoverBackgroundBrush" Color="#FFE4E7EB" />
         <SolidColorBrush x:Key="NavSelectedBackgroundBrush" Color="#FFD3F0E3" />
-        <SolidColorBrush x:Key="NavSelectedForegroundBrush" Color="#FF00A06B" />
+        <SolidColorBrush x:Key="NavSelectedForegroundBrush" Color="#FF007F55" />
         <SolidColorBrush x:Key="NewNoteButtonBrush" Color="#FFEAECEF" />
         <SolidColorBrush x:Key="NewNoteButtonHoverBrush" Color="#FFDFE3E8" />
         <SolidColorBrush x:Key="NewNoteButtonBorderBrush" Color="#FFD8DCE0" />
         <SolidColorBrush x:Key="TextBrush" Color="#FF1F2328" />
         <SolidColorBrush x:Key="MutedTextBrush" Color="#FF68717D" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#FF246BFD" />
-        <SolidColorBrush x:Key="AccentLightBrush" Color="#FFE8F0FE" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF009467" />
+        <SolidColorBrush x:Key="AccentSolidBrush" Color="#FF009467" />
+        <SolidColorBrush x:Key="AccentSolidHoverBrush" Color="#FF007F55" />
+        <SolidColorBrush x:Key="AccentLightBrush" Color="#FFD3F0E3" />
         <SolidColorBrush x:Key="ListItemSelectedBackgroundBrush" Color="#FFD3F0E3" />
         <SolidColorBrush x:Key="ListItemSelectedBorderBrush" Color="#FFA8E4CD" />
         <SolidColorBrush x:Key="ToolbarHoverBackgroundBrush" Color="#FFE8ECF1" />
-        <SolidColorBrush x:Key="ToolbarActiveBackgroundBrush" Color="#FFDCEEFF" />
-        <SolidColorBrush x:Key="ToolbarActiveForegroundBrush" Color="#FF1D4ED8" />
-        <SolidColorBrush x:Key="ToolbarActiveBorderBrush" Color="#FF93C5FD" />
+        <SolidColorBrush x:Key="ToolbarActiveBackgroundBrush" Color="#FFD3F0E3" />
+        <SolidColorBrush x:Key="ToolbarActiveForegroundBrush" Color="#FF007F55" />
+        <SolidColorBrush x:Key="ToolbarActiveBorderBrush" Color="#FF8FD9BC" />
         <SolidColorBrush x:Key="ToolTipBackgroundBrush" Color="#FFFFFFFF" />
         <SolidColorBrush x:Key="ToolTipForegroundBrush" Color="#FF1F2328" />
         <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#FFEEF0F2" />
@@ -452,6 +454,9 @@
         </Style>
 
         <Style x:Key="DialogPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogButtonStyle}">
+            <Setter Property="Background" Value="{DynamicResource AccentSolidBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentSolidBrush}" />
+            <Setter Property="Foreground" Value="White" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -464,21 +469,22 @@
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
+                                              RecognizesAccessKey="True">
+                                <!-- 全局 TextBlock 样式会强制使用 TextBrush，这里让按钮文字跟随按钮自己的 Foreground（白色） -->
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground"
+                                                Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ButtonBorder" Property="Background"
-                                        Value="{DynamicResource AccentBrush}" />
+                                        Value="{DynamicResource AccentSolidHoverBrush}" />
                                 <Setter TargetName="ButtonBorder" Property="BorderBrush"
-                                        Value="{DynamicResource AccentBrush}" />
-                                <Setter Property="Foreground" Value="White" />
-                            </Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background"
-                                        Value="{DynamicResource AccentBrush}" />
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush"
-                                        Value="{DynamicResource AccentBrush}" />
+                                        Value="{DynamicResource AccentSolidHoverBrush}" />
                                 <Setter Property="Foreground" Value="White" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
@@ -647,7 +653,7 @@
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="ItemBorder" Property="Background"
                                         Value="{DynamicResource AccentLightBrush}" />
-                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource NavSelectedForegroundBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45" />
@@ -762,8 +768,8 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}" />
-                                <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentSolidBrush}" />
+                                <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentSolidBrush}" />
                                 <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
