@@ -258,7 +258,7 @@ export function Sidebar({
           ) : (
             <button
               onClick={onLoginGoogle}
-              className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-semibold hover:opacity-90 transition cursor-pointer"
+              className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white dark:text-zinc-100 border border-transparent dark:border-zinc-700/80 text-xs font-semibold hover:opacity-95 transition cursor-pointer"
             >
               <span>登录 Google 账号</span>
             </button>

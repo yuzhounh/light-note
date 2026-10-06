@@ -207,7 +207,8 @@
 }
 
 .mobile-sidebar {
-  width: min(340px, calc(100vw - 24px));
+  width: min(72vw, 248px) !important;
+  max-width: 248px !important;
   padding: var(--safe-top) 0 var(--safe-bottom) var(--safe-left);
   background: white;
 }
