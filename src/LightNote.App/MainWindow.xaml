@@ -550,7 +550,7 @@
                                              PreviewKeyDown="OnSearchBoxPreviewKeyDown"
                                              Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
                                              ToolTip="搜索标题和正文（Ctrl+F）" />
-                                    <TextBlock Margin="16,0,42,0" Text="搜索标题和正文" FontSize="15" VerticalAlignment="Center"
+                                    <TextBlock Margin="18,0,42,0" Text="搜索标题和正文" FontSize="15" VerticalAlignment="Center"
                                                Foreground="{DynamicResource MutedTextBrush}" IsHitTestVisible="False">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
