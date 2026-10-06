@@ -90,7 +90,7 @@ export function Sidebar({
             onCreateNote()
             if (isMobile) onCloseMobile()
           }}
-          className="w-full h-[36px] relative flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-full shadow-xs hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.98] transition cursor-pointer"
+          className="w-full h-[36px] relative flex items-center bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800/80 border border-zinc-200/90 dark:border-zinc-700/80 rounded-full shadow-xs active:scale-[0.98] transition cursor-pointer"
         >
           {/* Green circle: outer cap radius is 18px. Circle is 26px, left margin is 5px. Concentric and balanced */}
           <div className="w-[26px] h-[26px] rounded-full bg-[#00b87a] flex items-center justify-center shrink-0 ml-[5px]">
