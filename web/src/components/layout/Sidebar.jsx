@@ -250,7 +250,7 @@ export function Sidebar({
           ) : (
             <button
               onClick={onLoginGoogle}
-              className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-full bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white dark:text-zinc-100 border border-transparent dark:border dark:border-zinc-700/80 dark:hover:border-zinc-600 text-xs font-semibold shadow-xs hover:opacity-95 transition cursor-pointer"
+              className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-full bg-zinc-100 hover:bg-[#e4e7eb] text-zinc-800 border border-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-700/80 dark:hover:border-zinc-600 text-xs font-semibold transition cursor-pointer"
             >
               <span>登录 Google 账号</span>
             </button>
@@ -301,7 +301,7 @@ export function Sidebar({
               onClick={onSync}
               className={`p-1.5 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] hover:text-zinc-900 dark:hover:text-white transition rounded-md cursor-pointer ${
                 syncStatus?.status === 'syncing' 
-                  ? 'text-amber-500 animate-spin' 
+                  ? 'text-amber-500' 
                   : syncStatus?.status === 'error' 
                   ? 'text-rose-500' 
                   : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
@@ -314,7 +314,7 @@ export function Sidebar({
                   : `已同步${syncStatus?.lastSyncedAt ? ' (' + new Date(syncStatus.lastSyncedAt).toLocaleTimeString() + ')' : ''} (点击立即同步)`
               }
             >
-              <RefreshCw size={15} />
+              <RefreshCw size={15} className={syncStatus?.status === 'syncing' ? 'animate-spin' : ''} />
             </button>
           )}
           <button
@@ -361,54 +361,6 @@ export function Sidebar({
                 </div>
               </div>
 
-              {/* Sync Status Row */}
-              <div className="flex items-center justify-between px-2 py-1.5 bg-zinc-50 dark:bg-zinc-800/60 rounded-lg text-xs">
-                <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
-                  <RefreshCw size={13} className={syncStatus?.status === 'syncing' ? 'animate-spin text-amber-500' : ''} />
-                  <span className="text-[11px]">
-                    {syncStatus?.status === 'syncing' ? '正在同步...' : syncStatus?.status === 'error' ? '同步失败' : '云端同步'}
-                  </span>
-                </div>
-                <button
-                  onClick={() => { if (onSync) onSync() }}
-                  className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                >
-                  立即同步
-                </button>
-              </div>
-
-              <div className="border-t border-zinc-100 dark:border-zinc-800" />
-
-              {/* Theme mode switcher segmented control */}
-              <div className="flex items-center p-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-                <button
-                  type="button"
-                  onClick={() => { if (theme !== 'light' && onToggleTheme) onToggleTheme() }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                    theme === 'light'
-                      ? 'bg-white text-zinc-900 shadow-xs'
-                      : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-                  }`}
-                  title="浅色模式"
-                >
-                  <Sun size={12} />
-                  <span>浅色</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { if (theme !== 'dark' && onToggleTheme) onToggleTheme() }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                    theme === 'dark'
-                      ? 'bg-zinc-700 text-zinc-100 shadow-xs'
-                      : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-                  }`}
-                  title="深色模式"
-                >
-                  <Moon size={12} />
-                  <span>深色</span>
-                </button>
-              </div>
-
               <div className="border-t border-zinc-100 dark:border-zinc-800" />
 
               <button
@@ -416,7 +368,7 @@ export function Sidebar({
                   setIsProfileModalOpen(false)
                   if (onLogout) onLogout()
                 }}
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-medium transition cursor-pointer"
+                className="w-full flex items-center gap-2 py-1.5 px-2 text-zinc-700 dark:text-zinc-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg text-xs transition cursor-pointer"
               >
                 <LogOut size={13} />
                 <span>退出登录</span>
