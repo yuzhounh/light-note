@@ -331,8 +331,8 @@ export function App() {
         {/* --- DESKTOP / TABLET (3-column / 2-column) --- */}
         {!isMobile && (
           <>
-            {/* Column 1: Sidebar (200px) */}
-            <div className={`${isDesktop ? 'block' : 'hidden'} w-52 shrink-0 h-full`}>
+            {/* Column 1: Sidebar (240px) */}
+            <div className={`${isDesktop ? 'block' : 'hidden'} w-60 shrink-0 h-full`}>
               <Sidebar
                 notebooks={notebooks}
                 currentNotebookId={currentNotebookId}
@@ -354,8 +354,8 @@ export function App() {
               />
             </div>
 
-            {/* Column 2: Note List (320px) */}
-            <div className={`${isTablet ? 'w-72' : 'w-80'} shrink-0 h-full`}>
+            {/* Column 2: Note List (360px) */}
+            <div className={`${isTablet ? 'w-80' : 'w-[360px]'} shrink-0 h-full`}>
               <NoteList
                 notes={notes}
                 activeNoteId={activeNote?.id}
