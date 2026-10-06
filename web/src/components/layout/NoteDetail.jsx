@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { ArrowLeft, Pin, Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2 } from 'lucide-react'
 import { LightEditor } from '../../editor/LightEditor'
 
 export function NoteDetail({
@@ -7,7 +7,6 @@ export function NoteDetail({
   onUpdateTitle,
   onUpdateContent,
   onBackMobile,
-  onTogglePin,
   onSoftDelete,
   isMobile,
   autoFocus = false,
@@ -44,19 +43,6 @@ export function NoteDetail({
           </button>
 
           <div className="flex items-center gap-1">
-            {onTogglePin && (
-              <button
-                onClick={() => onTogglePin(note.id)}
-                className={`p-1.5 rounded-lg transition cursor-pointer ${
-                  note.is_pinned === 1 
-                    ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' 
-                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                }`}
-                title={note.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
-              >
-                <Pin size={17} className={note.is_pinned === 1 ? 'fill-amber-500' : ''} />
-              </button>
-            )}
             {onSoftDelete && (
               <button
                 onClick={() => {

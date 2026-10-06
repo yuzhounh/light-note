@@ -34,7 +34,6 @@ public sealed partial class MainViewModel(
     private bool _suppressTitleChanges;
     private bool _isInitializing;
     private bool _showRecentNavigation;
-    private bool _showPinnedNavigation;
     private bool _showTrashNavigation;
     private int _reloadGeneration;
     private int _tagLoadGeneration;
@@ -115,20 +114,18 @@ public sealed partial class MainViewModel(
         await ReloadNotesAsync(cancellationToken: cancellationToken);
     }
 
-    public void ConfigureNavigation(bool showRecent, bool showPinned, bool showTrash)
+    public void ConfigureNavigation(bool showRecent, bool showTrash)
     {
         _showRecentNavigation = showRecent;
-        _showPinnedNavigation = showPinned;
         _showTrashNavigation = showTrash;
     }
 
     public async Task UpdateNavigationAsync(
         bool showRecent,
-        bool showPinned,
         bool showTrash,
         CancellationToken cancellationToken = default)
     {
-        ConfigureNavigation(showRecent, showPinned, showTrash);
+        ConfigureNavigation(showRecent, showTrash);
         await ReloadNotebooksAsync(cancellationToken: cancellationToken);
         await ReloadNotesAsync(cancellationToken: cancellationToken);
     }
@@ -624,7 +621,7 @@ public sealed partial class MainViewModel(
             SearchQuery = string.Empty;
         }
 
-        if (SelectedNotebook?.Kind is NotebookKind.Trash or NotebookKind.Pinned)
+        if (SelectedNotebook?.Kind is NotebookKind.Trash)
         {
             SelectedNotebook = Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.Recent)
                 ?? Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.All)
@@ -725,36 +722,6 @@ public sealed partial class MainViewModel(
         }
     }
 
-    public async Task TogglePinNotesAsync(IReadOnlyList<string> noteIds)
-    {
-        if (IsTrashSelected || noteIds.Count == 0)
-        {
-            return;
-        }
-
-        var notes = noteIds.Select(GetLatestNote).ToArray();
-        var pin = notes.Any(note => !note.IsPinned);
-        foreach (var note in notes)
-        {
-            if (note.IsPinned == pin)
-            {
-                continue;
-            }
-
-            QueueSave(note with
-            {
-                IsPinned = pin,
-                UpdatedAt = DateTimeOffset.UtcNow,
-                Version = note.Version + 1,
-                SyncState = SyncState.Dirty,
-            });
-            CancelPendingDelay(note.Id);
-            await SavePendingAsync(note.Id);
-        }
-
-        SortNotes();
-    }
-
     public async Task DeleteNotesAsync(IReadOnlyList<string> noteIds)
     {
         if (IsTrashSelected || noteIds.Count == 0)
@@ -840,26 +807,6 @@ public sealed partial class MainViewModel(
                 : Notebooks.FirstOrDefault(item => item.Id == notebookId)?.Name ?? "目标笔记本";
             EditorStatus = $"{noteIds.Count} 篇笔记已移动到“{targetName}”";
         }
-    }
-
-    [RelayCommand]
-    private async Task TogglePinAsync()
-    {
-        if (SelectedNote is null || IsTrashSelected)
-        {
-            return;
-        }
-
-        var current = GetLatestNote(SelectedNote.Model.Id);
-        QueueSave(current with
-        {
-            IsPinned = !current.IsPinned,
-            UpdatedAt = DateTimeOffset.UtcNow,
-            Version = current.Version + 1,
-            SyncState = SyncState.Dirty,
-        });
-        await SaveAsync();
-        SortNotes();
     }
 
     [RelayCommand]
@@ -1032,10 +979,6 @@ public sealed partial class MainViewModel(
         {
             Notebooks.Add(new NotebookListItem(null, "最近笔记", NotebookKind.Recent));
         }
-        if (_showPinnedNavigation)
-        {
-            Notebooks.Add(new NotebookListItem(null, "置顶笔记", NotebookKind.Pinned));
-        }
         Notebooks.Add(new NotebookListItem(null, "全部笔记", NotebookKind.All));
         Notebooks.Add(new NotebookListItem(null, "笔记本组", NotebookKind.GroupRoot));
         foreach (var group in groups)
@@ -1181,8 +1124,6 @@ public sealed partial class MainViewModel(
         IReadOnlyList<Note> notes = notebook.Kind switch
         {
             NotebookKind.Recent => await noteRepository.ListRecentAsync(
-                limit, offset, cancellationToken),
-            NotebookKind.Pinned => await noteRepository.ListPinnedAsync(
                 limit, offset, cancellationToken),
             NotebookKind.Tag when notebook.Id is not null =>
                 await noteRepository.ListByTagAsync(
@@ -1400,10 +1341,9 @@ public sealed partial class MainViewModel(
         Func<NoteListItem, DateTimeOffset> key = order.ByUpdated
             ? item => item.Model.UpdatedAt
             : item => item.Model.CreatedAt;
-        var ordered = Notes.OrderByDescending(item => item.Model.IsPinned);
         var sorted = (order.Descending
-            ? ordered.ThenByDescending(key).ThenByDescending(item => item.Model.Id, StringComparer.Ordinal)
-            : ordered.ThenBy(key).ThenBy(item => item.Model.Id, StringComparer.Ordinal))
+            ? Notes.OrderByDescending(key).ThenByDescending(item => item.Model.Id, StringComparer.Ordinal)
+            : Notes.OrderBy(key).ThenBy(item => item.Model.Id, StringComparer.Ordinal))
             .ToArray();
         for (var targetIndex = 0; targetIndex < sorted.Length; targetIndex++)
         {
@@ -1514,7 +1454,7 @@ public sealed class NoteListItem : ObservableObject
 
     public string Title => Model.Title;
 
-    public string TitleDisplay => Model.IsPinned ? $"★ {Model.Title}" : Model.Title;
+    public string TitleDisplay => Model.Title;
 
     public string Preview => NormalizePreview(_previewOverride ?? Model.BodyText);
 
@@ -1906,7 +1846,6 @@ public sealed record NotebookListItem(
     public string IconData => Kind switch
     {
         NotebookKind.Recent => "M10,2 A8,8 0 1 0 18,10 M10,5 V10 L14,12",
-        NotebookKind.Pinned => "M10,2 L12.3,7 L18,7.7 L13.8,11.5 L15,17 L10,14 L5,17 L6.2,11.5 L2,7.7 L7.7,7 Z",
         NotebookKind.All => "M4,2 H16 V18 H4 Z M7,6 H13 M7,10 H13 M7,14 H13",
         NotebookKind.GroupRoot => "M2,5 H8 L10,7 H18 V17 H2 Z M4,3 H9 L11,5",
         NotebookKind.Group => "M2,6 H8 L10,8 H18 V17 H2 Z",
@@ -1921,7 +1860,6 @@ public sealed record NotebookListItem(
 public enum NotebookKind
 {
     Recent,
-    Pinned,
     All,
     GroupRoot,
     Group,

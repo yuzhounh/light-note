@@ -52,7 +52,7 @@ public sealed class SearchAndOrganizationTests : IDisposable
     }
 
     [Fact]
-    public async Task TagsPinnedRecentAndNotebookMoveWorkTogether()
+    public async Task TagsRecentAndNotebookMoveWorkTogether()
     {
         var (_, notes, notebooks, tags) = await CreateServicesAsync();
         var now = DateTimeOffset.UtcNow;
@@ -65,7 +65,7 @@ public sealed class SearchAndOrganizationTests : IDisposable
             UpdatedAt = now,
         };
         await notebooks.UpsertAsync(notebook);
-        var olderPinned = CreateNote("Pinned", "important", now) with { IsPinned = true };
+        var olderPinned = CreateNote("Older", "important", now);
         var newer = CreateNote("Newer", "daily", now.AddMinutes(1));
         await notes.UpsertAsync(olderPinned);
         await notes.UpsertAsync(newer);
@@ -75,15 +75,12 @@ public sealed class SearchAndOrganizationTests : IDisposable
         var allTags = await tags.ListAsync();
         var taggedNotes = await notes.ListByTagAsync(storedTags.Single(tag => tag.Name == "Work").Id);
         var recent = await notes.ListRecentAsync();
-        var pinned = await notes.ListPinnedAsync();
 
         Assert.Equal(2, storedTags.Count);
         Assert.Equal(2, allTags.Count);
         Assert.Single(taggedNotes);
         Assert.Equal(olderPinned.Id, taggedNotes[0].Id);
         Assert.Equal(newer.Id, recent[0].Id);
-        Assert.Single(pinned);
-        Assert.Equal(olderPinned.Id, pinned[0].Id);
 
         var viewModel = new MainViewModel(notes, notebooks, new NullLogger(), tagRepository: tags);
         await viewModel.InitializeAsync();

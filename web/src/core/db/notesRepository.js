@@ -65,7 +65,7 @@ export const NotesRepository = {
   },
 
   // --- Notes ---
-  async getNotes({ notebookId = null, view = 'all', searchQuery = '' } = {}) {
+  async getNotes({ notebookId = null, view = 'all', searchQuery = '', sortBy = 'created', descending = true } = {}) {
     let query = db.notes
 
     if (view === 'trash') {
@@ -75,9 +75,7 @@ export const NotesRepository = {
 
     let notes = await query.filter(n => !n.is_deleted && !n.purged_at).toArray()
 
-    if (view === 'pinned') {
-      notes = notes.filter(n => n.is_pinned === 1)
-    } else if (notebookId) {
+    if (notebookId) {
       notes = notes.filter(n => n.notebook_id === notebookId)
     }
 
@@ -89,12 +87,12 @@ export const NotesRepository = {
       )
     }
 
-    // Sort: pinned first, then updated_at descending
+    // Sort: by created_at or updated_at, descending (newest first) by default
+    const field = sortBy === 'updated' ? 'updated_at' : 'created_at'
+    const direction = descending ? -1 : 1
     return notes.sort((a, b) => {
-      if ((b.is_pinned || 0) !== (a.is_pinned || 0)) {
-        return (b.is_pinned || 0) - (a.is_pinned || 0)
-      }
-      return new Date(b.updated_at) - new Date(a.updated_at)
+      const diff = new Date(a[field] || a.updated_at) - new Date(b[field] || b.updated_at)
+      return diff !== 0 ? diff * direction : String(a.id).localeCompare(String(b.id)) * direction
     })
   },
 
@@ -161,10 +159,6 @@ export const NotesRepository = {
       await queueOutbox('note', id)
     })
     syncService.notifyOutboxChanged()
-  },
-
-  async togglePin(id) {
-    await this._updateNote(id, note => ({ is_pinned: note.is_pinned === 1 ? 0 : 1 }))
   },
 
   async softDeleteNote(id) {

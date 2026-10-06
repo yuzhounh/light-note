@@ -89,7 +89,6 @@ public partial class SettingsDialog : Window
         }
 
         ShowRecentBox.IsChecked = settings.ShowRecentNavigation;
-        ShowPinnedBox.IsChecked = settings.ShowPinnedNavigation;
         ShowTrashBox.IsChecked = settings.ShowTrashNavigation;
 
         if (settings.LinkOpenMode == "external")
@@ -210,7 +209,6 @@ public partial class SettingsDialog : Window
         Settings = Settings with
         {
             ShowRecentNavigation = ShowRecentBox.IsChecked == true,
-            ShowPinnedNavigation = ShowPinnedBox.IsChecked == true,
             ShowTrashNavigation = ShowTrashBox.IsChecked == true,
         };
         SettingsSaved = true;

@@ -188,6 +188,9 @@
         </Style>
 
         <Style x:Key="SlimVerticalScrollBarStyle" TargetType="ScrollBar">
+            <!-- 系统主题样式会把竖向滚动条的 MinWidth 设为系统滚动条宽度（约 17），
+                 不清零的话 10 宽的细滚动条两侧会多出空白，滚动条离右侧分隔线偏远 -->
+            <Setter Property="MinWidth" Value="0" />
             <Setter Property="Width" Value="10" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Template">

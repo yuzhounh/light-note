@@ -20,8 +20,6 @@ public sealed record AppSettings
 
     public bool ShowRecentNavigation { get; init; }
 
-    public bool ShowPinnedNavigation { get; init; }
-
     public bool ShowTrashNavigation { get; init; }
 
     public bool AutomaticBackups { get; init; } = true;

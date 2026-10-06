@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Menu, Trash2, Pin, FileText, X } from 'lucide-react'
+import { Menu, Trash2, FileText, X, ArrowUpDown, Check } from 'lucide-react'
 
 function getNotePreviewText(bodyText) {
   if (!bodyText) return '无附加正文...'
@@ -13,6 +13,26 @@ function getNotePreviewText(bodyText) {
   return bodyText.trim() || '无附加正文...'
 }
 
+// 卡片密度：紧凑 / 舒适 / 宽松（与桌面端三档对应）
+const DENSITY_STYLES = {
+  compact: { card: 'p-2.5', titleGap: 'mb-0.5', summary: 'leading-snug', footer: 'mt-1' },
+  comfortable: { card: 'p-3.5', titleGap: 'mb-1.5', summary: 'leading-relaxed', footer: 'mt-2.5' },
+  spacious: { card: 'p-5', titleGap: 'mb-2', summary: 'leading-7', footer: 'mt-3.5' },
+}
+
+function OptionRow({ checked, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-xs text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+    >
+      <span className="w-3.5 shrink-0">{checked && <Check size={13} />}</span>
+      <span>{children}</span>
+    </button>
+  )
+}
+
 export function NoteList({
   notes,
   activeNoteId,
@@ -23,11 +43,27 @@ export function NoteList({
   notebooks = [],
   currentNotebookId = null,
   onOpenSidebar,
-  onTogglePin,
   onSoftDelete,
+  sort = { by: 'created', descending: true },
+  onSortChange,
+  density = 'comfortable',
+  onDensityChange,
   isMobile,
   isTablet = false
 }) {
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false)
+  const optionsRef = useRef(null)
+  const cardStyle = DENSITY_STYLES[density] || DENSITY_STYLES.comfortable
+
+  useEffect(() => {
+    if (!isOptionsOpen) return undefined
+    const handlePointerDown = e => {
+      if (optionsRef.current && !optionsRef.current.contains(e.target)) setIsOptionsOpen(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [isOptionsOpen])
+
   const [visibleCount, setVisibleCount] = useState(25)
   const [activeActionNote, setActiveActionNote] = useState(null)
   const longPressTimerRef = useRef(null)
@@ -206,6 +242,31 @@ export function NoteList({
           <span className="text-zinc-400 shrink-0">({notes.length}条)</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {onSortChange && (
+            <div className="relative" ref={optionsRef}>
+              <button
+                onClick={() => setIsOptionsOpen(open => !open)}
+                title="排序与卡片密度"
+                aria-label="排序与卡片密度"
+                className="p-1 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+              >
+                <ArrowUpDown size={14} />
+              </button>
+              {isOptionsOpen && (
+                <div className="absolute right-0 top-full mt-1 w-40 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg z-30">
+                  <div className="px-3 py-1 text-[11px] font-semibold text-zinc-400">排序依据</div>
+                  <OptionRow checked={sort.by === 'created'} onClick={() => onSortChange({ ...sort, by: 'created' })}>创建时间</OptionRow>
+                  <OptionRow checked={sort.by === 'updated'} onClick={() => onSortChange({ ...sort, by: 'updated' })}>修改时间</OptionRow>
+                  <OptionRow checked={sort.descending} onClick={() => onSortChange({ ...sort, descending: !sort.descending })}>逆序</OptionRow>
+                  <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
+                  <div className="px-3 py-1 text-[11px] font-semibold text-zinc-400">卡片密度</div>
+                  <OptionRow checked={density === 'compact'} onClick={() => onDensityChange?.('compact')}>紧凑</OptionRow>
+                  <OptionRow checked={density === 'comfortable'} onClick={() => onDensityChange?.('comfortable')}>舒适</OptionRow>
+                  <OptionRow checked={density === 'spacious'} onClick={() => onDensityChange?.('spacious')}>宽松</OptionRow>
+                </div>
+              )}
+            </div>
+          )}
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
@@ -255,7 +316,7 @@ export function NoteList({
                       setActiveActionNote(note)
                     }
                   }}
-                  className={`group relative p-3 rounded-md cursor-pointer transition select-none ${
+                  className={`group relative ${cardStyle.card} rounded-md cursor-pointer transition select-none ${
                     isSelected
                       ? 'bg-[#e8f0fe] dark:bg-sky-950/40 text-zinc-900 dark:text-zinc-100'
                       : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200'
@@ -264,24 +325,21 @@ export function NoteList({
                   <div className="flex flex-col">
                     {/* Top part: Lines 1-3 (Title + Preview) */}
                     <div className="min-w-0">
-                      <div className="mb-1 flex items-center gap-1.5">
-                        {note.is_pinned === 1 && (
-                          <Pin size={12} className="text-amber-500 shrink-0 fill-amber-500" />
-                        )}
+                      <div className={`${cardStyle.titleGap} flex items-center gap-1.5`}>
                         <h4 className="text-[14.5px] font-semibold truncate text-zinc-900 dark:text-zinc-100">
                           {highlightMatch(note.title || '无标题', searchQuery)}
                         </h4>
                       </div>
 
-                      <p className="text-[13px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                      <p className={`text-[13px] text-zinc-600 dark:text-zinc-400 line-clamp-2 ${cardStyle.summary}`}>
                         {highlightMatch(getNotePreviewText(note.body_text), searchQuery)}
                       </p>
                     </div>
 
                     {/* Bottom part: Line 4 (Date on left, Notebook name with expanded width) */}
-                    <div className="note-card-footer flex items-center justify-between text-xs text-zinc-400 font-sans mt-2">
+                    <div className={`note-card-footer flex items-center justify-between text-xs text-zinc-400 font-sans ${cardStyle.footer}`}>
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="shrink-0">{formatFullDate(note.updated_at)}</span>
+                        <span className="shrink-0">{formatFullDate(sort.by === 'updated' ? note.updated_at : (note.created_at || note.updated_at))}</span>
 
                         {!isSingleNotebook && (
                           <span
@@ -300,18 +358,6 @@ export function NoteList({
                       {/* Quick action on hover (Desktop only, never on mobile or tablet) */}
                       {!isMobile && !isTablet && (
                         <div className="note-actions hidden lg:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0 ml-2">
-                          {onTogglePin && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onTogglePin(note.id)
-                              }}
-                              className={`p-0.5 rounded transition ${note.is_pinned === 1 ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
-                              title={note.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
-                            >
-                              <Pin size={13} />
-                            </button>
-                          )}
                           {onSoftDelete && (
                             <button
                               onClick={(e) => { 
@@ -370,24 +416,6 @@ export function NoteList({
 
             {/* Action Menu Options */}
             <div className="space-y-1 pt-0.5">
-              {onTogglePin && (
-                <button
-                  onClick={() => {
-                    const id = activeActionNote.id
-                    setActiveActionNote(null)
-                    onTogglePin(id)
-                  }}
-                  className="w-full h-11 flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:bg-zinc-200 dark:active:bg-zinc-700 transition cursor-pointer"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-500 shrink-0">
-                    <Pin size={15} className={activeActionNote.is_pinned === 1 ? 'fill-amber-500' : ''} />
-                  </div>
-                  <span className="flex-1 text-left">
-                    {activeActionNote.is_pinned === 1 ? '取消置顶' : '置顶笔记'}
-                  </span>
-                </button>
-              )}
-
               {onSoftDelete && (
                 <button
                   onClick={() => {

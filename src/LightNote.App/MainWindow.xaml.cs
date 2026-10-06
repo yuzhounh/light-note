@@ -91,7 +91,6 @@ public partial class MainWindow : Window
         AccountSettingsVersionText.Text = $"LightNote {typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "unknown"}";
         _viewModel.ConfigureNavigation(
             _settings.ShowRecentNavigation,
-            _settings.ShowPinnedNavigation,
             _settings.ShowTrashNavigation);
         _viewModel.ConfigureNoteSort(_settings.NoteSortByUpdated, _settings.NoteSortDescending);
         ApplyNoteListDensity(_settings.NoteListDensity);
@@ -1020,7 +1019,6 @@ public partial class MainWindow : Window
             item.IsChecked = item.Tag?.ToString() switch
             {
                 "navigation:recent" => _settings.ShowRecentNavigation,
-                "navigation:pinned" => _settings.ShowPinnedNavigation,
                 "navigation:trash" => _settings.ShowTrashNavigation,
                 _ => false,
             };
@@ -1037,7 +1035,6 @@ public partial class MainWindow : Window
         _settings = tag switch
         {
             "navigation:recent" => _settings with { ShowRecentNavigation = item.IsChecked },
-            "navigation:pinned" => _settings with { ShowPinnedNavigation = item.IsChecked },
             "navigation:trash" => _settings with { ShowTrashNavigation = item.IsChecked },
             _ => _settings,
         };
@@ -1047,7 +1044,6 @@ public partial class MainWindow : Window
             _settingsService.Save(_settings);
             await _viewModel.UpdateNavigationAsync(
                 _settings.ShowRecentNavigation,
-                _settings.ShowPinnedNavigation,
                 _settings.ShowTrashNavigation);
         }
         catch (Exception exception)
@@ -1196,7 +1192,7 @@ public partial class MainWindow : Window
             async () => await ApplyNoteSortAsync(byUpdated: false, _settings.NoteSortDescending)));
         menu.Items.Add(CreateOptionItem("修改时间", _settings.NoteSortByUpdated,
             async () => await ApplyNoteSortAsync(byUpdated: true, _settings.NoteSortDescending)));
-        menu.Items.Add(CreateOptionItem("逆序（新的在前）", _settings.NoteSortDescending,
+        menu.Items.Add(CreateOptionItem("逆序", _settings.NoteSortDescending,
             async () => await ApplyNoteSortAsync(_settings.NoteSortByUpdated, !_settings.NoteSortDescending)));
         menu.Items.Add(new Separator { Style = (Style)FindResource("MenuSeparatorStyle") });
         menu.Items.Add(CreateOptionHeader("卡片密度"));
@@ -1654,7 +1650,6 @@ public partial class MainWindow : Window
     {
         var menu = new ContextMenu();
         menu.Opened += OnNoteContextMenuOpened;
-        menu.Items.Add(CreateNoteMenuItem("置顶 / 取消置顶", "normal", OnTogglePinMenuClick));
         menu.Items.Add(CreateNoteMenuItem("移动到笔记本…", "normal", OnMoveNoteClick));
         menu.Items.Add(CreateNoteMenuItem("编辑标签…", "normal-single", OnEditTagsClick));
         menu.Items.Add(CreateNoteMenuItem("历史版本…", "single", OnHistoryClick));
@@ -1700,9 +1695,6 @@ public partial class MainWindow : Window
             };
         }
     }
-
-    private async void OnTogglePinMenuClick(object sender, RoutedEventArgs e) =>
-        await _viewModel.TogglePinNotesAsync(GetSelectedNoteIds());
 
     private async void OnDeleteNoteMenuClick(object sender, RoutedEventArgs e) =>
         await _viewModel.DeleteNotesAsync(GetSelectedNoteIds());
@@ -2287,7 +2279,6 @@ public partial class MainWindow : Window
                 ApplyTheme();
                 _viewModel.ConfigureNavigation(
                     _settings.ShowRecentNavigation,
-                    _settings.ShowPinnedNavigation,
                     _settings.ShowTrashNavigation);
             }
             catch (Exception exception)

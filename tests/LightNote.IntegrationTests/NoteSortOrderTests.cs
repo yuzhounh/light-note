@@ -12,11 +12,11 @@ public sealed class NoteSortOrderTests : IDisposable
         Guid.NewGuid().ToString("N"));
 
     [Theory]
-    [InlineData(false, true, "pinned,c3,c2,c1")]
-    [InlineData(false, false, "pinned,c1,c2,c3")]
-    [InlineData(true, true, "pinned,c1,c3,c2")]
-    [InlineData(true, false, "pinned,c2,c3,c1")]
-    public async Task ListsFollowSortOrderWithPinnedFirst(bool byUpdated, bool descending, string expected)
+    [InlineData(false, true, "c3,c2,c1,old")]
+    [InlineData(false, false, "old,c1,c2,c3")]
+    [InlineData(true, true, "c1,c3,c2,old")]
+    [InlineData(true, false, "old,c2,c3,c1")]
+    public async Task ListsFollowSortOrder(bool byUpdated, bool descending, string expected)
     {
         var paths = new AppDataPaths(_testDirectory);
         var factory = new SqliteConnectionFactory(paths);
@@ -28,7 +28,7 @@ public sealed class NoteSortOrderTests : IDisposable
         await repository.UpsertAsync(CreateNote("c1", baseTime.AddDays(1), baseTime.AddDays(30)));
         await repository.UpsertAsync(CreateNote("c2", baseTime.AddDays(2), baseTime.AddDays(10)));
         await repository.UpsertAsync(CreateNote("c3", baseTime.AddDays(3), baseTime.AddDays(20)));
-        await repository.UpsertAsync(CreateNote("pinned", baseTime, baseTime, isPinned: true));
+        await repository.UpsertAsync(CreateNote("old", baseTime, baseTime));
 
         repository.SortOrder = new NoteSortOrder(byUpdated, descending);
         var notes = await repository.ListAsync(null, allNotebooks: true, deletedOnly: false);
@@ -45,14 +45,13 @@ public sealed class NoteSortOrderTests : IDisposable
         }
     }
 
-    private static Note CreateNote(string id, DateTimeOffset createdAt, DateTimeOffset updatedAt, bool isPinned = false) => new()
+    private static Note CreateNote(string id, DateTimeOffset createdAt, DateTimeOffset updatedAt) => new()
     {
         Id = id,
         Title = id,
         BodyJson = "{}",
         BodyHtml = "<p></p>",
         BodyText = string.Empty,
-        IsPinned = isPinned,
         CreatedAt = createdAt,
         UpdatedAt = updatedAt,
     };

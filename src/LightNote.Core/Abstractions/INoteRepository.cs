@@ -32,11 +32,6 @@ public interface INoteRepository
         int offset = 0,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<Note>> ListPinnedAsync(
-        int limit = 50,
-        int offset = 0,
-        CancellationToken cancellationToken = default);
-
     Task<IReadOnlyList<Note>> ListByTagAsync(
         string tagId,
         int limit = 50,

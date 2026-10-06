@@ -20,12 +20,11 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
 
     public NoteSortOrder SortOrder { get; set; } = new();
 
-    private string OrderBy(string prefix = "", bool pinnedFirst = true)
+    private string OrderBy(string prefix = "")
     {
         var column = SortOrder.ByUpdated ? "updated_at" : "created_at";
         var direction = SortOrder.Descending ? "DESC" : "ASC";
-        var ordering = $"{prefix}{column} {direction}, {prefix}id {direction}";
-        return pinnedFirst ? $"{prefix}is_pinned DESC, {ordering}" : ordering;
+        return $"{prefix}{column} {direction}, {prefix}id {direction}";
     }
 
     public async Task<IReadOnlyList<Note>> ListAsync(
@@ -108,18 +107,7 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         CancellationToken cancellationToken = default) =>
         ListWithFilterAsync(
             "deleted_at IS NULL AND purged_at IS NULL",
-            OrderBy(pinnedFirst: false),
-            limit,
-            offset,
-            cancellationToken);
-
-    public Task<IReadOnlyList<Note>> ListPinnedAsync(
-        int limit = 50,
-        int offset = 0,
-        CancellationToken cancellationToken = default) =>
-        ListWithFilterAsync(
-            "deleted_at IS NULL AND purged_at IS NULL AND is_pinned = 1",
-            OrderBy(pinnedFirst: false),
+            OrderBy(),
             limit,
             offset,
             cancellationToken);
@@ -429,7 +417,7 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
             FROM notes_fts
             INNER JOIN notes AS n ON n.id = notes_fts.note_id
             WHERE notes_fts MATCH $query AND n.deleted_at IS NULL AND n.purged_at IS NULL
-            ORDER BY n.is_pinned DESC, bm25(notes_fts, 8.0, 1.0), n.updated_at DESC
+            ORDER BY bm25(notes_fts, 8.0, 1.0), n.updated_at DESC
             LIMIT $limit OFFSET $offset;
             """;
         command.Parameters.AddWithValue(
@@ -460,7 +448,7 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
             SELECT {PrefixedColumns}, n.body_text
             FROM notes AS n
             WHERE n.deleted_at IS NULL AND n.purged_at IS NULL AND {string.Join(" AND ", filters)}
-            ORDER BY n.is_pinned DESC, n.updated_at DESC
+            ORDER BY n.updated_at DESC
             LIMIT $limit OFFSET $offset;
             """;
         command.Parameters.AddWithValue("$limit", Math.Clamp(limit, 1, 500));

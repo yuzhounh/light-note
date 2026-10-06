@@ -45,11 +45,6 @@
                                     Background="{DynamicResource BorderBrush}" />
                             <Border Grid.Column="2" Background="{TemplateBinding BorderBrush}" />
                         </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="DividerLine" Property="Width" Value="3" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -77,6 +72,19 @@
                                 <Setter TargetName="ItemBackground" Property="Opacity" Value="0.72" />
                             </Trigger>
                         </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- 第一栏与第二栏之间的分隔条：整条与侧栏同色、不画分隔线、悬停也无变化（鼠标形状已提示可拖动），
+             这样第二栏的圆角不会被线条和白边打断 -->
+        <Style x:Key="SidebarPaneGridSplitterStyle" TargetType="GridSplitter" BasedOn="{StaticResource PaneGridSplitterStyle}">
+            <Setter Property="Background" Value="{DynamicResource SecondaryPanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SecondaryPanelBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GridSplitter">
+                        <Grid SnapsToDevicePixels="True" Background="{TemplateBinding Background}" />
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -135,8 +143,6 @@
                         <MenuItem Header="新建笔记本组" Click="OnNewNotebookGroupClick" />
                         <Separator Style="{StaticResource MenuSeparatorStyle}" />
                         <MenuItem Header="最近笔记" Tag="navigation:recent" IsCheckable="True"
-                                  Click="OnNavigationMenuItemClick" />
-                        <MenuItem Header="置顶笔记" Tag="navigation:pinned" IsCheckable="True"
                                   Click="OnNavigationMenuItemClick" />
                         <MenuItem Header="回收站" Tag="navigation:trash" IsCheckable="True"
                                   Click="OnNavigationMenuItemClick" />
@@ -518,10 +524,12 @@
                     </ListBox>
                 </DockPanel>
             </Border>
-            <GridSplitter x:Name="NotebookSplitter" Grid.Column="1" Style="{StaticResource PaneGridSplitterStyle}"
+            <GridSplitter x:Name="NotebookSplitter" Grid.Column="1" Style="{StaticResource SidebarPaneGridSplitterStyle}"
                           Background="{DynamicResource SecondaryPanelBrush}"
                           DragCompleted="OnPaneSplitterDragCompleted" />
-            <Border Grid.Column="2" Background="{DynamicResource PanelBrush}">
+            <!-- 第二栏左上角圆角：圆角后露出的底色与侧栏一致 -->
+            <Border Grid.Column="2" Background="{DynamicResource SecondaryPanelBrush}" />
+            <Border Grid.Column="2" Background="{DynamicResource PanelBrush}" CornerRadius="12,0,0,0">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Padding="14,12" BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,0,0,1">
@@ -589,8 +597,12 @@
                                  VirtualizingPanel.CacheLengthUnit="Page"
                                  UseLayoutRounding="True" SnapsToDevicePixels="True">
                             <ListBox.Resources>
+                                <!-- 右侧多留 4/3 单位（150% 缩放下正好 2 像素），使滑块到分隔线的距离
+                                     与第三栏滑块到窗口右边框的距离相等 -->
                                 <Style TargetType="ScrollBar"
-                                       BasedOn="{StaticResource SlimVerticalScrollBarStyle}" />
+                                       BasedOn="{StaticResource SlimVerticalScrollBarStyle}">
+                                    <Setter Property="Margin" Value="0,0,1.3333,0" />
+                                </Style>
                             </ListBox.Resources>
                              <ListBox.ItemContainerStyle>
                                  <Style TargetType="ListBoxItem">

@@ -404,24 +404,6 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="置顶笔记" Style="{StaticResource CardTitleStyle}" />
-                                            <TextBlock Margin="0,4,12,0" Text="在左侧笔记本栏顶部显示快捷置顶笔记分类。"
-                                                       Style="{StaticResource CardDescriptionStyle}" />
-                                        </StackPanel>
-                                        <CheckBox x:Name="ShowPinnedBox" Grid.Column="1"
-                                                  Style="{StaticResource ToggleSwitchStyle}"
-                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                  Click="OnNavToggleClicked" />
-                                    </Grid>
-
-                                    <Separator Margin="0,12,0,12" Background="{DynamicResource BorderBrush}" Height="1" />
-
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="回收站" Style="{StaticResource CardTitleStyle}" />
                                             <TextBlock Margin="0,4,12,0" Text="在左侧笔记本栏底部显示废纸篓与软删除笔记视图。"
                                                        Style="{StaticResource CardDescriptionStyle}" />

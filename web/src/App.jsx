@@ -12,6 +12,23 @@ import { SettingsModal } from './components/modals/SettingsModal'
 import { loginWithGoogle, logoutFirebase, subscribeAuth } from './core/auth/firebaseAuth'
 import { Plus } from 'lucide-react'
 
+function readStoredJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function writeStoredJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    // 本地存储不可用时只在本次会话生效
+  }
+}
+
 export function App() {
   const { isMobile, isTablet, isDesktop } = useResponsive()
   
@@ -20,8 +37,13 @@ export function App() {
   const [notes, setNotes] = useState([])
   const [activeNote, setActiveNote] = useState(null)
   const [currentNotebookId, setCurrentNotebookId] = useState(null)
-  const [currentView, setCurrentView] = useState('all') // 'all' | 'pinned' | 'trash'
+  const [currentView, setCurrentView] = useState('all') // 'all' | 'trash'
   const [searchQuery, setSearchQuery] = useState('')
+  const [noteSort, setNoteSort] = useState(() => readStoredJson('lightnote.noteSort', { by: 'created', descending: true }))
+  const [noteDensity, setNoteDensity] = useState(() => {
+    const stored = readStoredJson('lightnote.noteDensity', 'comfortable')
+    return ['compact', 'comfortable', 'spacious'].includes(stored) ? stored : 'comfortable'
+  })
   const [saveStatus, setSaveStatus] = useState('saved')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
@@ -56,7 +78,7 @@ export function App() {
   }, [isMobile, activeNote])
 
   const viewRef = useRef(null)
-  viewRef.current = { currentNotebookId, currentView, searchQuery, isMobile }
+  viewRef.current = { currentNotebookId, currentView, searchQuery, isMobile, noteSort }
 
   // Initialize theme class on document element
   useEffect(() => {
@@ -142,7 +164,7 @@ export function App() {
   // Reload notes when view, notebook, or search query changes
   useEffect(() => {
     loadNotes()
-  }, [currentNotebookId, currentView, searchQuery])
+  }, [currentNotebookId, currentView, searchQuery, noteSort])
 
   async function refreshData() {
     const draftGeneration = noteDrafts.generation
@@ -153,6 +175,8 @@ export function App() {
       notebookId: view.currentNotebookId,
       view: view.currentView,
       searchQuery: view.searchQuery,
+      sortBy: view.noteSort.by,
+      descending: view.noteSort.descending,
     })
     if (draftGeneration !== noteDrafts.generation) return refreshData()
     setNotes(prev => draftGeneration === noteDrafts.generation
@@ -173,6 +197,8 @@ export function App() {
       notebookId: currentNotebookId,
       view: currentView,
       searchQuery,
+      sortBy: noteSort.by,
+      descending: noteSort.descending,
     })
     if (draftGeneration !== noteDrafts.generation) return loadNotes()
     setNotes(prev => draftGeneration === noteDrafts.generation
@@ -232,15 +258,6 @@ export function App() {
     noteDrafts.schedule(noteToSave, note => NotesRepository.saveNote(note.id, {
       title: note.title, bodyHtml: note.body_html, bodyText: note.body_text, bodyJson: note.body_json,
     }))
-  }
-
-  // Toggle Note Pin
-  async function handleTogglePin(id) {
-    await NotesRepository.togglePin(id)
-    await loadNotes()
-    if (activeNote && activeNote.id === id) {
-      setActiveNote(prev => ({ ...prev, is_pinned: prev.is_pinned === 1 ? 0 : 1 }))
-    }
   }
 
   // Soft Delete Note (Move to Trash)
@@ -345,10 +362,13 @@ export function App() {
                 onSelectNote={handleSelectNote}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                sort={noteSort}
+                onSortChange={value => { setNoteSort(value); writeStoredJson('lightnote.noteSort', value) }}
+                density={noteDensity}
+                onDensityChange={value => { setNoteDensity(value); writeStoredJson('lightnote.noteDensity', value) }}
                 currentNotebookName={currentNotebookName}
                 notebooks={notebooks}
                 currentNotebookId={currentNotebookId}
-                onTogglePin={handleTogglePin}
                 onSoftDelete={handleSoftDelete}
                 onOpenSidebar={() => setIsSidebarOpen(true)}
                 isMobile={isTablet}
@@ -416,11 +436,14 @@ export function App() {
                   onSelectNote={handleSelectNote}
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
+                  sort={noteSort}
+                  onSortChange={value => { setNoteSort(value); writeStoredJson('lightnote.noteSort', value) }}
+                  density={noteDensity}
+                  onDensityChange={value => { setNoteDensity(value); writeStoredJson('lightnote.noteDensity', value) }}
                   currentNotebookName={currentNotebookName}
                   notebooks={notebooks}
                   currentNotebookId={currentNotebookId}
                   onOpenSidebar={() => setIsSidebarOpen(true)}
-                  onTogglePin={handleTogglePin}
                   onSoftDelete={handleSoftDelete}
                   isMobile={true}
                   isTablet={false}
@@ -447,7 +470,6 @@ export function App() {
                   onUpdateTitle={handleUpdateTitle}
                   onUpdateContent={handleUpdateContent}
                   onBackMobile={() => setMobileView('list')}
-                  onTogglePin={handleTogglePin}
                   onSoftDelete={(id) => {
                     handleSoftDelete(id)
                     setMobileView('list')
