@@ -19,12 +19,15 @@ public sealed class ThemeService
         SetBrush("NewNoteButtonBrush", IsDark ? "#FF2C3036" : "#FFEAECEF");
         SetBrush("NewNoteButtonHoverBrush", IsDark ? "#FF363B43" : "#FFDFE3E8");
         SetBrush("NewNoteButtonBorderBrush", IsDark ? "#FF3E444D" : "#FFD8DCE0");
+        SetBrush("NavHoverBackgroundBrush", IsDark ? "#FF363B43" : "#FFE4E7EB");
+        SetBrush("NavSelectedBackgroundBrush", IsDark ? "#FF234A3F" : "#FFD3F0E3");
+        SetBrush("NavSelectedForegroundBrush", IsDark ? "#FF34D399" : "#FF00A06B");
         SetBrush("TextBrush", IsDark ? "#FFF2F4F7" : "#FF1F2328");
         SetBrush("MutedTextBrush", IsDark ? "#FFC4CAD1" : "#FF68717D");
         SetBrush("AccentBrush", IsDark ? "#FF3B82F6" : "#FF246BFD");
         SetBrush("AccentLightBrush", IsDark ? "#FF2A374A" : "#FFE8F0FE");
-        SetBrush("ListItemSelectedBackgroundBrush", IsDark ? "#FF253244" : "#FFE8F0FE");
-        SetBrush("ListItemSelectedBorderBrush", IsDark ? "#FF3E5C85" : "#FFA0C5FD");
+        SetBrush("ListItemSelectedBackgroundBrush", IsDark ? "#FF234A3F" : "#FFD3F0E3");
+        SetBrush("ListItemSelectedBorderBrush", IsDark ? "#FF2A6552" : "#FFA8E4CD");
         SetBrush("ToolbarHoverBackgroundBrush", IsDark ? "#FF3A424E" : "#FFE8ECF1");
         SetBrush("ToolbarActiveBackgroundBrush", IsDark ? "#FF556073" : "#FFDCEEFF");
         SetBrush("ToolbarActiveForegroundBrush", IsDark ? "#FFFFFFFF" : "#FF1D4ED8");

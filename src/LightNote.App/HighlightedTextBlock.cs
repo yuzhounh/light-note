@@ -71,9 +71,8 @@ public sealed class HighlightedTextBlock : TextBlock
 
             Inlines.Add(new Run(text.Substring(nextMatch.Index, nextMatch.Term.Length))
             {
-                Background = new SolidColorBrush(Color.FromRgb(255, 214, 51)),
-                Foreground = new SolidColorBrush(Color.FromRgb(24, 28, 34)),
-                FontWeight = FontWeights.SemiBold,
+                // 半透明浅黄：浅色主题下是柔和的浅黄，深色主题下也不刺眼，且不需要改文字颜色
+                Background = new SolidColorBrush(Color.FromArgb(0x70, 0xFF, 0xE0, 0x66)),
             });
             position = nextMatch.Index + nextMatch.Term.Length;
         }

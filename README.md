@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/pen-note-icon-yellow-1024.png" width="112" alt="Light Note logo">
+  <img src="images/pen-note-icon-green-1024.png" width="112" alt="Light Note logo">
 </p>
 
 <h1 align="center">Light Note</h1>

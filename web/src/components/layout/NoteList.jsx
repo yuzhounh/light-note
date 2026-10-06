@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Menu, Trash2, FileText, X, ArrowUpDown, Check } from 'lucide-react'
+import { Menu, Trash2, FileText, X, ArrowUpDown, Check, Search } from 'lucide-react'
 
 function getNotePreviewText(bodyText) {
   if (!bodyText) return '无附加正文...'
@@ -185,7 +185,7 @@ export function NoteList({
     const parts = text.split(regex)
     return parts.map((part, i) =>
       regex.test(part) ? (
-        <mark key={i} className="bg-amber-200 dark:bg-amber-900/70 text-zinc-900 dark:text-zinc-100 rounded px-0.5">
+        <mark key={i} className="bg-[#ffe066]/45 dark:bg-[#ffe066]/25 text-inherit rounded-sm font-[inherit]">
           {part}
         </mark>
       ) : (
@@ -223,13 +223,34 @@ export function NoteList({
       ) : (
         /* Desktop Search Input */
         <div className="p-3 pb-1.5 shrink-0">
-          <input
-            type="text"
-            placeholder="搜索标题和正文"
-            value={searchQuery}
-            onChange={e => onSearchChange(e.target.value)}
-            className="w-full px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-900 border border-transparent focus:border-zinc-300 dark:focus:border-zinc-700 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none transition"
-          />
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              placeholder="搜索标题和正文"
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') {
+                  onSearchChange('')
+                  e.currentTarget.blur()
+                }
+              }}
+              className="w-full h-[38px] pl-4 pr-11 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-transparent text-[15px] text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none transition"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => onSearchChange('')}
+                aria-label="清除搜索"
+                title="清除搜索（Esc）"
+                className="absolute right-1 w-[30px] h-[30px] rounded-full flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] transition cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            ) : (
+              <Search size={16} className="absolute right-4 text-zinc-700 dark:text-zinc-300 pointer-events-none" />
+            )}
+          </div>
         </div>
       )}
 
@@ -318,7 +339,7 @@ export function NoteList({
                   }}
                   className={`group relative ${cardStyle.card} rounded-md cursor-pointer transition select-none ${
                     isSelected
-                      ? 'bg-[#e8f0fe] dark:bg-sky-950/40 text-zinc-900 dark:text-zinc-100'
+                      ? 'bg-[#d3f0e3] dark:bg-[#234a3f] ring-1 ring-inset ring-[#a8e4cd] dark:ring-[#2a6552] text-zinc-900 dark:text-zinc-100'
                       : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200'
                   }`}
                 >
@@ -345,7 +366,7 @@ export function NoteList({
                           <span
                             className={`truncate text-[11px] px-1.5 py-0.5 rounded max-w-[200px] transition ${
                               isSelected
-                                ? 'bg-blue-100/80 dark:bg-sky-900/60 text-blue-700 dark:text-sky-300'
+                                ? 'bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
                                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
                             }`}
                             title={getNotebookName(note.notebook_id)}

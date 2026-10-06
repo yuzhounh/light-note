@@ -298,7 +298,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
       <span
         style={{ width: '100%', display: 'inline-block' }}
         className={`relative inline-block max-w-full rounded-lg overflow-visible ${
-          selected ? 'ring-2 ring-amber-500 ring-offset-2' : ''
+          selected ? 'ring-2 ring-emerald-500 ring-offset-2' : ''
         }`}
       >
         <img
@@ -317,7 +317,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
             <button
               type="button"
               onClick={(e) => handleSetPresetWidth('25%', e)}
-              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '25%' ? 'bg-amber-100 text-amber-800 font-bold dark:bg-amber-900/60 dark:text-amber-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
+              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '25%' ? 'bg-emerald-100 text-emerald-800 font-bold dark:bg-emerald-900/60 dark:text-emerald-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
               title="25% 宽度"
             >
               25%
@@ -325,7 +325,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
             <button
               type="button"
               onClick={(e) => handleSetPresetWidth('50%', e)}
-              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '50%' ? 'bg-amber-100 text-amber-800 font-bold dark:bg-amber-900/60 dark:text-amber-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
+              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '50%' ? 'bg-emerald-100 text-emerald-800 font-bold dark:bg-emerald-900/60 dark:text-emerald-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
               title="50% 宽度"
             >
               50%
@@ -333,7 +333,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
             <button
               type="button"
               onClick={(e) => handleSetPresetWidth('75%', e)}
-              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '75%' ? 'bg-amber-100 text-amber-800 font-bold dark:bg-amber-900/60 dark:text-amber-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
+              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '75%' ? 'bg-emerald-100 text-emerald-800 font-bold dark:bg-emerald-900/60 dark:text-emerald-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
               title="75% 宽度"
             >
               75%
@@ -341,7 +341,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
             <button
               type="button"
               onClick={(e) => handleSetPresetWidth('100%', e)}
-              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '100%' ? 'bg-amber-100 text-amber-800 font-bold dark:bg-amber-900/60 dark:text-amber-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
+              className={`px-1.5 py-0.5 rounded transition ${currentWidth === '100%' ? 'bg-emerald-100 text-emerald-800 font-bold dark:bg-emerald-900/60 dark:text-emerald-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300'}`}
               title="100% 原始/全宽"
             >
               100%
@@ -370,7 +370,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
         {(hovered || selected || isResizing) && (
           <span
             onMouseDown={handleResizeStart}
-            className="absolute bottom-1 right-1 w-4 h-4 bg-amber-500 text-white rounded-full flex items-center justify-center cursor-se-resize shadow-md hover:scale-125 transition-transform z-20"
+            className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 text-white rounded-full flex items-center justify-center cursor-se-resize shadow-md hover:scale-125 transition-transform z-20"
             title="拖拽调节大小"
           >
             <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">

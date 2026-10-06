@@ -8,7 +8,7 @@
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
         Title="LightNote"
-        Icon="Assets/pen-note-icon-yellow.ico"
+        Icon="Assets/pen-note-icon-green.ico"
         Width="1180"
         Height="760"
         MinWidth="580"
@@ -149,23 +149,23 @@
                     </ContextMenu>
                 </Border.ContextMenu>
                 <DockPanel>
-                    <Button DockPanel.Dock="Top" Height="46" Margin="0,0,12,14"
-                            Padding="0" HorizontalContentAlignment="Stretch"
-                            Background="{DynamicResource NewNoteButtonBrush}" BorderThickness="0"
+                    <Button DockPanel.Dock="Top" Height="36" Margin="0,2,12,10"
+                            Padding="7,0" HorizontalContentAlignment="Stretch"
+                            Background="Transparent" BorderThickness="0"
                             Command="{Binding NewNoteCommand}" ToolTip="新建笔记（Ctrl+N）"
                             AutomationProperties.Name="新建笔记">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
-                                <Border x:Name="NewNoteButtonBorder" CornerRadius="23"
+                                <Border x:Name="NewNoteButtonBorder" CornerRadius="6"
                                         Background="{TemplateBinding Background}"
-                                        BorderBrush="{DynamicResource NewNoteButtonBorderBrush}" BorderThickness="1">
+                                        Padding="{TemplateBinding Padding}">
                                     <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                       VerticalAlignment="Center" />
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter TargetName="NewNoteButtonBorder" Property="Background"
-                                                Value="{DynamicResource NewNoteButtonHoverBrush}" />
+                                                Value="{DynamicResource NavHoverBackgroundBrush}" />
                                     </Trigger>
                                     <Trigger Property="IsPressed" Value="True">
                                         <Setter TargetName="NewNoteButtonBorder" Property="Opacity" Value="0.82" />
@@ -175,18 +175,17 @@
                         </Button.Template>
                         <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="24" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Border Width="32" Height="32" CornerRadius="16" Background="#FF00B87A"
-                                    Margin="7,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                <Path Data="M 7,0 V 14 M 0,7 H 14" Width="14" Height="14"
-                                      Stroke="White" StrokeThickness="2.6"
+                            <Viewbox Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Path Width="20" Height="20" Data="M10,3.5 V16.5 M3.5,10 H16.5"
+                                      Stroke="{DynamicResource TextBrush}" StrokeThickness="1.3"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <TextBlock Grid.Column="1" Margin="10,0,0,0" Text="新建笔记"
-                                       FontSize="16" VerticalAlignment="Center" />
+                                      Stretch="None" />
+                            </Viewbox>
+                            <TextBlock Grid.Column="1" Text="新建笔记" FontSize="14"
+                                       Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
                     <Border DockPanel.Dock="Bottom" Margin="0,12,12,0" Padding="0,12,0,0"
@@ -432,7 +431,7 @@
                             </Popup>
                         </Grid>
                     </Border>
-                    <ListBox x:Name="NotebookList" ItemsSource="{Binding Notebooks}"
+                    <ListBox x:Name="NotebookList" FocusVisualStyle="{x:Null}" ItemsSource="{Binding Notebooks}"
                              SelectedItem="{Binding SelectedNotebook}" BorderThickness="0"
                              Background="Transparent" FontSize="14"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -453,14 +452,13 @@
                                 <Setter Property="Margin" Value="0,2,12,2" />
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                 <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ListBoxItem">
                                             <Grid SnapsToDevicePixels="True">
                                                 <Border x:Name="ItemBackground"
                                                         Background="{TemplateBinding Background}"
-                                                        BorderBrush="Transparent"
-                                                        BorderThickness="1"
                                                         CornerRadius="6"
                                                         Padding="{TemplateBinding Padding}"
                                                         SnapsToDevicePixels="True">
@@ -477,19 +475,17 @@
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter TargetName="ItemBackground" Property="Background"
-                                                            Value="{DynamicResource SecondaryPanelBrush}" />
+                                                            Value="{DynamicResource NavHoverBackgroundBrush}" />
                                                 </Trigger>
                                                 <Trigger Property="IsSelected" Value="True">
                                                     <Setter TargetName="ItemBackground" Property="Background"
-                                                            Value="{DynamicResource ListItemSelectedBackgroundBrush}" />
-                                                    <Setter TargetName="ItemBackground" Property="BorderBrush"
-                                                            Value="{DynamicResource ListItemSelectedBorderBrush}" />
+                                                            Value="{DynamicResource NavSelectedBackgroundBrush}" />
+                                                    <Setter Property="Foreground"
+                                                            Value="{DynamicResource NavSelectedForegroundBrush}" />
                                                 </Trigger>
                                                 <Trigger Property="local:DropHelper.Indicator" Value="Highlight">
                                                     <Setter TargetName="ItemBackground" Property="Background"
-                                                            Value="{DynamicResource ListItemSelectedBackgroundBrush}" />
-                                                    <Setter TargetName="ItemBackground" Property="BorderBrush"
-                                                            Value="{DynamicResource ListItemSelectedBorderBrush}" />
+                                                            Value="{DynamicResource NavSelectedBackgroundBrush}" />
                                                 </Trigger>
                                                 <Trigger Property="local:DropHelper.Indicator" Value="TopLine">
                                                     <Setter TargetName="TopLineIndicator" Property="Visibility" Value="Visible" />
@@ -512,9 +508,20 @@
                                     </Grid.ColumnDefinitions>
                                     <Viewbox Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center">
                                         <Path Width="20" Height="20" Data="{Binding IconData}"
-                                              Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.45"
+                                              StrokeThickness="1.45"
                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                              StrokeLineJoin="Round" Fill="Transparent" Stretch="Uniform" />
+                                              StrokeLineJoin="Round" Fill="Transparent" Stretch="Uniform">
+                                            <Path.Style>
+                                                <Style TargetType="Path">
+                                                    <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                            <Setter Property="Stroke" Value="{DynamicResource NavSelectedForegroundBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Path.Style>
+                                        </Path>
                                     </Viewbox>
                                     <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
@@ -529,21 +536,21 @@
                           DragCompleted="OnPaneSplitterDragCompleted" />
             <!-- 第二栏左上角圆角：圆角后露出的底色与侧栏一致 -->
             <Border Grid.Column="2" Background="{DynamicResource SecondaryPanelBrush}" />
-            <Border Grid.Column="2" Background="{DynamicResource PanelBrush}" CornerRadius="12,0,0,0">
+            <Border Grid.Column="2" Background="{DynamicResource PanelBrush}" CornerRadius="18,0,0,0">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Padding="14,12" BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,0,0,1">
                         <StackPanel>
-                            <Border Height="46" CornerRadius="6" Background="{DynamicResource SecondaryPanelBrush}"
-                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                            <Border Height="38" CornerRadius="19" Background="{DynamicResource SecondaryPanelBrush}">
                                 <Grid>
-                                    <TextBox x:Name="SearchBox" Margin="14,0" Padding="0" BorderThickness="0" Background="Transparent"
-                                             FontSize="14" VerticalAlignment="Center"
+                                    <TextBox x:Name="SearchBox" Margin="16,0,42,0" Padding="0" BorderThickness="0" Background="Transparent"
+                                             FontSize="15" VerticalAlignment="Center"
                                              PreviewMouseLeftButtonDown="OnSearchBoxPreviewMouseLeftButtonDown"
                                              GotKeyboardFocus="OnSearchBoxGotKeyboardFocus"
+                                             PreviewKeyDown="OnSearchBoxPreviewKeyDown"
                                              Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
                                              ToolTip="搜索标题和正文（Ctrl+F）" />
-                                    <TextBlock Margin="14,0" Text="搜索标题和正文" VerticalAlignment="Center"
+                                    <TextBlock Margin="16,0,42,0" Text="搜索标题和正文" FontSize="15" VerticalAlignment="Center"
                                                Foreground="{DynamicResource MutedTextBrush}" IsHitTestVisible="False">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -560,6 +567,40 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
+                                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16" Text="&#xE721;"
+                                               Margin="0,0,15,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextBrush}" IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSearchActive}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <Button HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0"
+                                            Width="30" Height="30" MinWidth="0" MinHeight="0" Padding="0"
+                                            Click="OnSearchClearClick"
+                                            ToolTip="清除搜索（Esc）" AutomationProperties.Name="清除搜索"
+                                            Visibility="{Binding IsSearchActive, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="ClearBackground" CornerRadius="15" Background="Transparent">
+                                                    <Path Width="10" Height="10" Data="M0,0 L10,10 M10,0 L0,10" Stretch="Fill"
+                                                          Stroke="{DynamicResource TextBrush}" StrokeThickness="1.4"
+                                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ClearBackground" Property="Background"
+                                                                Value="{DynamicResource NavHoverBackgroundBrush}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
                                 </Grid>
                             </Border>
                             <Grid Margin="2,12,0,0">
@@ -580,7 +621,7 @@
                             Visibility="{Binding HasMoreNotes, Converter={StaticResource BooleanToVisibilityConverter}}"
                             AutomationProperties.Name="加载更多笔记" />
                     <Grid>
-                        <ListBox x:Name="NoteListBox" ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}"
+                        <ListBox x:Name="NoteListBox" FocusVisualStyle="{x:Null}" ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}"
                                  SelectionMode="Extended"
                                  SelectionChanged="OnNoteListSelectionChanged"
                                  PreviewKeyDown="OnNoteListPreviewKeyDown"

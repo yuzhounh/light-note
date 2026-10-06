@@ -9,11 +9,11 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>..\..\images\pen-note-icon-yellow.ico</ApplicationIcon>
+    <ApplicationIcon>..\..\images\pen-note-icon-green.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\images\pen-note-icon-yellow.ico" Link="Assets\pen-note-icon-yellow.ico">
+    <None Include="..\..\images\pen-note-icon-green.ico" Link="Assets\pen-note-icon-green.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <Using Remove="System.Windows.Forms" />
@@ -33,7 +33,7 @@
 
   <ItemGroup>
     <Content Include="Editor\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <Resource Include="..\..\images\pen-note-icon-yellow.ico" Link="Assets\pen-note-icon-yellow.ico" />
+    <Resource Include="..\..\images\pen-note-icon-green.ico" Link="Assets\pen-note-icon-green.ico" />
   </ItemGroup>
 
 </Project>

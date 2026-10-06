@@ -2571,6 +2571,21 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnSearchBoxPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+
+        SearchBox.Clear();
+        NoteListBox.Focus();
+        e.Handled = true;
+    }
+
+    private void OnSearchClearClick(object sender, RoutedEventArgs e)
+    {
+        SearchBox.Clear();
+        SearchBox.Focus();
+    }
+
     private void OnSearchBoxGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
         if (string.IsNullOrEmpty(SearchBox.Text))

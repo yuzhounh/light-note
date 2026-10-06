@@ -2,11 +2,88 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
+        <!-- 应用图标的矢量版本（与 images/pen-note-icon-green.svg 一致），用于窗口内 UI，任意缩放都保持清晰 -->
+        <DrawingImage x:Key="AppIconImage">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing>
+                        <GeometryDrawing.Brush>
+                            <LinearGradientBrush StartPoint="0.12,0.06" EndPoint="0.88,0.94">
+                                <GradientStop Color="#FF1FD596" Offset="0" />
+                                <GradientStop Color="#FF00B87A" Offset="0.5" />
+                                <GradientStop Color="#FF009D69" Offset="1" />
+                            </LinearGradientBrush>
+                        </GeometryDrawing.Brush>
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="62,62,900,900" RadiusX="210" RadiusY="210" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#73006E4C">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="214,302,596,56" RadiusX="28" RadiusY="28" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#73006E4C">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="214,484,596,56" RadiusX="28" RadiusY="28" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#73006E4C">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="214,666,596,56" RadiusX="28" RadiusY="28" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <DrawingGroup>
+                        <DrawingGroup.Transform>
+                            <TransformGroup>
+                                <TranslateTransform X="-41" Y="0" />
+                                <ScaleTransform ScaleX="1.7" ScaleY="1.3" />
+                                <RotateTransform Angle="-45" />
+                                <TranslateTransform X="522" Y="528" />
+                            </TransformGroup>
+                        </DrawingGroup.Transform>
+                        <GeometryDrawing Brush="#4D004D36">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="-20,-85,300,170" RadiusX="46" RadiusY="46" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#4D004D36" Geometry="M-45,-85 L-45,85 L-185,0 Z">
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="#4D004D36" Thickness="24" LineJoin="Round" />
+                            </GeometryDrawing.Pen>
+                        </GeometryDrawing>
+                    </DrawingGroup>
+                    <DrawingGroup>
+                        <DrawingGroup.Transform>
+                            <TransformGroup>
+                                <TranslateTransform X="-41" Y="0" />
+                                <ScaleTransform ScaleX="1.7" ScaleY="1.3" />
+                                <RotateTransform Angle="-45" />
+                                <TranslateTransform X="512" Y="512" />
+                            </TransformGroup>
+                        </DrawingGroup.Transform>
+                        <GeometryDrawing Brush="White">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="-20,-85,300,170" RadiusX="46" RadiusY="46" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="White" Geometry="M-45,-85 L-45,85 L-185,0 Z">
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="White" Thickness="24" LineJoin="Round" />
+                            </GeometryDrawing.Pen>
+                        </GeometryDrawing>
+                    </DrawingGroup>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <SolidColorBrush x:Key="AppBackgroundBrush" Color="#FFF7F8FA" />
         <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFFFF" />
         <SolidColorBrush x:Key="SecondaryPanelBrush" Color="#FFF1F3F5" />
         <SolidColorBrush x:Key="BorderBrush" Color="#FFEEF0F2" />
+        <SolidColorBrush x:Key="NavHoverBackgroundBrush" Color="#FFE4E7EB" />
+        <SolidColorBrush x:Key="NavSelectedBackgroundBrush" Color="#FFD3F0E3" />
+        <SolidColorBrush x:Key="NavSelectedForegroundBrush" Color="#FF00A06B" />
         <SolidColorBrush x:Key="NewNoteButtonBrush" Color="#FFEAECEF" />
         <SolidColorBrush x:Key="NewNoteButtonHoverBrush" Color="#FFDFE3E8" />
         <SolidColorBrush x:Key="NewNoteButtonBorderBrush" Color="#FFD8DCE0" />
@@ -14,8 +91,8 @@
         <SolidColorBrush x:Key="MutedTextBrush" Color="#FF68717D" />
         <SolidColorBrush x:Key="AccentBrush" Color="#FF246BFD" />
         <SolidColorBrush x:Key="AccentLightBrush" Color="#FFE8F0FE" />
-        <SolidColorBrush x:Key="ListItemSelectedBackgroundBrush" Color="#FFE8F0FE" />
-        <SolidColorBrush x:Key="ListItemSelectedBorderBrush" Color="#FFA0C5FD" />
+        <SolidColorBrush x:Key="ListItemSelectedBackgroundBrush" Color="#FFD3F0E3" />
+        <SolidColorBrush x:Key="ListItemSelectedBorderBrush" Color="#FFA8E4CD" />
         <SolidColorBrush x:Key="ToolbarHoverBackgroundBrush" Color="#FFE8ECF1" />
         <SolidColorBrush x:Key="ToolbarActiveBackgroundBrush" Color="#FFDCEEFF" />
         <SolidColorBrush x:Key="ToolbarActiveForegroundBrush" Color="#FF1D4ED8" />
@@ -92,18 +169,18 @@
                         <Border x:Name="ButtonBorder"
                                 Padding="{TemplateBinding Padding}"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="5">
+                                CornerRadius="6">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ButtonBorder" Property="Background"
-                                        Value="{DynamicResource AccentLightBrush}" />
+                                        Value="{DynamicResource NavHoverBackgroundBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonBorder" Property="Background"
-                                        Value="{DynamicResource AccentLightBrush}" />
+                                        Value="{DynamicResource NavHoverBackgroundBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
