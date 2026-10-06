@@ -16,34 +16,80 @@ public sealed class ReliabilityAndExportTests : IDisposable
         "LightNote.Restore.Tests",
         Guid.NewGuid().ToString("N"));
 
+    private static Note Edited(Note note, int version, TimeSpan after) => note with
+    {
+        Title = $"Version {version}",
+        BodyJson = $"{{\"type\":\"doc\",\"version\":{version}}}",
+        BodyHtml = $"<p>body {version}</p>",
+        BodyText = $"body {version}",
+        Version = version,
+        UpdatedAt = note.UpdatedAt + after,
+    };
+
     [Fact]
-    public async Task HistoryKeepsLatestTwentySnapshotsAndCanRestoreContent()
+    public async Task RapidAutosavesProduceOnlyOneSnapshotPerEditingSession()
+    {
+        var (_, factory, notes) = await CreateServicesAsync();
+        var history = new SqliteNoteHistoryRepository(factory);
+        var note = CreateNote("Version 1", "body 1");
+        await notes.UpsertAsync(note);
+
+        // 连续输入：每次保存只隔 1 分钟，整个时段只应保存开始前的那一个版本
+        for (var version = 2; version <= 9; version++)
+        {
+            note = Edited(note, version, TimeSpan.FromMinutes(1));
+            await notes.UpsertAsync(note);
+        }
+
+        var versions = await history.ListAsync(note.Id);
+        Assert.Single(versions);
+        Assert.Equal("body 1", versions[0].BodyText);
+
+        // 间隔超过 10 分钟后再次编辑，会再保存一个版本
+        note = Edited(note, 10, TimeSpan.FromMinutes(15));
+        await notes.UpsertAsync(note);
+        Assert.Equal(2, (await history.ListAsync(note.Id)).Count);
+    }
+
+    [Fact]
+    public async Task VersionsOlderThanTwoDaysAreThinnedToOnePerDay()
+    {
+        var (_, factory, notes) = await CreateServicesAsync();
+        var history = new SqliteNoteHistoryRepository(factory);
+        var note = CreateNote("Version 1", "body 1") with { UpdatedAt = DateTimeOffset.UtcNow.AddDays(-5) };
+        await notes.UpsertAsync(note);
+
+        // 五天前的一次连续编辑，产生 20 个相隔 11 分钟的版本；最多跨越两个 UTC 日期
+        for (var version = 2; version <= 21; version++)
+        {
+            note = Edited(note, version, TimeSpan.FromMinutes(11));
+            await notes.UpsertAsync(note);
+        }
+
+        var versions = await history.ListAsync(note.Id);
+        Assert.InRange(versions.Count, 1, 2);
+    }
+
+    [Fact]
+    public async Task HistoryKeepsLatestFiftySnapshotsAndCanRestoreContent()
     {
         var (paths, factory, notes) = await CreateServicesAsync();
         var history = new SqliteNoteHistoryRepository(factory);
         var note = CreateNote("Version 1", "body 1");
         await notes.UpsertAsync(note);
 
-        for (var version = 2; version <= 26; version++)
+        for (var version = 2; version <= 61; version++)
         {
-            note = note with
-            {
-                Title = $"Version {version}",
-                BodyJson = $"{{\"type\":\"doc\",\"version\":{version}}}",
-                BodyHtml = $"<p>body {version}</p>",
-                BodyText = $"body {version}",
-                Version = version,
-                UpdatedAt = note.UpdatedAt.AddMinutes(1),
-            };
+            note = Edited(note, version, TimeSpan.FromMinutes(11));
             await notes.UpsertAsync(note);
         }
 
         var versions = await history.ListAsync(note.Id);
 
-        Assert.Equal(20, versions.Count);
-        Assert.Equal(25, versions[0].Version);
-        Assert.Equal("body 25", versions[0].BodyText);
-        Assert.Equal(6, versions[^1].Version);
+        Assert.Equal(50, versions.Count);
+        Assert.Equal(60, versions[0].Version);
+        Assert.Equal("body 60", versions[0].BodyText);
+        Assert.Equal(11, versions[^1].Version);
         Assert.True(Directory.Exists(paths.RecoveryDirectory));
 
         var viewModel = new MainViewModel(
@@ -56,8 +102,8 @@ public sealed class ReliabilityAndExportTests : IDisposable
         await viewModel.RestoreVersionAsync(versions[^1].Id);
 
         var restored = await notes.GetAsync(note.Id);
-        Assert.Equal("body 6", restored?.BodyText);
-        Assert.Equal(27, restored?.Version);
+        Assert.Equal("body 11", restored?.BodyText);
+        Assert.Equal(62, restored?.Version);
     }
 
     [Fact]
