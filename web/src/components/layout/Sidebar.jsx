@@ -107,7 +107,7 @@ export function Sidebar({
           }}
           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-normal transition text-left cursor-pointer ${
             currentView === 'all' && !currentNotebookId
-              ? 'bg-[#d3f0e3] dark:bg-[#234a3f] text-[#00a06b] dark:text-emerald-400 font-medium'
+              ? 'bg-[#d3f0e3] dark:bg-[#234a3f] text-[#007f55] dark:text-emerald-400 font-medium'
               : 'text-zinc-700 dark:text-zinc-300 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43]'
           }`}
         >
@@ -153,7 +153,7 @@ export function Sidebar({
                     }}
                     className={`notebook-row group flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13.5px] cursor-pointer transition ${
                       isActive
-                        ? 'bg-[#d3f0e3] dark:bg-[#234a3f] text-[#00a06b] dark:text-emerald-400 font-medium'
+                        ? 'bg-[#d3f0e3] dark:bg-[#234a3f] text-[#007f55] dark:text-emerald-400 font-medium'
                         : 'text-zinc-600 dark:text-zinc-400 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43]'
                     }`}
                   >

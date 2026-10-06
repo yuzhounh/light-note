@@ -155,7 +155,7 @@
                         <ColumnDefinition Width="46" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
-                        <Image Width="22" Height="22" Source="{StaticResource AppIconImage}" />
+                        <Image Width="22" Height="22" Source="{DynamicResource AppIconImage}" />
                         <TextBlock Margin="8,0,0,0" FontSize="13" VerticalAlignment="Center"
                                    Text="设置" Foreground="{DynamicResource TextBrush}" />
                     </StackPanel>
@@ -186,26 +186,25 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <!-- 搜索框 -->
-                        <Border Grid.Row="0" Margin="12,12,12,8" CornerRadius="7"
+                        <!-- 搜索框：与主窗口第二栏一致的胶囊形 -->
+                        <Border Grid.Row="0" Margin="12,12,12,8" CornerRadius="19"
                                 Background="{DynamicResource SecondaryPanelBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                                Height="34" Padding="8,0">
+                                Height="38">
                             <Grid>
-                                <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="12"
-                                           Foreground="{DynamicResource MutedTextBrush}"
-                                           VerticalAlignment="Center" Margin="2,0,0,0" />
-                                <TextBox x:Name="SearchBox" Margin="20,0,0,0" BorderThickness="0"
-                                         Background="Transparent" FontSize="12.5"
+                                <TextBox x:Name="SearchBox" Margin="16,0,38,0" BorderThickness="0"
+                                         Background="Transparent" FontSize="14"
                                          VerticalAlignment="Center" TextChanged="OnSearchTextChanged"
                                          GotKeyboardFocus="OnSearchBoxGotKeyboardFocus"
                                          LostKeyboardFocus="OnSearchBoxLostKeyboardFocus"
                                          PreviewMouseLeftButtonDown="OnSearchBoxPreviewMouseLeftButtonDown"
                                          Foreground="{DynamicResource TextBrush}" />
-                                <TextBlock x:Name="SearchPlaceholder" Margin="22,0,0,0" Text="搜索设置…"
-                                           IsHitTestVisible="False" FontSize="12.5"
+                                <TextBlock x:Name="SearchPlaceholder" Margin="18,0,38,0" Text="搜索设置…"
+                                           IsHitTestVisible="False" FontSize="14"
                                            Foreground="{DynamicResource MutedTextBrush}"
                                            VerticalAlignment="Center" />
+                                <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="14"
+                                           Foreground="{DynamicResource TextBrush}" IsHitTestVisible="False"
+                                           HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,15,0" />
                             </Grid>
                         </Border>
 
