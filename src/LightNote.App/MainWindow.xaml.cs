@@ -46,6 +46,12 @@ public partial class MainWindow : Window
     {
         Interval = TimeSpan.FromMinutes(1),
     };
+    /// <summary>保存笔记后稍作等待（期间继续输入会重新计时）再上传，避免等满一分钟的定时同步。</summary>
+    private readonly System.Windows.Threading.DispatcherTimer _postSaveSyncTimer = new()
+    {
+        Interval = TimeSpan.FromSeconds(4),
+    };
+    private DateTime _lastSyncStartedUtc = DateTime.MinValue;
     private readonly System.Windows.Threading.DispatcherTimer _layoutSaveTimer = new()
     {
         Interval = TimeSpan.FromMilliseconds(450),
@@ -121,9 +127,32 @@ public partial class MainWindow : Window
             }
         };
         _syncTimer.Tick += async (_, _) => await RunSyncAsync(silent: true);
+        _postSaveSyncTimer.Tick += async (_, _) =>
+        {
+            _postSaveSyncTimer.Stop();
+            await RunSyncAsync(silent: true);
+        };
+        _viewModel.NoteSaved += (_, _) =>
+        {
+            if (_syncService.CurrentAccount is not null)
+            {
+                _postSaveSyncTimer.Stop();
+                _postSaveSyncTimer.Start();
+            }
+        };
+        // 切回窗口时，如果距上次同步已超过 20 秒，立即同步一次，及时拿到其他设备的修改
+        Activated += async (_, _) =>
+        {
+            if (_syncService.CurrentAccount is not null &&
+                DateTime.UtcNow - _lastSyncStartedUtc > TimeSpan.FromSeconds(20))
+            {
+                await RunSyncAsync(silent: true);
+            }
+        };
         Closed += (_, _) =>
         {
             _syncTimer.Stop();
+            _postSaveSyncTimer.Stop();
             _layoutSaveTimer.Stop();
             EditorWebView.Dispose();
         };
@@ -1662,6 +1691,28 @@ public partial class MainWindow : Window
         menu.Items.Add(CreateNoteMenuItem("移到回收站", "normal", OnDeleteNoteMenuClick));
         menu.Items.Add(CreateNoteMenuItem("恢复笔记", "trash", OnRestoreNoteMenuClick));
         menu.Items.Add(CreateNoteMenuItem("永久删除", "trash", OnPermanentDeleteClick));
+        menu.Items.Add(new Separator
+        {
+            Tag = "single",
+            Style = (Style)FindResource("MenuSeparatorStyle"),
+        });
+        // 只读信息块：字数统计、创建与编辑时间；文本在菜单打开时刷新
+        var infoItem = new MenuItem
+        {
+            Tag = "single-info",
+            IsHitTestVisible = false,
+            Focusable = false,
+            MinHeight = 0,
+            Padding = new Thickness(14, 6, 14, 8),
+            Header = new TextBlock
+            {
+                FontSize = 12.5,
+                LineHeight = 26,
+                Foreground = (Brush)FindResource("MutedTextBrush"),
+            },
+        };
+        infoItem.SetResourceReference(FrameworkElement.StyleProperty, "CompactMenuItemStyle");
+        menu.Items.Add(infoItem);
         return menu;
     }
 
@@ -1671,6 +1722,7 @@ public partial class MainWindow : Window
         RoutedEventHandler clickHandler)
     {
         var item = new MenuItem { Header = header, Tag = tag };
+        item.SetResourceReference(FrameworkElement.StyleProperty, "CompactMenuItemStyle");
         item.Click += clickHandler;
         return item;
     }
@@ -1683,13 +1735,23 @@ public partial class MainWindow : Window
         }
 
         var isMulti = NoteListBox.SelectedItems.Count > 1;
+        var note = _viewModel.SelectedNote?.Model;
         foreach (var element in menu.Items.OfType<FrameworkElement>())
         {
+            if (element is MenuItem { Tag: "single-info", Header: TextBlock infoText })
+            {
+                infoText.Text = note is null
+                    ? string.Empty
+                    : NoteInfoFormatter.Format(note.BodyText, note.CreatedAt, note.UpdatedAt);
+                element.Visibility = isMulti || note is null ? Visibility.Collapsed : Visibility.Visible;
+                continue;
+            }
+
             element.Visibility = element.Tag?.ToString() switch
             {
                 "normal" => _viewModel.IsTrashSelected ? Visibility.Collapsed : Visibility.Visible,
                 "normal-single" => _viewModel.IsTrashSelected || isMulti ? Visibility.Collapsed : Visibility.Visible,
-                "single" => isMulti ? Visibility.Collapsed : Visibility.Visible,
+                "single" => isMulti || note is null ? Visibility.Collapsed : Visibility.Visible,
                 "trash" => _viewModel.IsTrashSelected ? Visibility.Visible : Visibility.Collapsed,
                 _ => Visibility.Visible,
             };
@@ -2522,6 +2584,7 @@ public partial class MainWindow : Window
         }
 
         _syncInProgress = true;
+        _lastSyncStartedUtc = DateTime.UtcNow;
         try
         {
             await CaptureEditorSnapshotAsync();
