@@ -23,8 +23,10 @@
   --math-modal-btn-hover: #f1f5f9;
   --scrollbar-thumb: #eef0f2;
   --scrollbar-thumb-hover: #dde1e5;
-  --selection-bg: #cce0ff;
-  --accent-color: #246bfd;
+  --selection-bg: #bfe9d6;
+  --accent-color: #009467;
+  --accent-solid: #009467;
+  --accent-solid-hover: #007f55;
   --image-accent: #00b87a;
   --image-accent-soft: rgba(0, 184, 122, 0.16);
   --image-accent-text: #00a06b;
@@ -59,8 +61,10 @@
     --math-modal-btn-hover: #292d32;
     --scrollbar-thumb: #2f343a;
     --scrollbar-thumb-hover: #3f454d;
-    --selection-bg: #264f78;
-    --accent-color: #3b82f6;
+    --selection-bg: #2a6552;
+    --accent-color: #34d399;
+    --accent-solid: #0e8f66;
+    --accent-solid-hover: #0b7a58;
     --image-accent: #34d399;
     --image-accent-soft: rgba(52, 211, 153, 0.2);
     --image-accent-text: #34d399;
@@ -90,8 +94,10 @@ html.dark, [data-theme="dark"] {
   --math-modal-btn-hover: #292d32;
   --scrollbar-thumb: #2f343a;
   --scrollbar-thumb-hover: #3f454d;
-  --selection-bg: #264f78;
-  --accent-color: #3b82f6;
+  --selection-bg: #2a6552;
+  --accent-color: #34d399;
+  --accent-solid: #0e8f66;
+  --accent-solid-hover: #0b7a58;
   --image-accent: #34d399;
   --image-accent-soft: rgba(52, 211, 153, 0.2);
   --image-accent-text: #34d399;
@@ -123,8 +129,10 @@ html.light, [data-theme="light"] {
   --math-modal-btn-hover: #f1f5f9;
   --scrollbar-thumb: #eef0f2;
   --scrollbar-thumb-hover: #dde1e5;
-  --selection-bg: #cce0ff;
-  --accent-color: #246bfd;
+  --selection-bg: #bfe9d6;
+  --accent-color: #009467;
+  --accent-solid: #009467;
+  --accent-solid-hover: #007f55;
   --image-accent: #00b87a;
   --image-accent-soft: rgba(0, 184, 122, 0.16);
   --image-accent-text: #00a06b;
@@ -545,13 +553,16 @@ body::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-ho
 .math-modal-btn:hover {
   background: var(--math-modal-btn-hover);
 }
-.math-modal-btn-primary {
-  background: var(--accent-color);
-  border-color: var(--accent-color);
+.math-modal-btn.math-modal-btn-primary {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
   color: #ffffff;
 }
-.math-modal-btn-primary:hover {
-  opacity: 0.9;
+/* 需要同时带上 .math-modal-btn 才能压过普通按钮的 :hover 近白背景，否则白字会落在白底上 */
+.math-modal-btn.math-modal-btn-primary:hover {
+  background: var(--accent-solid-hover);
+  border-color: var(--accent-solid-hover);
+  color: #ffffff;
 }
 .math-modal-btn-danger {
   color: #ef4444;

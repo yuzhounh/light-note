@@ -90,5 +90,6 @@ if (Test-Path -LiteralPath $portableZipPath) {
     Remove-Item -LiteralPath $portableZipPath -Force
 }
 Write-Host "正在打包便携版：$portableZipPath..."
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory($publishDirectory, $portableZipPath)
 Write-Host "便携版已生成：$portableZipPath"

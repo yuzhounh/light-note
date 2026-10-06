@@ -48,17 +48,17 @@
                 <ColumnDefinition Width="46" />
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
-                <Image Width="22" Height="22" Source="{StaticResource AppIconImage}" />
+                <Image Width="22" Height="22" Source="{DynamicResource AppIconImage}" />
                 <TextBlock Margin="8,0,0,0" FontSize="13" VerticalAlignment="Center"
                            Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" />
             </StackPanel>
-            <Button Grid.Column="1" Style="{StaticResource CaptionButtonStyle}" Tag="#FFF59E0B"
+            <Button x:Name="MinimizeButton" Grid.Column="1" Style="{StaticResource CaptionButtonStyle}" Tag="#FFF59E0B"
                     shell:WindowChrome.IsHitTestVisibleInChrome="True"
                     Click="OnMinimizeClick" ToolTip="最小化">
                 <Path Width="11" Height="1" Data="M0,0 H11" Stretch="Fill"
                       Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1" />
             </Button>
-            <Button Grid.Column="2" Style="{StaticResource CaptionButtonStyle}" Tag="#FF16A765"
+            <Button x:Name="MaximizeButton" Grid.Column="2" Style="{StaticResource CaptionButtonStyle}" Tag="#FF16A765"
                     shell:WindowChrome.IsHitTestVisibleInChrome="True"
                     Click="OnMaximizeClick" ToolTip="最大化或还原">
                 <Path x:Name="MaximizeIcon" Width="11" Height="11" Data="M0.5,0.5 H10.5 V10.5 H0.5 Z"

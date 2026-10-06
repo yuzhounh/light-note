@@ -6,21 +6,35 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource AppBackgroundBrush}">
-    <Grid Margin="22,20,22,20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        Background="{DynamicResource AppBackgroundBrush}"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:local="clr-namespace:LightNote.App"
+        WindowStyle="None">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="42" ResizeBorderThickness="0"
+                            GlassFrameThickness="0" CornerRadius="8" UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+    <Border Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8"
+            SnapsToDevicePixels="True">
+        <DockPanel>
+            <local:WindowTitleBar DockPanel.Dock="Top" ShowMinMax="False" />
+        <Grid Margin="22,20,22,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <TextBlock x:Name="PromptText" FontSize="14" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap" LineHeight="20" />
-        <TextBox x:Name="ValueTextBox" Grid.Row="1" Margin="0,14,0,18" Padding="10,7"
-                 FontSize="14" MaxLength="80" />
-        <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Margin="0,4,0,0">
-            <Button Content="取消" IsCancel="True" Style="{DynamicResource DialogButtonStyle}" />
-            <Button Content="确定" IsDefault="True" Click="OnAcceptClick"
-                    Style="{DynamicResource DialogPrimaryButtonStyle}" />
-        </StackPanel>
-    </Grid>
+            <TextBlock x:Name="PromptText" FontSize="14" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap" LineHeight="20" />
+            <TextBox x:Name="ValueTextBox" Grid.Row="1" Margin="0,14,0,18" Padding="10,7"
+                     FontSize="14" MaxLength="80" />
+            <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Margin="0,4,0,0">
+                <Button Content="取消" IsCancel="True" Style="{DynamicResource DialogButtonStyle}" />
+                <Button Content="确定" IsDefault="True" Click="OnAcceptClick"
+                        Style="{DynamicResource DialogPrimaryButtonStyle}" />
+            </StackPanel>
+        </Grid>
+        </DockPanel>
+    </Border>
 </Window>
