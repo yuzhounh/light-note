@@ -25,6 +25,9 @@
   --scrollbar-thumb-hover: #dde1e5;
   --selection-bg: #cce0ff;
   --accent-color: #246bfd;
+  --image-accent: #00b87a;
+  --image-accent-soft: rgba(0, 184, 122, 0.16);
+  --image-accent-text: #00a06b;
 
   color: var(--text-color);
   background: var(--bg-color);
@@ -58,6 +61,9 @@
     --scrollbar-thumb-hover: #3f454d;
     --selection-bg: #264f78;
     --accent-color: #3b82f6;
+    --image-accent: #34d399;
+    --image-accent-soft: rgba(52, 211, 153, 0.2);
+    --image-accent-text: #34d399;
   }
 }
 
@@ -86,6 +92,9 @@ html.dark, [data-theme="dark"] {
   --scrollbar-thumb-hover: #3f454d;
   --selection-bg: #264f78;
   --accent-color: #3b82f6;
+  --image-accent: #34d399;
+  --image-accent-soft: rgba(52, 211, 153, 0.2);
+  --image-accent-text: #34d399;
 
   color: var(--text-color);
   background: var(--bg-color);
@@ -116,6 +125,9 @@ html.light, [data-theme="light"] {
   --scrollbar-thumb-hover: #dde1e5;
   --selection-bg: #cce0ff;
   --accent-color: #246bfd;
+  --image-accent: #00b87a;
+  --image-accent-soft: rgba(0, 184, 122, 0.16);
+  --image-accent-text: #00a06b;
 
   color: var(--text-color);
   background: var(--bg-color);
@@ -233,7 +245,7 @@ body::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-ho
   line-height: 0;
 }
 .tiptap .resizable-image-box.is-selected {
-  outline: 2px solid #f59e0b;
+  outline: 2px solid var(--image-accent);
   outline-offset: 2px;
 }
 .tiptap .resizable-image-box .resizable-image-img {
@@ -280,8 +292,8 @@ body::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-ho
   color: var(--text-color);
 }
 .resizable-image-toolbar .preset-btn.active {
-  background: rgba(245, 158, 11, 0.2);
-  color: #d97706;
+  background: var(--image-accent-soft);
+  color: var(--image-accent-text);
   font-weight: bold;
 }
 .resizable-image-toolbar .toolbar-divider {
@@ -311,7 +323,7 @@ body::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-ho
   right: 4px;
   width: 18px;
   height: 18px;
-  background: #f59e0b;
+  background: var(--image-accent);
   color: white;
   border-radius: 50%;
   display: flex;

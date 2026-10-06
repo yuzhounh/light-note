@@ -83,25 +83,17 @@ export function Sidebar({
         </div>
       )}
 
-      {/* Top Action: '+ 新建笔记' pill button */}
-      <div className="px-3 pt-2 pb-2">
+      {/* Top Action: '+ 新建笔记'（无底色，悬停时显示背景，与下方导航行等高） */}
+      <div className="px-2 pt-2 pb-2">
         <button
           onClick={() => {
             onCreateNote()
             if (isMobile) onCloseMobile()
           }}
-          className="w-full h-[36px] relative flex items-center bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800/80 border border-zinc-200/90 dark:border-zinc-700/80 rounded-full shadow-xs active:scale-[0.98] transition cursor-pointer"
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-normal text-zinc-800 dark:text-zinc-200 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] active:opacity-80 transition text-left cursor-pointer`}
         >
-          {/* Green circle: outer cap radius is 18px. Circle is 26px, left margin is 5px. Concentric and balanced */}
-          <div className="w-[26px] h-[26px] rounded-full bg-[#00b87a] flex items-center justify-center shrink-0 ml-[5px]">
-            <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </div>
-          <span className="ml-2.5 text-sm font-medium text-zinc-800 dark:text-zinc-200 tracking-wide">
-            新建笔记
-          </span>
+          <Plus size={16} strokeWidth={1.6} className="shrink-0" />
+          <span>新建笔记</span>
         </button>
       </div>
 
@@ -115,11 +107,11 @@ export function Sidebar({
           }}
           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-normal transition text-left cursor-pointer ${
             currentView === 'all' && !currentNotebookId
-              ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white font-medium'
-              : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900'
+              ? 'bg-[#d3f0e3] dark:bg-[#234a3f] text-[#00a06b] dark:text-emerald-400 font-medium'
+              : 'text-zinc-700 dark:text-zinc-300 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43]'
           }`}
         >
-          <FileText size={16} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
+          <FileText size={16} className={`shrink-0 ${currentView === 'all' && !currentNotebookId ? '' : 'text-zinc-500 dark:text-zinc-400'}`} />
           <span>全部笔记</span>
         </button>
 
@@ -127,7 +119,7 @@ export function Sidebar({
         <div>
           <div
             onClick={() => setIsGroupOpen(!isGroupOpen)}
-            className="flex items-center justify-between px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer transition"
+            className="flex items-center justify-between px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] rounded-lg cursor-pointer transition"
           >
             <div className="flex items-center gap-2">
               <Folder size={16} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
@@ -140,7 +132,7 @@ export function Sidebar({
                 setIsAddingNotebook(true)
                 setIsGroupOpen(true)
               }}
-              className="p-1 min-w-[28px] min-h-[28px] flex items-center justify-center rounded hover:bg-zinc-200/60 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white"
+              className="p-1 min-w-[28px] min-h-[28px] flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white"
               title="新建笔记本"
             >
               <Plus size={14} />
@@ -161,12 +153,12 @@ export function Sidebar({
                     }}
                     className={`notebook-row group flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13.5px] cursor-pointer transition ${
                       isActive
-                        ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white font-medium'
-                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900'
+                        ? 'bg-[#d3f0e3] dark:bg-[#234a3f] text-[#00a06b] dark:text-emerald-400 font-medium'
+                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43]'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <Book size={15} className={isActive ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-400'} />
+                      <Book size={15} className={isActive ? '' : 'text-zinc-400'} />
                       <span className="truncate">{nb.name}</span>
                     </div>
 
@@ -269,7 +261,7 @@ export function Sidebar({
         {currentUser ? (
           <button
             onClick={() => setIsProfileModalOpen(!isProfileModalOpen)}
-            className="flex items-center gap-2 max-w-[155px] hover:opacity-80 transition cursor-pointer text-left min-w-0"
+            className="flex items-center gap-2 max-w-[155px] px-1.5 py-1 -ml-1.5 rounded-md hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] transition cursor-pointer text-left min-w-0"
             title="点击管理账号"
           >
             {currentUser.photoURL ? (
@@ -297,7 +289,7 @@ export function Sidebar({
         ) : (
           <button
             onClick={onLoginGoogle}
-            className="flex items-center min-h-[36px] px-2.5 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white transition cursor-pointer text-[13.5px]"
+            className="flex items-center min-h-[36px] px-2.5 py-1 rounded-md hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] hover:text-zinc-900 dark:hover:text-white transition cursor-pointer text-[13.5px]"
           >
             Google 登录
           </button>
@@ -307,7 +299,7 @@ export function Sidebar({
           {currentUser && (
             <button
               onClick={onSync}
-              className={`p-1 hover:text-zinc-900 dark:hover:text-white transition rounded cursor-pointer ${
+              className={`p-1.5 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] hover:text-zinc-900 dark:hover:text-white transition rounded-md cursor-pointer ${
                 syncStatus?.status === 'syncing' 
                   ? 'text-amber-500 animate-spin' 
                   : syncStatus?.status === 'error' 
@@ -327,7 +319,7 @@ export function Sidebar({
           )}
           <button
             onClick={onOpenSettings}
-            className="p-1 hover:text-zinc-900 dark:hover:text-white transition rounded cursor-pointer"
+            className="p-1.5 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] hover:text-zinc-900 dark:hover:text-white transition rounded-md cursor-pointer"
             title="设置中心"
           >
             <Settings size={17} />

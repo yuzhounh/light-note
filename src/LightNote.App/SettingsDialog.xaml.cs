@@ -88,8 +88,6 @@ public partial class SettingsDialog : Window
                 break;
         }
 
-        ShowRecentBox.IsChecked = settings.ShowRecentNavigation;
-        ShowTrashBox.IsChecked = settings.ShowTrashNavigation;
 
         if (settings.LinkOpenMode == "external")
         {
@@ -199,18 +197,6 @@ public partial class SettingsDialog : Window
 
         var mode = LinkExternalRadio.IsChecked == true ? "external" : "internal";
         Settings = Settings with { LinkOpenMode = mode };
-        SettingsSaved = true;
-    }
-
-    private void OnNavToggleClicked(object sender, RoutedEventArgs e)
-    {
-        if (_isInitializing) return;
-
-        Settings = Settings with
-        {
-            ShowRecentNavigation = ShowRecentBox.IsChecked == true,
-            ShowTrashNavigation = ShowTrashBox.IsChecked == true,
-        };
         SettingsSaved = true;
     }
 

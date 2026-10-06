@@ -5,7 +5,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="笔记"
-        Icon="Assets/pen-note-icon-yellow.ico"
+        Icon="Assets/pen-note-icon-green.ico"
         Width="920"
         Height="720"
         MinWidth="620"
