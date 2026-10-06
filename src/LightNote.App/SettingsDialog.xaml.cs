@@ -20,6 +20,7 @@ public enum SettingsSection
     ImportExport,
     Backup,
     Safety,
+    Diagnostics,
 }
 
 public enum SettingsAction
@@ -102,6 +103,7 @@ public partial class SettingsDialog : Window
 
         // 初始化备份配置
         AutomaticBackupsBox.IsChecked = settings.AutomaticBackups;
+        CompressImagesBox.IsChecked = settings.CompressImages;
         RetentionBox.Text = settings.BackupRetentionCount.ToString();
         ExportNoteButton.IsEnabled = canExportCurrentNote;
         SyncStatusText.Text = syncStatus;
@@ -137,6 +139,7 @@ public partial class SettingsDialog : Window
             SettingsSection.ImportExport => NavItemImportExport,
             SettingsSection.Backup => NavItemBackup,
             SettingsSection.Safety => NavItemSafety,
+            SettingsSection.Diagnostics => NavItemDiagnostics,
             _ => NavItemGeneral,
         };
     }
@@ -166,6 +169,7 @@ public partial class SettingsDialog : Window
         ImportExportPage.Visibility = tag == "import-export" ? Visibility.Visible : Visibility.Collapsed;
         BackupPage.Visibility = tag == "backup" ? Visibility.Visible : Visibility.Collapsed;
         SafetyPage.Visibility = tag == "safety" ? Visibility.Visible : Visibility.Collapsed;
+        DiagnosticsPage.Visibility = tag == "diagnostics" ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnThemeRadioChecked(object sender, RoutedEventArgs e)
@@ -209,6 +213,14 @@ public partial class SettingsDialog : Window
             ShowPinnedNavigation = ShowPinnedBox.IsChecked == true,
             ShowTrashNavigation = ShowTrashBox.IsChecked == true,
         };
+        SettingsSaved = true;
+    }
+
+    private void OnCompressImagesToggleClicked(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        Settings = Settings with { CompressImages = CompressImagesBox.IsChecked == true };
         SettingsSaved = true;
     }
 
@@ -276,6 +288,7 @@ public partial class SettingsDialog : Window
             NavItemImportExport.Visibility = Visibility.Visible;
             NavItemBackup.Visibility = Visibility.Visible;
             NavItemSafety.Visibility = Visibility.Visible;
+            NavItemDiagnostics.Visibility = Visibility.Visible;
             HeaderPreferences.Visibility = Visibility.Visible;
             return;
         }
@@ -284,12 +297,14 @@ public partial class SettingsDialog : Window
         var matchGeneral = MatchesQuery("常规 外观 主题 深色 浅色 快捷导航 最近 置顶 回收站", query);
         var matchImport = MatchesQuery("导入 导出 迁移 enex keep csv markdown html 纯文本 数据", query);
         var matchBackup = MatchesQuery("备份 恢复 还原 自动备份 归档 快照 保留份数 策略", query);
-        var matchSafety = MatchesQuery("安全 诊断 完整性 检查 同步 冲突 sqlite 数据库 日志 报告 维护", query);
+        var matchSafety = MatchesQuery("安全 完整性 检查 同步 冲突 队列 数据库 维护", query);
+        var matchDiagnostics = MatchesQuery("诊断 系统 存储 sqlite 数据库 日志 报告 验证 备份 诊断包 排障 工具", query);
 
         NavItemGeneral.Visibility = matchGeneral ? Visibility.Visible : Visibility.Collapsed;
         NavItemImportExport.Visibility = matchImport ? Visibility.Visible : Visibility.Collapsed;
         NavItemBackup.Visibility = matchBackup ? Visibility.Visible : Visibility.Collapsed;
         NavItemSafety.Visibility = matchSafety ? Visibility.Visible : Visibility.Collapsed;
+        NavItemDiagnostics.Visibility = matchDiagnostics ? Visibility.Visible : Visibility.Collapsed;
         HeaderPreferences.Visibility = matchGeneral ? Visibility.Visible : Visibility.Collapsed;
 
         // 如果当前选中的项被隐藏了，自动切换到第一个可见项
@@ -299,6 +314,7 @@ public partial class SettingsDialog : Window
             else if (matchImport) NavigationList.SelectedItem = NavItemImportExport;
             else if (matchBackup) NavigationList.SelectedItem = NavItemBackup;
             else if (matchSafety) NavigationList.SelectedItem = NavItemSafety;
+            else if (matchDiagnostics) NavigationList.SelectedItem = NavItemDiagnostics;
         }
     }
 
@@ -397,6 +413,15 @@ public partial class SettingsDialog : Window
         BackupStatusText.Text = latestBackup is null
             ? "尚未找到备份文件"
             : $"最近备份：{latestBackup.LastWriteTime.ToLocalTime():yyyy-MM-dd HH:mm}";
+
+        var backupFiles = Directory.EnumerateFiles(_paths.BackupsDirectory, "*.zip", SearchOption.TopDirectoryOnly)
+            .Select(path => new FileInfo(path))
+            .ToArray();
+        var automaticCount = backupFiles.Count(file => file.Name.StartsWith("LightNote-auto-", StringComparison.Ordinal));
+        BackupUsageText.Text = backupFiles.Length == 0
+            ? "当前没有备份，占用 0 B"
+            : $"当前共 {backupFiles.Length} 份备份，占用 {FormatBytes(backupFiles.Sum(file => file.Length))}" +
+              $"（自动 {automaticCount} 份，手动 {backupFiles.Length - automaticCount} 份）";
 
         DetailsText.Text = $"数据库迁移版本：{schemaVersion}{Environment.NewLine}" +
                            $"数据库大小：{DbSizeText.Text}{Environment.NewLine}" +

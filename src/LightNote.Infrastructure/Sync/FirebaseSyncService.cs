@@ -406,6 +406,7 @@ public sealed class FirebaseSyncService(
             await AdvanceLastPullAsync(
                 session.UserId, "attachments", attachmentBatch.Cursor, cancellationToken);
 
+            await RequeueAttachmentsForStorageAsync(configuration, cancellationToken);
             var uploaded = await PushOutboxAsync(configuration, session, cancellationToken);
             var result = new SyncResult
             {
@@ -727,11 +728,59 @@ public sealed class FirebaseSyncService(
         using var response = await httpClient.SendAsync(request, cancellationToken);
         if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden)
         {
-            logger.Info($"Cloud Storage 未开启或存储桶不可用（{(int)response.StatusCode}），已跳过附件云端上传：{cloudPath}");
-            return;
+            // 不能当作成功：附件会保留在待同步队列里，开通 Storage 或修正规则后自动补传。
+            throw new InvalidOperationException(
+                $"Cloud Storage 未开启、存储桶不可用或规则拒绝（{(int)response.StatusCode}），图片暂未上传：{cloudPath}");
         }
 
         _ = await ReadSuccessfulJsonAsync(response, cancellationToken);
+    }
+
+    /// <summary>
+    /// 早期版本在 Storage 不可用时会把附件当作已同步，这里对每个存储桶只补一次：
+    /// 把现有未删除的附件重新放回待同步队列，让它们真正上传。
+    /// </summary>
+    private async Task RequeueAttachmentsForStorageAsync(
+        FirebaseConfiguration configuration,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(configuration.StorageBucket))
+        {
+            return;
+        }
+
+        var key = $"attachments_requeued:{configuration.StorageBucket}";
+        await using var connection = await connectionFactory.OpenAsync(cancellationToken);
+        await using var transaction = connection.BeginTransaction();
+        await using var check = connection.CreateCommand();
+        check.Transaction = transaction;
+        check.CommandText = "SELECT 1 FROM sync_metadata WHERE key = $key LIMIT 1;";
+        check.Parameters.AddWithValue("$key", key);
+        if (await check.ExecuteScalarAsync(cancellationToken) is not null)
+        {
+            return;
+        }
+
+        await using var enqueue = connection.CreateCommand();
+        enqueue.Transaction = transaction;
+        enqueue.CommandText = """
+            INSERT INTO sync_outbox (
+                id, entity_type, entity_id, operation, local_version,
+                attempt_count, next_attempt_at, last_error)
+            SELECT lower(hex(randomblob(16))), 'attachment', id, 'upsert', sync_revision, 0, NULL, NULL
+            FROM attachments WHERE deleted_at IS NULL
+            ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+                operation = 'upsert', local_version = excluded.local_version, attempt_count = 0,
+                next_attempt_at = NULL, last_error = NULL;
+            """;
+        await enqueue.ExecuteNonQueryAsync(cancellationToken);
+
+        await using var mark = connection.CreateCommand();
+        mark.Transaction = transaction;
+        mark.CommandText = "INSERT INTO sync_metadata (key, value) VALUES ($key, '1');";
+        mark.Parameters.AddWithValue("$key", key);
+        await mark.ExecuteNonQueryAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     private async Task<int> ApplyNotebookAsync(

@@ -4,7 +4,7 @@
   --bg-color: #ffffff;
   --text-color: #1d2733;
   --muted-text: #68717d;
-  --border-color: #e2e5e9;
+  --border-color: #eef0f2;
   --panel-bg: #f8fafc;
   --code-bg: #f1f3f5;
   --blockquote-border: #d7dce2;
@@ -21,8 +21,8 @@
   --math-modal-btn-border: #cbd5e1;
   --math-modal-btn-text: #334155;
   --math-modal-btn-hover: #f1f5f9;
-  --scrollbar-thumb: #e2e5e9;
-  --scrollbar-thumb-hover: #cbd0d6;
+  --scrollbar-thumb: #eef0f2;
+  --scrollbar-thumb-hover: #dde1e5;
   --selection-bg: #cce0ff;
   --accent-color: #246bfd;
 
@@ -37,25 +37,25 @@
     --bg-color: #202328;
     --text-color: #f2f4f7;
     --muted-text: #aab2bc;
-    --border-color: #3b4148;
+    --border-color: #2f343a;
     --panel-bg: #1c1e22;
     --code-bg: #17191c;
     --blockquote-border: #4a5568;
     --blockquote-text: #aab2bc;
     --math-bg: #17191c;
-    --math-border: #3b4148;
+    --math-border: #2f343a;
     --math-hover-bg: #22262d;
     --math-modal-bg: #202328;
     --math-modal-header-border: #292d32;
     --math-modal-footer-bg: #1a1c20;
     --math-modal-input-bg: #17191c;
-    --math-modal-input-border: #3b4148;
+    --math-modal-input-border: #2f343a;
     --math-modal-btn-bg: #202328;
-    --math-modal-btn-border: #3b4148;
+    --math-modal-btn-border: #2f343a;
     --math-modal-btn-text: #f2f4f7;
     --math-modal-btn-hover: #292d32;
-    --scrollbar-thumb: #3b4148;
-    --scrollbar-thumb-hover: #4e555e;
+    --scrollbar-thumb: #2f343a;
+    --scrollbar-thumb-hover: #3f454d;
     --selection-bg: #264f78;
     --accent-color: #3b82f6;
   }
@@ -65,25 +65,25 @@ html.dark, [data-theme="dark"] {
   --bg-color: #202328;
   --text-color: #f2f4f7;
   --muted-text: #aab2bc;
-  --border-color: #3b4148;
+  --border-color: #2f343a;
   --panel-bg: #1c1e22;
   --code-bg: #17191c;
   --blockquote-border: #4a5568;
   --blockquote-text: #aab2bc;
   --math-bg: #17191c;
-  --math-border: #3b4148;
+  --math-border: #2f343a;
   --math-hover-bg: #22262d;
   --math-modal-bg: #202328;
   --math-modal-header-border: #292d32;
   --math-modal-footer-bg: #1a1c20;
   --math-modal-input-bg: #17191c;
-  --math-modal-input-border: #3b4148;
+  --math-modal-input-border: #2f343a;
   --math-modal-btn-bg: #202328;
-  --math-modal-btn-border: #3b4148;
+  --math-modal-btn-border: #2f343a;
   --math-modal-btn-text: #f2f4f7;
   --math-modal-btn-hover: #292d32;
-  --scrollbar-thumb: #3b4148;
-  --scrollbar-thumb-hover: #4e555e;
+  --scrollbar-thumb: #2f343a;
+  --scrollbar-thumb-hover: #3f454d;
   --selection-bg: #264f78;
   --accent-color: #3b82f6;
 
@@ -95,7 +95,7 @@ html.light, [data-theme="light"] {
   --bg-color: #ffffff;
   --text-color: #1d2733;
   --muted-text: #68717d;
-  --border-color: #e2e5e9;
+  --border-color: #eef0f2;
   --panel-bg: #f8fafc;
   --code-bg: #f1f3f5;
   --blockquote-border: #d7dce2;
@@ -112,8 +112,8 @@ html.light, [data-theme="light"] {
   --math-modal-btn-border: #cbd5e1;
   --math-modal-btn-text: #334155;
   --math-modal-btn-hover: #f1f5f9;
-  --scrollbar-thumb: #e2e5e9;
-  --scrollbar-thumb-hover: #cbd0d6;
+  --scrollbar-thumb: #eef0f2;
+  --scrollbar-thumb-hover: #dde1e5;
   --selection-bg: #cce0ff;
   --accent-color: #246bfd;
 

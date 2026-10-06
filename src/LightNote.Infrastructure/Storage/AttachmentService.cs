@@ -8,7 +8,8 @@ namespace LightNote.Infrastructure.Storage;
 
 public sealed class AttachmentService(
     AppDataPaths paths,
-    SqliteConnectionFactory connectionFactory) : IAttachmentService
+    SqliteConnectionFactory connectionFactory,
+    LightNote.Infrastructure.Settings.AppSettingsService? settingsService = null) : IAttachmentService
 {
     private const int MaxImageBytes = 20 * 1024 * 1024;
     private static readonly TimeSpan GarbageCollectionDelay = TimeSpan.FromHours(24);
@@ -30,6 +31,11 @@ public sealed class AttachmentService(
         }
 
         await EnsureNoteExistsAsync(noteId, cancellationToken);
+        if (settingsService?.Load().CompressImages == true)
+        {
+            content = ImageCompressor.Compress(content);
+        }
+
         var image = DetectImage(content, fileName, declaredMimeType);
         var hash = Convert.ToHexStringLower(SHA256.HashData(content));
         var relativePath = $"{hash[..2]}/{hash}.{image.Extension}";

@@ -44,6 +44,7 @@ public sealed partial class MainViewModel(
     public event EventHandler? SelectedNoteChanged;
 
     public event EventHandler? NewNotebookRequested;
+    public event EventHandler<string>? NewNoteCreated;
 
     public ObservableCollection<NotebookListItem> Notebooks { get; } = [];
 
@@ -651,6 +652,7 @@ public sealed partial class MainViewModel(
         }
 
         _knownNotes[note.Id] = note;
+        NewNoteCreated?.Invoke(this, note.Id);
         await ReloadNotesAsync(note.Id);
         EditorStatus = "新笔记已创建并保存";
     }
@@ -720,6 +722,123 @@ public sealed partial class MainViewModel(
         finally
         {
             IsLoadingMore = false;
+        }
+    }
+
+    public async Task TogglePinNotesAsync(IReadOnlyList<string> noteIds)
+    {
+        if (IsTrashSelected || noteIds.Count == 0)
+        {
+            return;
+        }
+
+        var notes = noteIds.Select(GetLatestNote).ToArray();
+        var pin = notes.Any(note => !note.IsPinned);
+        foreach (var note in notes)
+        {
+            if (note.IsPinned == pin)
+            {
+                continue;
+            }
+
+            QueueSave(note with
+            {
+                IsPinned = pin,
+                UpdatedAt = DateTimeOffset.UtcNow,
+                Version = note.Version + 1,
+                SyncState = SyncState.Dirty,
+            });
+            CancelPendingDelay(note.Id);
+            await SavePendingAsync(note.Id);
+        }
+
+        SortNotes();
+    }
+
+    public async Task DeleteNotesAsync(IReadOnlyList<string> noteIds)
+    {
+        if (IsTrashSelected || noteIds.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var noteId in noteIds)
+        {
+            await SetDeletedStateAsync(noteId, DateTimeOffset.UtcNow);
+        }
+
+        await ReloadNotesAsync();
+        EditorStatus = noteIds.Count > 1 ? $"{noteIds.Count} 篇笔记已移到回收站" : "笔记已移到回收站";
+    }
+
+    public async Task RestoreNotesAsync(IReadOnlyList<string> noteIds)
+    {
+        if (!IsTrashSelected || noteIds.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var noteId in noteIds)
+        {
+            await SetDeletedStateAsync(noteId, null);
+        }
+
+        await ReloadNotesAsync();
+        EditorStatus = noteIds.Count > 1 ? $"{noteIds.Count} 篇笔记已恢复" : "笔记已恢复";
+    }
+
+    public async Task DeleteNotesPermanentlyAsync(
+        IReadOnlyList<string> noteIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsTrashSelected || noteIds.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var noteId in noteIds)
+        {
+            CancelPendingSave(noteId);
+            await _saveGate.WaitAsync(cancellationToken);
+            try
+            {
+                if (attachmentService is not null)
+                {
+                    await attachmentService.DeleteForNoteAsync(noteId, cancellationToken);
+                }
+
+                await noteRepository.DeletePermanentlyAsync(noteId, cancellationToken);
+                recoveryService?.ClearDraft(noteId);
+                _pendingSaves.Remove(noteId);
+                _knownNotes.Remove(noteId);
+            }
+            finally
+            {
+                _saveGate.Release();
+            }
+        }
+
+        await ReloadNotesAsync(cancellationToken: cancellationToken);
+        EditorStatus = noteIds.Count > 1 ? $"{noteIds.Count} 篇笔记已永久删除" : "笔记已永久删除";
+        UpdateUnsavedState();
+    }
+
+    public async Task MoveNotesAsync(
+        IReadOnlyList<string> noteIds,
+        string? notebookId,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var noteId in noteIds)
+        {
+            await MoveNoteAsync(noteId, notebookId, cancellationToken);
+        }
+
+        if (noteIds.Count > 1)
+        {
+            var targetName = notebookId is null
+                ? "未归档"
+                : Notebooks.FirstOrDefault(item => item.Id == notebookId)?.Name ?? "目标笔记本";
+            EditorStatus = $"{noteIds.Count} 篇笔记已移动到“{targetName}”";
         }
     }
 
@@ -1257,11 +1376,34 @@ public sealed partial class MainViewModel(
         }
     }
 
+    /// <summary>设置笔记排序（不触发重新加载，供启动时使用）。</summary>
+    public void ConfigureNoteSort(bool byUpdated, bool descending)
+    {
+        noteRepository.SortOrder = new NoteSortOrder(byUpdated, descending);
+        NoteListItem.ShowUpdatedTime = byUpdated;
+    }
+
+    public async Task ChangeNoteSortAsync(bool byUpdated, bool descending)
+    {
+        ConfigureNoteSort(byUpdated, descending);
+        foreach (var item in Notes)
+        {
+            item.RefreshDateLabel();
+        }
+
+        await ReloadNotesAsync();
+    }
+
     private void SortNotes()
     {
-        var sorted = Notes
-            .OrderByDescending(item => item.Model.IsPinned)
-            .ThenByDescending(item => item.Model.CreatedAt)
+        var order = noteRepository.SortOrder;
+        Func<NoteListItem, DateTimeOffset> key = order.ByUpdated
+            ? item => item.Model.UpdatedAt
+            : item => item.Model.CreatedAt;
+        var ordered = Notes.OrderByDescending(item => item.Model.IsPinned);
+        var sorted = (order.Descending
+            ? ordered.ThenByDescending(key).ThenByDescending(item => item.Model.Id, StringComparer.Ordinal)
+            : ordered.ThenBy(key).ThenBy(item => item.Model.Id, StringComparer.Ordinal))
             .ToArray();
         for (var targetIndex = 0; targetIndex < sorted.Length; targetIndex++)
         {
@@ -1336,6 +1478,9 @@ public sealed class NoteListItem : ObservableObject
         @"\bheight\s*=\s*[""']?(?<height>\d+)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+    // 缩略图尺寸变化时递增，使旧尺寸的磁盘缓存失效。
+    private const string ThumbnailCacheVersion = "v2|";
+
     private static readonly ConcurrentDictionary<string, ImageSource?> ThumbnailCache = new(StringComparer.OrdinalIgnoreCase);
 
     public static string? DefaultAttachmentsDirectory { get; set; }
@@ -1375,7 +1520,15 @@ public sealed class NoteListItem : ObservableObject
 
     public string MatchQuery { get; }
 
+    public static bool ShowUpdatedTime { get; set; }
+
     public string UpdatedLabel => Model.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+    /// <summary>卡片第四行的时间：与当前排序依据一致（创建时间或修改时间）。</summary>
+    public string DateLabel =>
+        (ShowUpdatedTime ? Model.UpdatedAt : Model.CreatedAt).ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+    public void RefreshDateLabel() => OnPropertyChanged(nameof(DateLabel));
 
     public bool IsUnsynced => Model.SyncState == SyncState.Dirty;
 
@@ -1490,7 +1643,7 @@ public sealed class NoteListItem : ObservableObject
                 }
             }
 
-            var cacheKey = ComputeHash(src);
+            var cacheKey = ComputeHash(ThumbnailCacheVersion + src);
 
             // 1. In-memory cache hit
             if (ThumbnailCache.TryGetValue(cacheKey, out var cached))
@@ -1629,7 +1782,7 @@ public sealed class NoteListItem : ObservableObject
             var cropped = new CroppedBitmap(frame, new Int32Rect(cropX, cropY, squareSize, squareSize));
 
             // Target size: 120px for crisp high-DPI 60x60 container
-            const int targetSize = 120;
+            const int targetSize = 192;
             double scale = (double)targetSize / squareSize;
 
             BitmapSource finalBitmap;
@@ -1724,6 +1877,7 @@ public sealed class NoteListItem : ObservableObject
         OnPropertyChanged(nameof(TitleDisplay));
         OnPropertyChanged(nameof(Preview));
         OnPropertyChanged(nameof(UpdatedLabel));
+        OnPropertyChanged(nameof(DateLabel));
         OnPropertyChanged(nameof(NotebookName));
         OnPropertyChanged(nameof(ShowNotebookBadge));
         OnPropertyChanged(nameof(IsUnsynced));

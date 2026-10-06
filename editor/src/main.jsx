@@ -1132,8 +1132,8 @@ function EditorApp() {
           const d = new Date()
           const pad = n => String(n).padStart(2, '0')
           const timestamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-          const { from } = editor.state.selection
-          editor.chain().focus().insertContent(timestamp).setTextSelection(from + timestamp.length).run()
+          editor.chain().focus().insertContent(timestamp).run()
+          editor.commands.splitBlock()
         },
         focus: () => {
           if (value === 'start' || value === 'end' || value === 'all') {

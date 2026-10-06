@@ -128,7 +128,7 @@ public sealed class FirebaseSyncTests : IDisposable
     }
 
     [Fact]
-    public async Task SyncSucceedsWhenCloudStorageBucketNotFound()
+    public async Task SyncKeepsAttachmentQueuedWhenCloudStorageBucketNotFound()
     {
         var (paths, factory, notes) = await CreateServicesAsync();
         var note = CreateNote("Storage offline note", "content");
@@ -150,9 +150,14 @@ public sealed class FirebaseSyncTests : IDisposable
             new NullLogger());
         await service.SignInAsync("test@example.com", "password123");
 
-        var result = await service.SyncAsync();
-        Assert.Equal(2, result.Uploaded); // 1 note + 1 attachment metadata in firestore
+        // Storage 不可用时不能把附件当作已同步：同步报告部分失败，附件仍留在待同步队列。
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SyncAsync());
         Assert.Empty(handler.StorageUploads);
+
+        await using var connection = await factory.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM sync_outbox WHERE entity_type = 'attachment';";
+        Assert.Equal(1L, (long)(await command.ExecuteScalarAsync())!);
     }
 
     [Fact]

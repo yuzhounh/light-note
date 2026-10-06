@@ -51,6 +51,7 @@ public partial class MainWindow : Window
         Interval = TimeSpan.FromMilliseconds(450),
     };
     private bool _editorReady;
+    private string? _pendingFocusNoteId;
     private bool _allowClose;
     private bool _isExiting;
     private bool _closingInProgress;
@@ -92,6 +93,8 @@ public partial class MainWindow : Window
             _settings.ShowRecentNavigation,
             _settings.ShowPinnedNavigation,
             _settings.ShowTrashNavigation);
+        _viewModel.ConfigureNoteSort(_settings.NoteSortByUpdated, _settings.NoteSortDescending);
+        ApplyNoteListDensity(_settings.NoteListDensity);
         ApplyWindowSettings();
         if (_syncService.CurrentAccount is { } cachedAccount)
         {
@@ -103,6 +106,7 @@ public partial class MainWindow : Window
         }
         DataContext = viewModel;
         _viewModel.SelectedNoteChanged += OnSelectedNoteChanged;
+        _viewModel.NewNoteCreated += (_, id) => _pendingFocusNoteId = id;
         _viewModel.NewNotebookRequested += OnNewNotebookRequested;
         Loaded += OnLoaded;
         Closing += OnClosing;
@@ -237,6 +241,15 @@ public partial class MainWindow : Window
                     if (!_viewModel.HasUnsavedChanges)
                     {
                         _viewModel.EditorStatus = "本地数据已就绪";
+                    }
+
+                    if (_pendingFocusNoteId is not null &&
+                        message.RootElement.TryGetProperty("payload", out var loadedPayload) &&
+                        loadedPayload.TryGetProperty("id", out var loadedId) &&
+                        loadedId.GetString() == _pendingFocusNoteId)
+                    {
+                        _pendingFocusNoteId = null;
+                        FocusEditor("start");
                     }
                     break;
                 case "note.changed":
@@ -426,6 +439,7 @@ public partial class MainWindow : Window
         }
 
         PostEditorMessage(new { type = "editor.command", payload = new { command } });
+        EditorWebView.Focus();
     }
 
     private void OnEditorFontFamilyChanged(object sender, SelectionChangedEventArgs e)
@@ -1105,7 +1119,12 @@ public partial class MainWindow : Window
     {
         if (sender is ListBoxItem item)
         {
-            item.IsSelected = true;
+            if (!item.IsSelected)
+            {
+                NoteListBox.SelectedItems.Clear();
+                item.IsSelected = true;
+            }
+
             item.Focus();
             item.ContextMenu ??= CreateNoteContextMenu();
         }
@@ -1134,10 +1153,156 @@ public partial class MainWindow : Window
     private bool _isNotebookDragging;
     private ListBoxItem? _lastDropTargetItem;
 
+    private ListBoxItem? _collapseSelectionItem;
+
     private void OnNotePreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _noteDragStartPoint = e.GetPosition(this);
         _isNoteDragging = false;
+        _collapseSelectionItem = null;
+
+        // 在已多选的笔记上按下（不带 Ctrl/Shift）时先保留选区，以便整批拖动；
+        // 若松开前没有拖动，再收缩为只选这一篇。
+        if (sender is ListBoxItem { IsSelected: true } item &&
+            NoteListBox.SelectedItems.Count > 1 &&
+            (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == ModifierKeys.None)
+        {
+            _collapseSelectionItem = item;
+            item.Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void OnNotePreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is ListBoxItem item && item == _collapseSelectionItem)
+        {
+            _collapseSelectionItem = null;
+            NoteListBox.SelectedItems.Clear();
+            item.IsSelected = true;
+        }
+    }
+
+    private void OnNoteListOptionsClick(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu
+        {
+            PlacementTarget = NoteListOptionsButton,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
+        };
+
+        menu.Items.Add(CreateOptionHeader("排序依据"));
+        menu.Items.Add(CreateOptionItem("创建时间", !_settings.NoteSortByUpdated,
+            async () => await ApplyNoteSortAsync(byUpdated: false, _settings.NoteSortDescending)));
+        menu.Items.Add(CreateOptionItem("修改时间", _settings.NoteSortByUpdated,
+            async () => await ApplyNoteSortAsync(byUpdated: true, _settings.NoteSortDescending)));
+        menu.Items.Add(CreateOptionItem("逆序（新的在前）", _settings.NoteSortDescending,
+            async () => await ApplyNoteSortAsync(_settings.NoteSortByUpdated, !_settings.NoteSortDescending)));
+        menu.Items.Add(new Separator { Style = (Style)FindResource("MenuSeparatorStyle") });
+        menu.Items.Add(CreateOptionHeader("卡片密度"));
+        menu.Items.Add(CreateOptionItem("紧凑", _settings.NoteListDensity == "compact",
+            () => SetNoteListDensity("compact")));
+        menu.Items.Add(CreateOptionItem("舒适", _settings.NoteListDensity == "comfortable",
+            () => SetNoteListDensity("comfortable")));
+        menu.Items.Add(CreateOptionItem("宽松", _settings.NoteListDensity == "spacious",
+            () => SetNoteListDensity("spacious")));
+        menu.IsOpen = true;
+    }
+
+    private static MenuItem CreateOptionHeader(string text) =>
+        new() { Header = text, IsEnabled = false, FontWeight = FontWeights.SemiBold };
+
+    private static MenuItem CreateOptionItem(string header, bool isChecked, Action onClick)
+    {
+        var item = new MenuItem { Header = header, IsCheckable = true, IsChecked = isChecked };
+        item.Click += (_, _) => onClick();
+        return item;
+    }
+
+    private async Task ApplyNoteSortAsync(bool byUpdated, bool descending)
+    {
+        _settings = _settings with { NoteSortByUpdated = byUpdated, NoteSortDescending = descending };
+        _settingsService.Save(_settings);
+        try
+        {
+            await _viewModel.ChangeNoteSortAsync(byUpdated, descending);
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to change note sort order.", exception);
+            MessageBox.Show("无法更改排序方式，请查看日志。", "LightNote", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void SetNoteListDensity(string density)
+    {
+        _settings = _settings with { NoteListDensity = density };
+        _settingsService.Save(_settings);
+        ApplyNoteListDensity(density);
+    }
+
+    private static void ApplyNoteListDensity(string density)
+    {
+        // (卡片上下内边距, 标题到摘要, 摘要到日期行, 摘要行高, 缩略图边长)
+        var (padding, summaryGap, footerGap, lineHeight, thumb) = density switch
+        {
+            "compact" => (8d, 3d, 4d, 17d, 56d),
+            "spacious" => (16d, 8d, 12d, 22d, 88d),
+            _ => (12d, 6d, 8d, 20d, 72d),
+        };
+        var resources = Application.Current.Resources;
+        resources["NoteCardPadding"] = new Thickness(10, padding, 10, padding);
+        resources["NoteSummaryMargin"] = new Thickness(0, summaryGap, 0, 0);
+        resources["NoteFooterMargin"] = new Thickness(0, footerGap, 0, 0);
+        resources["NoteSummaryLineHeight"] = lineHeight;
+        resources["NoteSummaryMaxHeight"] = lineHeight * 2;
+        resources["NoteThumbSize"] = thumb;
+    }
+
+    private List<string> GetSelectedNoteIds() =>
+        NoteListBox.SelectedItems
+            .OfType<NoteListItem>()
+            .Select(note => note.Model.Id)
+            .ToList();
+
+    private void OnNoteListSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var count = NoteListBox.SelectedItems.Count;
+        if (count > 1)
+        {
+            _viewModel.EditorStatus = $"已选择 {count} 篇笔记";
+        }
+    }
+
+    private async void OnNoteListPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && NoteListBox.SelectedItems.Count > 1)
+        {
+            var primary = _viewModel.SelectedNote;
+            NoteListBox.SelectedItems.Clear();
+            if (primary is not null)
+            {
+                NoteListBox.SelectedItem = primary;
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key != Key.Delete || NoteListBox.SelectedItems.Count == 0)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        if (_viewModel.IsTrashSelected)
+        {
+            await PermanentlyDeleteSelectedNotesAsync();
+        }
+        else
+        {
+            await _viewModel.DeleteNotesAsync(GetSelectedNoteIds());
+        }
     }
 
     private void OnNotePreviewMouseMove(object sender, MouseEventArgs e)
@@ -1155,9 +1320,14 @@ public partial class MainWindow : Window
             if (sender is ListBoxItem item && item.DataContext is NoteListItem noteItem)
             {
                 _isNoteDragging = true;
+                _collapseSelectionItem = null;
                 try
                 {
+                    var dragIds = NoteListBox.SelectedItems.Contains(noteItem)
+                        ? GetSelectedNoteIds()
+                        : [noteItem.Model.Id];
                     var data = new DataObject("LightNote.NoteId", noteItem.Model.Id);
+                    data.SetData("LightNote.NoteIds", dragIds.ToArray());
                     data.SetData("LightNote.NoteTitle", noteItem.Title);
                     DragDrop.DoDragDrop(item, data, DragDropEffects.Move);
                 }
@@ -1351,9 +1521,10 @@ public partial class MainWindow : Window
             // Drop Scenario 1: Note dropped onto Notebook
             if (e.Data.GetDataPresent("LightNote.NoteId"))
             {
-                var noteId = (string)e.Data.GetData("LightNote.NoteId");
+                var noteIds = e.Data.GetData("LightNote.NoteIds") as string[]
+                    ?? [(string)e.Data.GetData("LightNote.NoteId")];
                 string? targetNotebookId = target.Kind == NotebookKind.User ? target.Id : null;
-                await _viewModel.MoveNoteAsync(noteId, targetNotebookId);
+                await _viewModel.MoveNotesAsync(noteIds, targetNotebookId);
                 e.Handled = true;
                 return;
             }
@@ -1485,9 +1656,9 @@ public partial class MainWindow : Window
         menu.Opened += OnNoteContextMenuOpened;
         menu.Items.Add(CreateNoteMenuItem("置顶 / 取消置顶", "normal", OnTogglePinMenuClick));
         menu.Items.Add(CreateNoteMenuItem("移动到笔记本…", "normal", OnMoveNoteClick));
-        menu.Items.Add(CreateNoteMenuItem("编辑标签…", "normal", OnEditTagsClick));
-        menu.Items.Add(CreateNoteMenuItem("历史版本…", null, OnHistoryClick));
-        menu.Items.Add(CreateNoteMenuItem("导出…", null, OnExportNoteClick));
+        menu.Items.Add(CreateNoteMenuItem("编辑标签…", "normal-single", OnEditTagsClick));
+        menu.Items.Add(CreateNoteMenuItem("历史版本…", "single", OnHistoryClick));
+        menu.Items.Add(CreateNoteMenuItem("导出…", "single", OnExportNoteClick));
         menu.Items.Add(new Separator
         {
             Tag = "normal",
@@ -1516,25 +1687,28 @@ public partial class MainWindow : Window
             return;
         }
 
+        var isMulti = NoteListBox.SelectedItems.Count > 1;
         foreach (var element in menu.Items.OfType<FrameworkElement>())
         {
             element.Visibility = element.Tag?.ToString() switch
             {
                 "normal" => _viewModel.IsTrashSelected ? Visibility.Collapsed : Visibility.Visible,
+                "normal-single" => _viewModel.IsTrashSelected || isMulti ? Visibility.Collapsed : Visibility.Visible,
+                "single" => isMulti ? Visibility.Collapsed : Visibility.Visible,
                 "trash" => _viewModel.IsTrashSelected ? Visibility.Visible : Visibility.Collapsed,
                 _ => Visibility.Visible,
             };
         }
     }
 
-    private void OnTogglePinMenuClick(object sender, RoutedEventArgs e) =>
-        _viewModel.TogglePinCommand.Execute(null);
+    private async void OnTogglePinMenuClick(object sender, RoutedEventArgs e) =>
+        await _viewModel.TogglePinNotesAsync(GetSelectedNoteIds());
 
-    private void OnDeleteNoteMenuClick(object sender, RoutedEventArgs e) =>
-        _viewModel.DeleteNoteCommand.Execute(null);
+    private async void OnDeleteNoteMenuClick(object sender, RoutedEventArgs e) =>
+        await _viewModel.DeleteNotesAsync(GetSelectedNoteIds());
 
-    private void OnRestoreNoteMenuClick(object sender, RoutedEventArgs e) =>
-        _viewModel.RestoreNoteCommand.Execute(null);
+    private async void OnRestoreNoteMenuClick(object sender, RoutedEventArgs e) =>
+        await _viewModel.RestoreNotesAsync(GetSelectedNoteIds());
 
     private async void OnNewNotebookRequested(object? sender, EventArgs e) =>
         await ShowNewNotebookDialogAsync();
@@ -1683,22 +1857,29 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void OnPermanentDeleteClick(object sender, RoutedEventArgs e)
+    private async void OnPermanentDeleteClick(object sender, RoutedEventArgs e) =>
+        await PermanentlyDeleteSelectedNotesAsync();
+
+    private async Task PermanentlyDeleteSelectedNotesAsync()
     {
-        if (_viewModel.SelectedNote is null)
+        var ids = GetSelectedNoteIds();
+        if (ids.Count == 0)
         {
             return;
         }
 
+        var message = ids.Count == 1
+            ? $"永久删除“{_viewModel.SelectedNote?.Title}”？此操作无法撤销。"
+            : $"永久删除选中的 {ids.Count} 篇笔记？此操作无法撤销。";
         var choice = MessageBox.Show(
-            $"永久删除“{_viewModel.SelectedNote.Title}”？此操作无法撤销。",
+            message,
             "LightNote",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
             MessageBoxResult.No);
         if (choice == MessageBoxResult.Yes)
         {
-            await _viewModel.DeletePermanentlyAsync();
+            await _viewModel.DeleteNotesPermanentlyAsync(ids);
         }
     }
 
@@ -1747,10 +1928,12 @@ public partial class MainWindow : Window
                     .Where(item => item.Kind == NotebookKind.User)
                     .Select(item => new MoveDestination(item.Id, item.Name)))
                 .ToArray();
-            var dialog = new MoveNoteDialog(destinations, note.NotebookId) { Owner = this };
+            var ids = GetSelectedNoteIds();
+            var currentNotebookId = ids.Count > 1 ? null : note.NotebookId;
+            var dialog = new MoveNoteDialog(destinations, currentNotebookId) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
-                await _viewModel.MoveSelectedNoteAsync(dialog.SelectedNotebookId);
+                await _viewModel.MoveNotesAsync(ids, dialog.SelectedNotebookId);
             }
         }
         catch (Exception exception)

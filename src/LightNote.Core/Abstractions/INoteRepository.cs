@@ -4,6 +4,9 @@ namespace LightNote.Core.Abstractions;
 
 public interface INoteRepository
 {
+    /// <summary>列表查询使用的排序方式（置顶始终优先）。</summary>
+    NoteSortOrder SortOrder { get; set; }
+
     Task<Note?> GetAsync(string id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Note>> ListAsync(

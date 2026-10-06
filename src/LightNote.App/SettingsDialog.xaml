@@ -260,7 +260,19 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="&#xE72D;" FontFamily="Segoe Fluent Icons" FontSize="15"
                                                        VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
-                                            <TextBlock Grid.Column="1" Text="数据安全与诊断" FontSize="13"
+                                            <TextBlock Grid.Column="1" Text="数据安全" FontSize="13"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                        </Grid>
+                                    </ListBoxItem>
+                                    <ListBoxItem x:Name="NavItemDiagnostics" Tag="diagnostics">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="&#xE9D9;" FontFamily="Segoe Fluent Icons" FontSize="15"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                            <TextBlock Grid.Column="1" Text="系统与诊断" FontSize="13"
                                                        VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
                                         </Grid>
                                     </ListBoxItem>
@@ -342,6 +354,26 @@
                                                          Checked="OnLinkModeRadioChecked" />
                                         </StackPanel>
                                     </Border>
+                                </Grid>
+                            </Border>
+
+                            <TextBlock Text="图片" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="插入图片时自动压缩" Style="{StaticResource CardTitleStyle}" />
+                                        <TextBlock Margin="0,4,12,0" TextWrapping="Wrap"
+                                                   Text="手机截屏缩小到 50% 宽度，其他图片长边最多 2560 像素，照片转为高效格式，可节省本地空间与同步流量。关闭后保留原图。仅对新插入的图片生效。"
+                                                   Style="{StaticResource CardDescriptionStyle}" />
+                                    </StackPanel>
+                                    <CheckBox x:Name="CompressImagesBox" Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Click="OnCompressImagesToggleClicked" />
                                 </Grid>
                             </Border>
 
@@ -537,6 +569,8 @@
                                         <TextBlock Text="本地离线安全" Style="{StaticResource CardTitleStyle}" />
                                         <TextBlock Margin="0,4,12,0" Text="备份文件全部安全存放于本机 AppData 目录，绝不会未经许可同步到云端。"
                                                    Style="{StaticResource CardDescriptionStyle}" />
+                                        <TextBlock x:Name="BackupUsageText" Margin="0,4,12,0"
+                                                   Style="{StaticResource CardDescriptionStyle}" />
                                     </StackPanel>
                                     <Button Grid.Column="1" Style="{StaticResource SettingsActionButtonStyle}"
                                             Content="打开备份目录" Click="OnOpenBackupsClick" />
@@ -546,8 +580,8 @@
 
                         <!-- 数据安全与诊断页 -->
                         <StackPanel x:Name="SafetyPage" Visibility="Collapsed">
-                            <TextBlock Text="数据安全与诊断" Style="{StaticResource PageTitleStyle}" />
-                            <TextBlock Text="实时监控云端同步队列、冲突处理、本地完整性与底层系统详情。"
+                            <TextBlock Text="数据安全" Style="{StaticResource PageTitleStyle}" />
+                            <TextBlock Text="实时监控云端同步队列、冲突处理与本地数据库完整性。"
                                        Style="{StaticResource PageDescriptionStyle}" />
 
                             <!-- 顶部 3 个指标卡片 -->
@@ -602,6 +636,14 @@
                                             Content="立即检查" Click="OnCheckClick" />
                                 </Grid>
                             </Border>
+
+                        </StackPanel>
+
+                        <!-- 系统与诊断页 -->
+                        <StackPanel x:Name="DiagnosticsPage" Visibility="Collapsed">
+                            <TextBlock Text="系统与诊断" Style="{StaticResource PageTitleStyle}" />
+                            <TextBlock Text="查看存储与数据库详情，使用备份验证、诊断包和日志等排障工具。"
+                                       Style="{StaticResource PageDescriptionStyle}" />
 
                             <!-- 结构化存储与系统详情卡片 -->
                             <TextBlock Text="系统与存储环境" Style="{StaticResource SectionTitleStyle}" />

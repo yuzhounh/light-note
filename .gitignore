@@ -17,3 +17,7 @@ web/dist/
 .firebase/
 .wrangler/
 .netlify/
+
+# 本机私密配置，禁止提交
+firebase-session.dat
+.lightnote/

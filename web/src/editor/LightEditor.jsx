@@ -7,6 +7,7 @@ import { Node, Mark, mergeAttributes, nodeInputRule, nodePasteRule } from '@tipt
 import katex from 'katex'
 import { LatexModal } from '../components/modals/LatexModal'
 import { syncService } from '../core/sync/syncService'
+import { imageFileToDataUrl } from './imageCompress'
 
 // 1. Underline Mark
 const Underline = Mark.create({
@@ -502,16 +503,13 @@ export const LightEditor = forwardRef(function LightEditor(
           if (item.type.startsWith('image/')) {
             const file = item.getAsFile()
             if (file) {
-              const reader = new FileReader()
-              reader.onload = e => {
-                const src = e.target.result
+              imageFileToDataUrl(file).then(src => {
                 view.dispatch(
                   view.state.tr.replaceSelectionWith(
                     view.state.schema.nodes.image.create({ src })
                   )
                 )
-              }
-              reader.readAsDataURL(file)
+              })
               return true
             }
           }
@@ -521,16 +519,13 @@ export const LightEditor = forwardRef(function LightEditor(
       handleDrop: (view, event) => {
         const files = event.dataTransfer?.files
         if (files && files.length > 0 && files[0].type.startsWith('image/')) {
-          const reader = new FileReader()
-          reader.onload = e => {
-            const src = e.target.result
+          imageFileToDataUrl(files[0]).then(src => {
             view.dispatch(
               view.state.tr.replaceSelectionWith(
                 view.state.schema.nodes.image.create({ src })
               )
             )
-          }
-          reader.readAsDataURL(files[0])
+          })
           return true
         }
         return false
@@ -685,8 +680,8 @@ export const LightEditor = forwardRef(function LightEditor(
     const d = new Date()
     const pad = n => String(n).padStart(2, '0')
     const timestamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-    const { from } = editor.state.selection
-    editor.chain().focus().insertContent(timestamp).setTextSelection(from + timestamp.length).run()
+    editor.chain().focus().insertContent(timestamp).run()
+    editor.commands.splitBlock()
   }
 
   return (

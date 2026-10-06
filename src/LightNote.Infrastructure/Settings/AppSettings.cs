@@ -28,5 +28,14 @@ public sealed record AppSettings
 
     public int BackupRetentionCount { get; init; } = 10;
 
+    public bool CompressImages { get; init; } = true;
+
+    public bool NoteSortByUpdated { get; init; }
+
+    public bool NoteSortDescending { get; init; } = true;
+
+    /// <summary>笔记卡片密度：compact（紧凑）、comfortable（舒适）、spacious（宽松）。</summary>
+    public string NoteListDensity { get; init; } = "comfortable";
+
     public string LinkOpenMode { get; init; } = "internal";
 }

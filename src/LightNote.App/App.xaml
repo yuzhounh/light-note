@@ -6,7 +6,7 @@
         <SolidColorBrush x:Key="AppBackgroundBrush" Color="#FFF7F8FA" />
         <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFFFF" />
         <SolidColorBrush x:Key="SecondaryPanelBrush" Color="#FFF1F3F5" />
-        <SolidColorBrush x:Key="BorderBrush" Color="#FFE2E5E9" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#FFEEF0F2" />
         <SolidColorBrush x:Key="TextBrush" Color="#FF1F2328" />
         <SolidColorBrush x:Key="MutedTextBrush" Color="#FF68717D" />
         <SolidColorBrush x:Key="AccentBrush" Color="#FF246BFD" />
@@ -19,10 +19,18 @@
         <SolidColorBrush x:Key="ToolbarActiveBorderBrush" Color="#FF93C5FD" />
         <SolidColorBrush x:Key="ToolTipBackgroundBrush" Color="#FFFFFFFF" />
         <SolidColorBrush x:Key="ToolTipForegroundBrush" Color="#FF1F2328" />
-        <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#FFE2E5E9" />
-        <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#FFE2E5E9" />
-        <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#FFCBD0D6" />
-        <SolidColorBrush x:Key="ScrollBarThumbDragBrush" Color="#FFAAB2BC" />
+        <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#FFEEF0F2" />
+        <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#FFEEF0F2" />
+        <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#FFDDE1E5" />
+        <SolidColorBrush x:Key="ScrollBarThumbDragBrush" Color="#FFC4CAD1" />
+
+        <!-- 笔记卡片密度（默认：舒适）；运行时由 MainWindow 按设置覆盖 -->
+        <Thickness x:Key="NoteCardPadding">10,12</Thickness>
+        <Thickness x:Key="NoteSummaryMargin">0,6,0,0</Thickness>
+        <Thickness x:Key="NoteFooterMargin">0,8,0,0</Thickness>
+        <sys:Double xmlns:sys="clr-namespace:System;assembly=System.Runtime" x:Key="NoteSummaryLineHeight">20</sys:Double>
+        <sys:Double xmlns:sys="clr-namespace:System;assembly=System.Runtime" x:Key="NoteSummaryMaxHeight">40</sys:Double>
+        <sys:Double xmlns:sys="clr-namespace:System;assembly=System.Runtime" x:Key="NoteThumbSize">72</sys:Double>
 
         <Style TargetType="Button">
             <Setter Property="FontFamily" Value="Microsoft YaHei" />

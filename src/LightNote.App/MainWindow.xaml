@@ -201,7 +201,7 @@
                                     </Grid.ColumnDefinitions>
                                     <Border Width="24" Height="24" CornerRadius="6"
                                             Background="{DynamicResource SecondaryPanelBrush}"
-                                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                            BorderThickness="0"
                                             HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Margin="0,0,8,0">
                                         <Grid>
@@ -235,10 +235,6 @@
                                 <Border x:Name="AccountPopupCard" Padding="10" CornerRadius="12"
                                         Background="{DynamicResource PanelBrush}"
                                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="16" ShadowDepth="4" Direction="270"
-                                                          Opacity="0.35" Color="#000000" />
-                                    </Border.Effect>
                                     <StackPanel>
                                         <!-- Header with Name, Email and Avatar -->
                                         <Grid Margin="10,8,10,12">
@@ -254,7 +250,7 @@
                                             </StackPanel>
                                             <Border Grid.Column="1" Width="40" Height="40" CornerRadius="8"
                                                     Background="{DynamicResource SecondaryPanelBrush}"
-                                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                                    BorderThickness="0"
                                                     HorizontalAlignment="Right" VerticalAlignment="Center">
                                                 <Grid>
                                                     <TextBlock x:Name="AccountPopupAvatarInitial" Text="" Visibility="Collapsed"
@@ -533,7 +529,7 @@
                             <Border Height="46" CornerRadius="6" Background="{DynamicResource SecondaryPanelBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                 <Grid>
-                                    <TextBox x:Name="SearchBox" Margin="12,0" BorderThickness="0" Background="Transparent"
+                                    <TextBox x:Name="SearchBox" Margin="14,0" Padding="0" BorderThickness="0" Background="Transparent"
                                              FontSize="14" VerticalAlignment="Center"
                                              PreviewMouseLeftButtonDown="OnSearchBoxPreviewMouseLeftButtonDown"
                                              GotKeyboardFocus="OnSearchBoxGotKeyboardFocus"
@@ -558,7 +554,17 @@
                                     </TextBlock>
                                 </Grid>
                             </Border>
-                            <TextBlock Margin="2,12,0,0" Text="{Binding NotesHeading}" FontSize="16" FontWeight="Normal" />
+                            <Grid Margin="2,12,0,0">
+                                <TextBlock Text="{Binding NotesHeading}" FontSize="16" FontWeight="Normal"
+                                           VerticalAlignment="Center" />
+                                <Button x:Name="NoteListOptionsButton" HorizontalAlignment="Right"
+                                        Style="{StaticResource ToolbarButtonStyle}" Margin="0"
+                                        ToolTip="排序与卡片密度" AutomationProperties.Name="排序与卡片密度"
+                                        Click="OnNoteListOptionsClick">
+                                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="15" Text="&#xE8CB;"
+                                               Foreground="{DynamicResource TextBrush}" />
+                                </Button>
+                            </Grid>
                         </StackPanel>
                     </Border>
                     <Button DockPanel.Dock="Bottom" Margin="14,8" Padding="12,7"
@@ -566,7 +572,10 @@
                             Visibility="{Binding HasMoreNotes, Converter={StaticResource BooleanToVisibilityConverter}}"
                             AutomationProperties.Name="加载更多笔记" />
                     <Grid>
-                        <ListBox ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}"
+                        <ListBox x:Name="NoteListBox" ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}"
+                                 SelectionMode="Extended"
+                                 SelectionChanged="OnNoteListSelectionChanged"
+                                 PreviewKeyDown="OnNoteListPreviewKeyDown"
                                  BorderThickness="0" Background="{DynamicResource PanelBrush}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -587,6 +596,7 @@
                                  <Style TargetType="ListBoxItem">
                                      <EventSetter Event="PreviewMouseRightButtonDown" Handler="OnNotePreviewMouseRightButtonDown" />
                                      <EventSetter Event="PreviewMouseLeftButtonDown" Handler="OnNotePreviewMouseLeftButtonDown" />
+                                     <EventSetter Event="PreviewMouseLeftButtonUp" Handler="OnNotePreviewMouseLeftButtonUp" />
                                      <EventSetter Event="PreviewMouseMove" Handler="OnNotePreviewMouseMove" />
                                      <EventSetter Event="MouseDoubleClick" Handler="OnNoteMouseDoubleClick" />
                                      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -630,7 +640,7 @@
                              <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <Grid>
-                                        <Grid Margin="10,10">
+                                        <Grid Margin="{DynamicResource NoteCardPadding}">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
@@ -666,33 +676,31 @@
                                                     </Grid>
 
                                                     <!-- Lines 2-3: Preview Summary -->
-                                                    <local:HighlightedTextBlock Margin="0,4,0,0"
+                                                    <local:HighlightedTextBlock Margin="{DynamicResource NoteSummaryMargin}"
                                                                                HighlightText="{Binding Preview}"
                                                                                HighlightQuery="{Binding MatchQuery}"
                                                                                Foreground="{DynamicResource MutedTextBrush}"
                                                                                FontSize="13"
                                                                                TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                                                                               LineHeight="18" LineStackingStrategy="BlockLineHeight" MaxHeight="36" />
+                                                                               LineHeight="{DynamicResource NoteSummaryLineHeight}" LineStackingStrategy="BlockLineHeight"
+                                                                               MaxHeight="{DynamicResource NoteSummaryMaxHeight}" />
                                                 </StackPanel>
 
                                                 <!-- Square Thumbnail with rounded corners on the right of lines 1-3 -->
-                                                <Border Grid.Column="1" Width="60" Height="60" Margin="10,0,0,0"
+                                                <Border Grid.Column="1" Width="{DynamicResource NoteThumbSize}"
+                                                        Height="{DynamicResource NoteThumbSize}" Margin="12,0,0,0"
                                                         CornerRadius="6" VerticalAlignment="Top"
-                                                        Background="{DynamicResource SecondaryPanelBrush}"
                                                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                                                         Visibility="{Binding HasThumbnail, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <Border.Clip>
-                                                        <RectangleGeometry Rect="0,0,60,60" RadiusX="6" RadiusY="6" />
-                                                    </Border.Clip>
-                                                    <Image Source="{Binding ThumbnailSource}" Stretch="UniformToFill"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                           RenderOptions.BitmapScalingMode="HighQuality" />
+                                                    <Border.Background>
+                                                        <ImageBrush ImageSource="{Binding ThumbnailSource}" Stretch="UniformToFill" />
+                                                    </Border.Background>
                                                 </Border>
                                             </Grid>
 
                                             <!-- Bottom part: Line 4 (Date + Notebook badge) - Spans FULL width of the card -->
-                                            <Grid Grid.Row="1" Margin="0,6,0,0">
-                                                <TextBlock Text="{Binding UpdatedLabel}" FontSize="12"
+                                            <Grid Grid.Row="1" Margin="{DynamicResource NoteFooterMargin}">
+                                                <TextBlock Text="{Binding DateLabel}" FontSize="12"
                                                            Foreground="{DynamicResource MutedTextBrush}"
                                                            VerticalAlignment="Center" />
                                                 <Border HorizontalAlignment="Right" VerticalAlignment="Center"

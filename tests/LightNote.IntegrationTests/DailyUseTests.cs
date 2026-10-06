@@ -183,21 +183,53 @@ public sealed class DailyUseTests : IDisposable
         var service = new AutomaticBackupService(
             paths,
             new BackupService(paths, factory),
-            settingsService);
+            settingsService,
+            factory);
 
         var first = await service.RunIfDueAsync();
         Assert.NotNull(first);
         Assert.Null(await service.RunIfDueAsync());
         File.SetCreationTimeUtc(first!, DateTime.UtcNow.AddDays(-3));
 
+        // 数据有变化时才会生成新的自动备份。
+        WriteAttachmentMarker(paths, "second");
         var second = await service.RunIfDueAsync();
         Assert.NotNull(second);
         File.SetCreationTimeUtc(second!, DateTime.UtcNow.AddDays(-2));
 
+        WriteAttachmentMarker(paths, "third");
         var third = await service.RunIfDueAsync();
         Assert.NotNull(third);
         Assert.Equal(2, Directory.EnumerateFiles(paths.BackupsDirectory, "LightNote-auto-*.zip").Count());
         Assert.False(File.Exists(first));
+    }
+
+    [Fact]
+    public async Task AutomaticBackupIsSkippedWhenNothingChanged()
+    {
+        var paths = new AppDataPaths(_testDirectory);
+        var factory = new SqliteConnectionFactory(paths);
+        await new SqliteDatabaseInitializer(factory, new NullLogger()).InitializeAsync();
+        var settingsService = new AppSettingsService(paths);
+        settingsService.Save(new AppSettings());
+        var service = new AutomaticBackupService(
+            paths,
+            new BackupService(paths, factory),
+            settingsService,
+            factory);
+
+        var first = await service.RunIfDueAsync();
+        Assert.NotNull(first);
+        File.SetCreationTimeUtc(first!, DateTime.UtcNow.AddDays(-2));
+
+        Assert.Null(await service.RunIfDueAsync());
+        Assert.Single(Directory.EnumerateFiles(paths.BackupsDirectory, "LightNote-auto-*.zip"));
+    }
+
+    private static void WriteAttachmentMarker(AppDataPaths paths, string name)
+    {
+        Directory.CreateDirectory(paths.AttachmentsDirectory);
+        File.WriteAllText(Path.Combine(paths.AttachmentsDirectory, $"{name}.bin"), name);
     }
 
     [Fact]

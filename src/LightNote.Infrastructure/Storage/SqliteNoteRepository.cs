@@ -18,6 +18,16 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         return await reader.ReadAsync(cancellationToken) ? ReadNote(reader) : null;
     }
 
+    public NoteSortOrder SortOrder { get; set; } = new();
+
+    private string OrderBy(string prefix = "", bool pinnedFirst = true)
+    {
+        var column = SortOrder.ByUpdated ? "updated_at" : "created_at";
+        var direction = SortOrder.Descending ? "DESC" : "ASC";
+        var ordering = $"{prefix}{column} {direction}, {prefix}id {direction}";
+        return pinnedFirst ? $"{prefix}is_pinned DESC, {ordering}" : ordering;
+    }
+
     public async Task<IReadOnlyList<Note>> ListAsync(
         string? notebookId,
         bool allNotebooks,
@@ -41,7 +51,7 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
             FROM notes
             WHERE {deletionFilter}
             {notebookFilter}
-            ORDER BY is_pinned DESC, created_at DESC
+            ORDER BY {OrderBy()}
             LIMIT $limit OFFSET $offset;
             """;
         if (!allNotebooks && notebookId is not null)
@@ -98,7 +108,7 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         CancellationToken cancellationToken = default) =>
         ListWithFilterAsync(
             "deleted_at IS NULL AND purged_at IS NULL",
-            "created_at DESC",
+            OrderBy(pinnedFirst: false),
             limit,
             offset,
             cancellationToken);
@@ -109,7 +119,7 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         CancellationToken cancellationToken = default) =>
         ListWithFilterAsync(
             "deleted_at IS NULL AND purged_at IS NULL AND is_pinned = 1",
-            "created_at DESC",
+            OrderBy(pinnedFirst: false),
             limit,
             offset,
             cancellationToken);
@@ -127,7 +137,7 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
             FROM notes AS n
             INNER JOIN note_tags AS nt ON nt.note_id = n.id
             WHERE nt.tag_id = $tagId AND n.deleted_at IS NULL AND n.purged_at IS NULL
-            ORDER BY n.is_pinned DESC, n.created_at DESC
+            ORDER BY {OrderBy("n.")}
             LIMIT $limit OFFSET $offset;
             """;
         command.Parameters.AddWithValue("$tagId", tagId);
@@ -161,7 +171,7 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
             FROM notes
             WHERE notebook_id IN ({string.Join(", ", parameterNames)})
               AND deleted_at IS NULL AND purged_at IS NULL
-            ORDER BY is_pinned DESC, created_at DESC
+            ORDER BY {OrderBy()}
             LIMIT $limit OFFSET $offset;
             """;
         command.Parameters.AddWithValue("$limit", Math.Clamp(limit, 1, 500));
