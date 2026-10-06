@@ -1852,7 +1852,7 @@ public sealed record NotebookListItem(
         NotebookKind.Unfiled => "M4,3 H16 V17 H4 Z",
         NotebookKind.User => "M4,3 H14 A2,2 0 0 1 16,5 V17 H6 A2,2 0 0 1 4,15 Z M7,3 V17",
         NotebookKind.Tag => "M3,4 H11 L17,10 L11,16 H3 Z M7,8 A1,1 0 1 0 7.1,8",
-        NotebookKind.Trash => "M5,6 H15 M7,6 V17 H13 V6 M8,3 H12 L13,6 H7 Z M9,9 V14 M11,9 V14",
+        NotebookKind.Trash => "M3,5.5 H17 M7.5,5.5 V3 H12.5 V5.5 M4.8,5.5 L5.8,17 H14.2 L15.2,5.5 M8.5,8.5 V14 M11.5,8.5 V14",
         _ => "M4,3 H16 V17 H4 Z",
     };
 }

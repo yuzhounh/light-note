@@ -115,7 +115,7 @@ public sealed class TrayIconService : IDisposable
         try
         {
             var appDir = AppDomain.CurrentDomain.BaseDirectory;
-            var iconPath = Path.Combine(appDir, "Assets", "pen-note-icon-yellow.ico");
+            var iconPath = Path.Combine(appDir, "Assets", "pen-note-icon-green.ico");
             if (File.Exists(iconPath))
             {
                 _trayIconImage = new Icon(iconPath);
