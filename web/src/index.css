@@ -292,8 +292,11 @@
     font-size: 16px;
   }
 
-  .notebook-row > button {
-    opacity: 1;
+  .sidebar-navigation .btn-icon-compact,
+  .sidebar-group-header .btn-icon-compact,
+  .notebook-row button {
+    min-width: 20px !important;
+    min-height: 20px !important;
   }
 
   .notebook-row > div {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { 
   FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2, Sun, Moon, RefreshCw, Search
 } from 'lucide-react'
@@ -29,6 +29,55 @@ export function Sidebar({
   const [isAddingNotebook, setIsAddingNotebook] = useState(false)
   const [newNotebookName, setNewNotebookName] = useState('')
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+
+  // 笔记本长按操作（移动端/触摸屏）
+  const [activeActionNotebook, setActiveActionNotebook] = useState(null)
+  const longPressTimerRef = useRef(null)
+  const touchStartPosRef = useRef({ x: 0, y: 0 })
+  const isLongPressActiveRef = useRef(false)
+
+  const handleNotebookTouchStart = (e, nb) => {
+    const touch = e.touches[0]
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY }
+    isLongPressActiveRef.current = false
+
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressActiveRef.current = true
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try {
+          navigator.vibrate(40)
+        } catch (_) {}
+      }
+      setActiveActionNotebook(nb)
+    }, 450)
+  }
+
+  const handleNotebookTouchMove = (e) => {
+    if (!longPressTimerRef.current) return
+    const touch = e.touches[0]
+    const dx = Math.abs(touch.clientX - touchStartPosRef.current.x)
+    const dy = Math.abs(touch.clientY - touchStartPosRef.current.y)
+    if (dx > 10 || dy > 10) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  const handleNotebookTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  const handleNotebookClick = (nb) => {
+    if (isLongPressActiveRef.current) {
+      isLongPressActiveRef.current = false
+      return
+    }
+    onSelectNotebook(nb.id)
+    if (isMobile) onCloseMobile()
+  }
 
   function handleCreateNotebook(e) {
     e.preventDefault()
@@ -84,34 +133,34 @@ export function Sidebar({
       )}
 
       {/* Top Action: '+ 新建笔记'（无底色，悬停时显示背景，与下方导航行等高） */}
-      <div className="px-2 pt-2 pb-2">
+      <div className="px-2 pt-1 pb-1">
         <button
           onClick={() => {
             onCreateNote()
             if (isMobile) onCloseMobile()
           }}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-normal text-zinc-800 dark:text-zinc-200 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] active:opacity-80 transition text-left cursor-pointer`}
+          className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-normal text-zinc-800 dark:text-zinc-200 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] active:opacity-80 transition text-left cursor-pointer`}
         >
-          <Plus size={16} strokeWidth={1.6} className="shrink-0" />
+          <Plus size={15} strokeWidth={1.6} className="shrink-0" />
           <span>新建笔记</span>
         </button>
       </div>
 
       {/* Main Navigation List */}
-      <div className="sidebar-navigation flex-1 min-h-0 overflow-y-auto px-2 space-y-1">
+      <div className="sidebar-navigation flex-1 min-h-0 overflow-y-auto px-2 space-y-0.5">
         {/* 全部笔记 */}
         <button
           onClick={() => {
             onSelectView('all')
             if (isMobile) onCloseMobile()
           }}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-normal transition text-left cursor-pointer ${
+          className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-normal transition text-left cursor-pointer ${
             currentView === 'all' && !currentNotebookId
               ? 'bg-[#d3f0e3] dark:bg-[#234a3f] text-[#007f55] dark:text-emerald-400 font-medium'
               : 'text-zinc-700 dark:text-zinc-300 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43]'
           }`}
         >
-          <FileText size={16} className={`shrink-0 ${currentView === 'all' && !currentNotebookId ? '' : 'text-zinc-500 dark:text-zinc-400'}`} />
+          <FileText size={15} className={`shrink-0 ${currentView === 'all' && !currentNotebookId ? '' : 'text-zinc-500 dark:text-zinc-400'}`} />
           <span>全部笔记</span>
         </button>
 
@@ -119,10 +168,10 @@ export function Sidebar({
         <div>
           <div
             onClick={() => setIsGroupOpen(!isGroupOpen)}
-            className="flex items-center justify-between px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] rounded-lg cursor-pointer transition"
+            className="sidebar-group-header flex items-center justify-between px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] rounded-lg cursor-pointer transition select-none"
           >
             <div className="flex items-center gap-2">
-              <Folder size={16} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
+              <Folder size={15} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
               <span>笔记本组</span>
             </div>
             <button
@@ -132,7 +181,7 @@ export function Sidebar({
                 setIsAddingNotebook(true)
                 setIsGroupOpen(true)
               }}
-              className="p-1 min-w-[28px] min-h-[28px] flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white"
+              className="btn-icon-compact w-6 h-6 min-w-6 min-h-6 flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white transition shrink-0"
               title="新建笔记本"
             >
               <Plus size={14} />
@@ -141,39 +190,47 @@ export function Sidebar({
 
           {/* Sub Notebook Items */}
           {isGroupOpen && (
-            <div className="pl-6 pr-1 space-y-0.5 mt-0.5">
+            <div className="pl-4 pr-1 space-y-0.5 mt-0.5">
               {notebooks.map(nb => {
                 const isActive = currentNotebookId === nb.id && currentView === 'all'
                 return (
                   <div
                     key={nb.id}
-                    onClick={() => {
-                      onSelectNotebook(nb.id)
-                      if (isMobile) onCloseMobile()
+                    onClick={() => handleNotebookClick(nb)}
+                    onTouchStart={(e) => handleNotebookTouchStart(e, nb)}
+                    onTouchMove={handleNotebookTouchMove}
+                    onTouchEnd={handleNotebookTouchEnd}
+                    onTouchCancel={handleNotebookTouchEnd}
+                    onContextMenu={(e) => {
+                      e.preventDefault()
+                      setActiveActionNotebook(nb)
                     }}
-                    className={`notebook-row group flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13.5px] cursor-pointer transition ${
+                    className={`notebook-row group flex items-center justify-between px-2 py-1 rounded-md text-[13px] cursor-pointer transition select-none ${
                       isActive
                         ? 'bg-[#d3f0e3] dark:bg-[#234a3f] text-[#007f55] dark:text-emerald-400 font-medium'
                         : 'text-zinc-600 dark:text-zinc-400 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43]'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <Book size={15} className={isActive ? '' : 'text-zinc-400'} />
+                      <Book size={14} className={isActive ? '' : 'text-zinc-400 shrink-0'} />
                       <span className="truncate">{nb.name}</span>
                     </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (confirm(`确定删除笔记本“${nb.name}”？笔记仍会保留。`)) {
-                          onDeleteNotebook(nb.id)
-                        }
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 min-w-[28px] min-h-[28px] flex items-center justify-center hover:text-rose-500 rounded text-zinc-400 transition"
-                      title="删除笔记本"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {!isMobile && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (confirm(`确定删除笔记本“${nb.name}”？笔记仍会保留。`)) {
+                            onDeleteNotebook(nb.id)
+                          }
+                        }}
+                        className="btn-icon-compact opacity-0 group-hover:opacity-100 w-5 h-5 min-w-5 min-h-5 flex items-center justify-center hover:text-rose-500 rounded text-zinc-400 transition shrink-0"
+                        title="删除笔记本"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                 )
               })}
@@ -228,23 +285,25 @@ export function Sidebar({
 
           {/* Row 2: 账号/设置 */}
           {currentUser ? (
-            <div className="flex items-center justify-between min-h-[48px] px-1 border-t border-zinc-100 dark:border-zinc-800/80 pt-1">
+            <div className="flex items-center justify-between gap-2 min-h-[48px] px-1 border-t border-zinc-100 dark:border-zinc-800/80 pt-1">
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="w-8 h-8 rounded-full bg-[#00b87a] text-white font-bold flex items-center justify-center text-xs shrink-0">
-                  {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                <div className="relative w-8 h-8 rounded-full overflow-hidden bg-[#00b87a] text-white font-bold flex items-center justify-center text-xs shrink-0" aria-hidden="true">
+                  <span>{Array.from(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}</span>
+                  {currentUser.photoURL && <img key={currentUser.photoURL} src={currentUser.photoURL} alt="" referrerPolicy="no-referrer" className="absolute inset-0 w-full h-full object-cover" onError={event => { event.currentTarget.style.display = 'none' }} />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">{currentUser.displayName || '已登录'}</div>
-                  <div className="text-[10px] text-zinc-400 truncate">{currentUser.email || ''}</div>
+                  <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate" title={currentUser.displayName || currentUser.email || '已登录'}>{currentUser.displayName || currentUser.email || '已登录'}</div>
+                  <div className="text-[11px] text-zinc-400 truncate" title={currentUser.email || ''}>{currentUser.email || ''}</div>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={onLogout}
-                className="w-9 h-9 rounded-full border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition shrink-0"
+                className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition shrink-0"
                 title="退出登录"
                 aria-label="退出登录"
               >
-                <LogOut size={16} />
+                <LogOut size={20} aria-hidden="true" />
               </button>
             </div>
           ) : (
@@ -377,6 +436,60 @@ export function Sidebar({
           </>
         )}
       </div>
+      )}
+      {/* 笔记本长按操作弹窗（移动端抽屉/触摸操作） */}
+      {activeActionNotebook && (
+        <div 
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-xs animate-in fade-in duration-200 select-none"
+          onClick={() => setActiveActionNotebook(null)}
+        >
+          <div 
+            className="w-full max-w-xs mx-auto bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-4 shadow-2xl space-y-3 pb-[calc(1rem+var(--safe-bottom,0px))] sm:pb-4 animate-in slide-in-from-bottom duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2 min-w-0">
+                <Book size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                  {activeActionNotebook.name}
+                </h3>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setActiveActionNotebook(null)}
+                className="w-7 h-7 flex items-center justify-center rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
+                title="关闭"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = activeActionNotebook
+                  setActiveActionNotebook(null)
+                  if (confirm(`确定删除笔记本“${target.name}”？笔记仍会保留。`)) {
+                    onDeleteNotebook(target.id)
+                  }
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+              >
+                <Trash2 size={16} />
+                <span>删除笔记本</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveActionNotebook(null)}
+              className="w-full py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+            >
+              取消
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
