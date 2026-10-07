@@ -14,7 +14,7 @@ export const DEFAULT_FIREBASE_CONFIG = {
   apiKey: "AIzaSyBe_QReM-ybgbtTHAABYMtsEc__RZX9ROk",
   authDomain: "lightnote-sync.firebaseapp.com",
   storageBucket: "lightnote-sync.firebasestorage.app",
-  googleClientId: "589160261764-c2t7mqui1ve0gk9tnd96om0ho87u2iik.apps.googleusercontent.com"
+  googleClientId: "589160261764-i9mmrq0hq15good2a70lq9a5dfkng7et.apps.googleusercontent.com"
 }
 
 const nativeGoogleAuth = registerPlugin('NativeGoogleAuth')
