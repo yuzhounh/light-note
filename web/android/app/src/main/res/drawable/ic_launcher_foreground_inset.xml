@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Keep the pen and note lines at 82% size inside the launcher's mask. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@mipmap/ic_launcher_foreground"
+    android:insetLeft="9%"
+    android:insetTop="9%"
+    android:insetRight="9%"
+    android:insetBottom="9%" />
