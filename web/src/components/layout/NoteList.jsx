@@ -309,7 +309,7 @@ export function NoteList({
       {/* Note Cards List (Progressive Loading on Scroll) */}
       <div 
         onScroll={handleScroll}
-        className="note-list-scroll flex-1 min-h-0 overflow-y-auto px-2 py-1 space-y-1"
+        className="note-list-scroll flex-1 min-h-0 overflow-y-auto px-2 py-1 space-y-0.5"
       >
         {notes.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-zinc-400 text-sm text-center p-6 space-y-2 select-none">
@@ -319,8 +319,9 @@ export function NoteList({
           </div>
         ) : (
           <>
-            {visibleNotes.map(note => {
+            {visibleNotes.map((note, index) => {
               const isSelected = note.id === activeNoteId
+              const nextIsSelected = visibleNotes[index + 1]?.id === activeNoteId
 
               return (
                 <div
@@ -341,7 +342,7 @@ export function NoteList({
                   }}
                   className={`group relative ${cardStyle.card} rounded-md cursor-pointer transition select-none ${
                     isSelected
-                      ? 'bg-[#d3f0e3] dark:bg-[#234a3f] ring-1 ring-inset ring-[#a8e4cd] dark:ring-[#2a6552] text-zinc-900 dark:text-zinc-100'
+                      ? 'my-0.5 bg-[#d3f0e3] dark:bg-[#234a3f] ring-1 ring-inset ring-[#a8e4cd] dark:ring-[#2a6552] text-zinc-900 dark:text-zinc-100'
                       : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200'
                   }`}
                 >
@@ -397,6 +398,11 @@ export function NoteList({
                       )}
                     </div>
                   </div>
+
+                  {/* 笔记之间的分割线 */}
+                  {!isSelected && !nextIsSelected && index < visibleNotes.length - 1 && (
+                    <div className="absolute bottom-0 left-3 right-3 h-[1px] bg-zinc-200/90 dark:bg-zinc-800/80 pointer-events-none" />
+                  )}
                 </div>
               )
             })}
