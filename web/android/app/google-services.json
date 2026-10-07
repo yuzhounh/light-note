@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "589160261764",
+    "project_id": "lightnote-sync",
+    "storage_bucket": "lightnote-sync.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589160261764:android:dac19145815991fa95bad1",
+        "android_client_info": {
+          "package_name": "com.lightnote.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "589160261764-fh5kgknqk3becgkinr580lshpbil2ve0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lightnote.app",
+            "certificate_hash": "03fb84b35c6ec809ea847001d3afa58e720d4b80"
+          }
+        },
+        {
+          "client_id": "589160261764-i9mmrq0hq15good2a70lq9a5dfkng7et.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2-M53YGs6khBToXakL-_jTLOLbcWUTwc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "589160261764-i9mmrq0hq15good2a70lq9a5dfkng7et.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

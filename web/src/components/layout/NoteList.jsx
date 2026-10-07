@@ -401,7 +401,7 @@ export function NoteList({
 
                   {/* 笔记之间的分割线 */}
                   {!isSelected && !nextIsSelected && index < visibleNotes.length - 1 && (
-                    <div className="absolute bottom-0 left-3 right-3 h-[1px] bg-zinc-200/90 dark:bg-zinc-800/80 pointer-events-none" />
+                    <div className="absolute bottom-0 left-3 right-3 h-[1px] bg-zinc-200/90 dark:bg-zinc-500/75 pointer-events-none" />
                   )}
                 </div>
               )
