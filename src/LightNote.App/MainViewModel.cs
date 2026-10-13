@@ -963,10 +963,17 @@ public sealed partial class MainViewModel(
     }
 
     partial void OnSelectedNoteChanged(NoteListItem? value)
+        => RefreshSelectedNoteState(value, preserveTitleDraft: false);
+
+    private void RefreshSelectedNoteState(NoteListItem? value, bool preserveTitleDraft)
     {
-        _suppressTitleChanges = true;
-        EditableTitle = value?.Title ?? string.Empty;
-        _suppressTitleChanges = false;
+        var storedTitle = string.IsNullOrWhiteSpace(EditableTitle) ? "无标题笔记" : EditableTitle.Trim();
+        if (!preserveTitleDraft || value is null || value.Title != storedTitle)
+        {
+            _suppressTitleChanges = true;
+            try { EditableTitle = value?.Title ?? string.Empty; }
+            finally { _suppressTitleChanges = false; }
+        }
         OnPropertyChanged(nameof(IsEditorEnabled));
         SelectedNoteChanged?.Invoke(this, EventArgs.Empty);
         if (value is null)
@@ -1179,17 +1186,38 @@ public sealed partial class MainViewModel(
         }
 
         var selectedId = preferredNoteId ?? SelectedNote?.Model.Id;
-        Notes.Clear();
-        foreach (var item in loadedItems)
+        var existingItems = Notes.ToDictionary(item => item.Model.Id);
+        var refreshedItems = new List<NoteListItem>(loadedItems.Length);
+        foreach (var incoming in loadedItems)
         {
-            _knownNotes[item.Model.Id] = item.Model;
-            Notes.Add(item);
+            _knownNotes[incoming.Model.Id] = incoming.Model;
+            if (existingItems.TryGetValue(incoming.Model.Id, out var existing))
+            {
+                existing.UpdateFrom(incoming);
+                refreshedItems.Add(existing);
+            }
+            else refreshedItems.Add(incoming);
+        }
+        // Preserve the selected object: clearing the collection momentarily clears the bound title box.
+        var refreshedIds = refreshedItems.Select(item => item.Model.Id).ToHashSet();
+        for (var index = Notes.Count - 1; index >= 0; index--)
+        {
+            if (!refreshedIds.Contains(Notes[index].Model.Id)) Notes.RemoveAt(index);
+        }
+        for (var index = 0; index < refreshedItems.Count; index++)
+        {
+            var item = refreshedItems[index];
+            var previousIndex = Notes.IndexOf(item);
+            if (previousIndex < 0) Notes.Insert(index, item);
+            else if (previousIndex != index) Notes.Move(previousIndex, index);
         }
 
         HasMoreNotes = hasMore;
         _notesTotalCount = totalCount;
         OnPropertyChanged(nameof(NotesHeading));
-        SelectedNote = Notes.FirstOrDefault(item => item.Model.Id == selectedId) ?? Notes.FirstOrDefault();
+        var selected = Notes.FirstOrDefault(item => item.Model.Id == selectedId) ?? Notes.FirstOrDefault();
+        if (ReferenceEquals(SelectedNote, selected)) RefreshSelectedNoteState(selected, preserveTitleDraft: true);
+        else SelectedNote = selected;
         OnPropertyChanged(nameof(HasNotes));
         EditorStatus = Notes.Count == 0
             ? IsSearchActive ? "没有找到匹配的笔记" : "这里还没有笔记"
@@ -1589,7 +1617,7 @@ public sealed class NoteListItem : ObservableObject
     public static string? DefaultAttachmentsDirectory { get; set; }
     public static string? DefaultThumbnailCacheDirectory { get; set; }
 
-    private readonly string? _previewOverride;
+    private string? _previewOverride;
     private readonly string? _attachmentsDirectory;
     private readonly string? _thumbnailCacheDirectory;
     private ImageSource? _thumbnailSource;
@@ -1621,7 +1649,7 @@ public sealed class NoteListItem : ObservableObject
 
     public string Preview => NormalizePreview(_previewOverride ?? Model.BodyText);
 
-    public string MatchQuery { get; }
+    public string MatchQuery { get; private set; }
 
     public static bool ShowUpdatedTime { get; set; }
 
@@ -1961,6 +1989,16 @@ public sealed class NoteListItem : ObservableObject
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
         return string.IsNullOrWhiteSpace(normalized) ? "空笔记" : normalized;
+    }
+
+    public void UpdateFrom(NoteListItem incoming)
+    {
+        _previewOverride = incoming._previewOverride;
+        MatchQuery = incoming.MatchQuery;
+        NotebookName = incoming.NotebookName;
+        ShowNotebookBadge = incoming.ShowNotebookBadge;
+        Update(incoming.Model);
+        OnPropertyChanged(nameof(MatchQuery));
     }
 
     public void Update(Note updatedNote, string? notebookName = null, bool? showNotebookBadge = null)
