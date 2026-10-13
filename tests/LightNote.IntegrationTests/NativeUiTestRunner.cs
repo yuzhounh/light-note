@@ -21,8 +21,11 @@ internal static class NativeUiTestRunner
                 case "window-controls":
                     new NativeCaptionTests().VerifyWindowControlsAndCancelableClose();
                     break;
+                case "title-editing":
+                    new TitleEditingTests().RefreshAndSavePreserveTheTitleTextAndCaret();
+                    break;
                 default:
-                    throw new ArgumentException("Specify message-dialog, sidebar or window-controls.");
+                    throw new ArgumentException("Specify message-dialog, sidebar, window-controls or title-editing.");
             }
             Console.WriteLine($"Native UI verification passed: {args[0]}");
             return 0;
