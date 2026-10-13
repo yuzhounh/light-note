@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { X, Trash2, Check, Sparkles, Code2, Eye } from 'lucide-react'
 import katex from 'katex'
+import { useBackDismiss } from '../../hooks/useBackDismiss'
 
 const COMMON_SYMBOLS = [
   { label: '分数', code: '\\frac{a}{b}' },
@@ -39,6 +40,7 @@ export function LatexModal({
   const [renderError, setRenderError] = useState('')
   const [previewHtml, setPreviewHtml] = useState('')
   const textareaRef = useRef(null)
+  useBackDismiss(isOpen, onClose, 50)
 
   // Sync state when modal opens
   useEffect(() => {

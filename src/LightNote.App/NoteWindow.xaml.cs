@@ -73,7 +73,7 @@ public partial class NoteWindow : Window
         catch (Exception exception)
         {
             _logger.Error($"Failed to initialize note window for {_note.Id}.", exception);
-            MessageBox.Show(this, "独立笔记窗口的编辑器启动失败，请查看日志。", "LightNote",
+            MessageDialog.Show(this, "独立笔记窗口的编辑器启动失败，请查看日志。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -103,6 +103,15 @@ public partial class NoteWindow : Window
             if (args.IsSuccess)
             {
                 PostEditorMessage(new { type = "theme.changed", payload = new { isDark = _themeService.IsDark } });
+                PostEditorMessage(new
+                {
+                    type = "editor.settings",
+                    payload = new
+                    {
+                        markdownAutoFormat = _settingsService.Load().MarkdownAutoFormat,
+                        recordPasteSource = _settingsService.Load().RecordPasteSource,
+                    },
+                });
             }
         };
         EditorWebView.Source = new Uri($"https://{EditorHostName}/index.html");
@@ -133,8 +142,15 @@ public partial class NoteWindow : Window
                 case "editor.state":
                     HandleEditorState(message.RootElement);
                     break;
+                case "editor.focusTitle":
+                    TitleBox.Focus();
+                    TitleBox.CaretIndex = TitleBox.Text.Length;
+                    break;
                 case "attachment.create":
                     await HandleAttachmentCreateAsync(message.RootElement);
+                    break;
+                case "clipboard.source.request":
+                    HandleClipboardSourceRequest(message.RootElement);
                     break;
             }
         }
@@ -162,6 +178,7 @@ public partial class NoteWindow : Window
                 json = bodyJson.RootElement,
                 html = _note.BodyHtml,
                 text = _note.BodyText,
+                readOnly = _note.DeletedAt is not null,
             },
         });
     }
@@ -338,6 +355,16 @@ public partial class NoteWindow : Window
         if (sender is Button { Tag: string command } && _editorReady)
         {
             PostEditorMessage(new { type = "editor.command", payload = new { command } });
+            EditorWebView.Focus();
+        }
+    }
+
+    // Picking a font or size returns the keyboard to the text, so typing does not change the font.
+    private void OnEditorToolbarDropDownClosed(object? sender, EventArgs e)
+    {
+        if (_editorReady)
+        {
+            FocusEditor(null);
         }
     }
 
@@ -395,6 +422,23 @@ public partial class NoteWindow : Window
         }
     }
 
+    private void HandleClipboardSourceRequest(JsonElement message)
+    {
+        if (!_settingsService.Load().RecordPasteSource ||
+            !message.TryGetProperty("payload", out var payload) ||
+            !payload.TryGetProperty("requestId", out var requestId))
+        {
+            return;
+        }
+
+        var source = ClipboardSourceReader.TryRead();
+        PostEditorMessage(new
+        {
+            type = "clipboard.source",
+            payload = new { requestId = requestId.GetString(), label = source?.Label, url = source?.Url },
+        });
+    }
+
     private void PostEditorMessage(object message) =>
         EditorWebView.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(message));
 
@@ -449,7 +493,7 @@ public partial class NoteWindow : Window
         catch (Exception exception)
         {
             _logger.Error($"Failed to save note window {_note.Id} before close.", exception);
-            MessageBox.Show(this, "关闭前保存失败，窗口将保持打开。", "LightNote",
+            MessageDialog.Show(this, "关闭前保存失败，窗口将保持打开。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally

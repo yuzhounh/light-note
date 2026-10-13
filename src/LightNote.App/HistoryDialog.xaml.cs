@@ -25,7 +25,7 @@ public partial class HistoryDialog : Window
     {
         if (SelectedVersionId is null)
         {
-            MessageBox.Show(
+            MessageDialog.Show(
                 this,
                 "请先选择一个历史版本。",
                 "LightNote",

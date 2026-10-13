@@ -351,3 +351,122 @@
     padding-bottom: calc(90px + var(--safe-bottom));
   }
 }
+
+
+/* ---- 表格 ---- */
+.ProseMirror .tableWrapper { overflow-x: auto; margin: 14px 0; }
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+.ProseMirror td,
+.ProseMirror th {
+  position: relative;
+  min-width: 1em;
+  padding: 6px 10px;
+  border: 1px solid #d4d4d8;
+  box-sizing: border-box;
+  vertical-align: top;
+}
+.ProseMirror th { background: #f4f4f5; font-weight: 600; text-align: left; }
+.dark .ProseMirror td,
+.dark .ProseMirror th { border-color: #3f3f46; }
+.dark .ProseMirror th { background: #27272a; }
+.ProseMirror td > p,
+.ProseMirror th > p { margin: 0; }
+.ProseMirror .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #009467;
+  opacity: 0.18;
+  pointer-events: none;
+}
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -2px;
+  z-index: 3;
+  width: 4px;
+  background: #00b87a;
+  pointer-events: none;
+}
+.ProseMirror.resize-cursor,
+.ProseMirror.resize-cursor * { cursor: col-resize; }
+
+.table-bar {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px;
+  max-width: calc(100vw - 16px);
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  user-select: none;
+}
+.dark .table-bar { background: #27272a; border-color: #3f3f46; }
+.table-bar button {
+  padding: 3px 9px;
+  font-size: 12px;
+  line-height: 20px;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.table-bar button:hover { background: rgba(0, 0, 0, 0.06); }
+.dark .table-bar button:hover { background: rgba(255, 255, 255, 0.1); }
+.table-bar .table-bar-danger { color: #ef4444; }
+
+/* APK typography and touch feedback; browser styling stays independent. */
+html.lightnote-android .note-title {
+  font-size: 13.5px;
+}
+
+html.lightnote-android .ProseMirror {
+  font-size: 12px;
+}
+
+html.lightnote-android .lightnote-app .note-sidebar input.sidebar-search-input {
+  font-size: 12px;
+}
+
+html.lightnote-android {
+  --button-press-overlay: rgba(24, 24, 27, 0.14);
+}
+
+html.lightnote-android.dark {
+  --button-press-overlay: rgba(255, 255, 255, 0.18);
+}
+
+.lightnote-android :is(button, [role="button"], .notebook-row, .sidebar-group-header) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lightnote-android :is(button, [role="button"], .notebook-row, .sidebar-group-header):not(:disabled):not([aria-disabled="true"]):is(:active, [data-touch-pressed]) {
+  box-shadow: inset 0 0 0 999px var(--button-press-overlay);
+  transition-duration: 0s;
+}
+
+.lightnote-android button[class*="text-rose-"] {
+  --button-press-overlay: rgba(244, 63, 94, 0.18);
+}
+
+.lightnote-android .note-card-pressed {
+  background-color: #d3e9e0;
+  transition-duration: 0s;
+}
+.lightnote-android.dark .note-card-pressed {
+  background-color: #29473c;
+}

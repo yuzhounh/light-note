@@ -101,6 +101,8 @@ public partial class SettingsDialog : Window
         // 初始化备份配置
         AutomaticBackupsBox.IsChecked = settings.AutomaticBackups;
         CompressImagesBox.IsChecked = settings.CompressImages;
+        MarkdownAutoFormatBox.IsChecked = settings.MarkdownAutoFormat;
+        RecordPasteSourceBox.IsChecked = settings.RecordPasteSource;
         RetentionBox.Text = settings.BackupRetentionCount.ToString();
         ExportNoteButton.IsEnabled = canExportCurrentNote;
         SyncStatusText.Text = syncStatus;
@@ -197,6 +199,22 @@ public partial class SettingsDialog : Window
 
         var mode = LinkExternalRadio.IsChecked == true ? "external" : "internal";
         Settings = Settings with { LinkOpenMode = mode };
+        SettingsSaved = true;
+    }
+
+    private void OnRecordPasteSourceToggleClicked(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        Settings = Settings with { RecordPasteSource = RecordPasteSourceBox.IsChecked == true };
+        SettingsSaved = true;
+    }
+
+    private void OnMarkdownAutoFormatToggleClicked(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        Settings = Settings with { MarkdownAutoFormat = MarkdownAutoFormatBox.IsChecked == true };
         SettingsSaved = true;
     }
 
@@ -371,6 +389,13 @@ public partial class SettingsDialog : Window
         Close();
     }
 
+    private void OnSettingsPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+        e.Handled = true;
+        OnCloseClick(this, new RoutedEventArgs());
+    }
+
     private async Task RefreshSummaryAsync()
     {
         _paths.EnsureCreated();
@@ -442,7 +467,7 @@ public partial class SettingsDialog : Window
         var latestBackup = GetLatestBackup();
         if (latestBackup is null)
         {
-            MessageBox.Show(this, "尚未找到可验证的备份。", "LightNote",
+            MessageDialog.Show(this, "尚未找到可验证的备份。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -492,13 +517,13 @@ public partial class SettingsDialog : Window
                 await writer.WriteAsync(report);
             }
 
-            MessageBox.Show(this,
+            MessageDialog.Show(this,
                 $"脱敏诊断包已生成，不包含笔记正文、Firebase 配置或登录令牌：\n{outputPath}",
                 "LightNote", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception)
         {
-            MessageBox.Show(this, $"无法生成诊断包：{exception.Message}", "LightNote",
+            MessageDialog.Show(this, $"无法生成诊断包：{exception.Message}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -572,7 +597,7 @@ public partial class SettingsDialog : Window
         }
         catch (Exception exception)
         {
-            MessageBox.Show(this, $"无法打开目录：{exception.Message}", "LightNote",
+            MessageDialog.Show(this, $"无法打开目录：{exception.Message}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

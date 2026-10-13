@@ -35,6 +35,7 @@ public sealed partial class MainViewModel(
     private bool _isInitializing;
     private bool _showRecentNavigation;
     private bool _showTrashNavigation;
+    private bool _showUnfiledNavigation;
     private int _reloadGeneration;
     private int _tagLoadGeneration;
     private int? _notesTotalCount;
@@ -84,7 +85,8 @@ public sealed partial class MainViewModel(
 
     public bool HasNotes => Notes.Count > 0;
 
-    public bool IsEditorEnabled => SelectedNote is not null;
+    // Notes in the trash are read-only; edits to them would be discarded.
+    public bool IsEditorEnabled => SelectedNote is not null && !IsTrashSelected;
 
     public bool IsTrashSelected => SelectedNotebook?.Kind == NotebookKind.Trash;
 
@@ -96,7 +98,9 @@ public sealed partial class MainViewModel(
         {
             if (IsSearchActive)
             {
-                return $"搜索“{SearchQuery.Trim()}”";
+                return SearchScopeName is { } scope
+                    ? $"搜索“{SearchQuery.Trim()}”· {scope}"
+                    : $"搜索“{SearchQuery.Trim()}”";
             }
 
             var name = SelectedNotebook?.Name ?? "最近笔记";
@@ -117,23 +121,28 @@ public sealed partial class MainViewModel(
         await ReloadNotesAsync(cancellationToken: cancellationToken);
     }
 
-    public void ConfigureNavigation(bool showRecent, bool showTrash)
+    public void ConfigureNavigation(bool showRecent, bool showTrash, bool showUnfiled = false)
     {
         _showRecentNavigation = showRecent;
         _showTrashNavigation = showTrash;
+        _showUnfiledNavigation = showUnfiled;
     }
 
     public async Task UpdateNavigationAsync(
         bool showRecent,
         bool showTrash,
+        bool showUnfiled = false,
         CancellationToken cancellationToken = default)
     {
-        ConfigureNavigation(showRecent, showTrash);
+        ConfigureNavigation(showRecent, showTrash, showUnfiled);
         await ReloadNotebooksAsync(cancellationToken: cancellationToken);
         await ReloadNotesAsync(cancellationToken: cancellationToken);
     }
 
-    public async Task CreateNotebookAsync(string name, CancellationToken cancellationToken = default)
+    public async Task CreateNotebookAsync(
+        string name,
+        CancellationToken cancellationToken = default,
+        string? groupId = null)
     {
         var normalizedName = name.Trim();
         if (string.IsNullOrWhiteSpace(normalizedName))
@@ -146,8 +155,17 @@ public sealed partial class MainViewModel(
             string.Equals(item.Name, normalizedName, StringComparison.CurrentCultureIgnoreCase));
         if (existing is not null)
         {
+            if (groupId is not null)
+            {
+                throw new InvalidOperationException("笔记本名称已经存在。");
+            }
             SelectedNotebook = existing;
             return;
+        }
+
+        if (groupId is not null && !Notebooks.Any(item => item.Kind == NotebookKind.Group && item.Id == groupId))
+        {
+            throw new InvalidOperationException("目标笔记本组已经不存在。");
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -160,9 +178,85 @@ public sealed partial class MainViewModel(
             UpdatedAt = now,
         };
         await notebookRepository.UpsertAsync(notebook, cancellationToken);
+        if (groupId is not null)
+        {
+            await notebookRepository.AssignToGroupAsync(notebook.Id, groupId, cancellationToken);
+        }
         await ReloadNotebooksAsync(notebook.Id, cancellationToken);
         SelectedNotebook = Notebooks.First(item => item.Id == notebook.Id);
         EditorStatus = $"已创建笔记本“{notebook.Name}”";
+    }
+
+    public async Task RenameNotebookAsync(
+        string notebookId,
+        string name,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedName = name.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedName))
+        {
+            throw new InvalidOperationException("笔记本名称不能为空。");
+        }
+
+        var notebooks = await notebookRepository.ListAsync(cancellationToken);
+        var notebook = notebooks.FirstOrDefault(item => item.Id == notebookId)
+            ?? throw new InvalidOperationException("笔记本已经不存在。");
+        if (notebooks.Any(item => item.Id != notebookId &&
+            string.Equals(item.Name, normalizedName, StringComparison.CurrentCultureIgnoreCase)))
+        {
+            throw new InvalidOperationException("笔记本名称已经存在。");
+        }
+
+        await notebookRepository.UpsertAsync(notebook with
+        {
+            Name = normalizedName,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        }, cancellationToken);
+        await ReloadNotebooksAsync(cancellationToken: cancellationToken);
+        await ReloadNotesAsync(SelectedNote?.Model.Id, cancellationToken);
+        EditorStatus = $"笔记本已重命名为“{normalizedName}”";
+    }
+
+    public async Task DeleteNotebookAsync(string notebookId, CancellationToken cancellationToken = default)
+    {
+        if (!await FlushAllAsync())
+        {
+            throw new InvalidOperationException("当前笔记尚未保存，无法删除笔记本。");
+        }
+
+        var deletingCurrent = SelectedNotebook is { Kind: NotebookKind.User } selected && selected.Id == notebookId;
+        var selectedNoteId = SelectedNote?.Model.Id;
+        await _saveGate.WaitAsync(cancellationToken);
+        try
+        {
+            await notebookRepository.DeleteKeepingNotesAsync(notebookId, cancellationToken);
+            foreach (var id in _knownNotes.Values.Where(note => note.NotebookId == notebookId)
+                         .Select(note => note.Id).ToArray())
+            {
+                var updated = await noteRepository.GetAsync(id, cancellationToken);
+                if (updated is not null)
+                {
+                    _knownNotes[id] = updated;
+                    Notes.FirstOrDefault(item => item.Model.Id == id)?.Update(updated);
+                }
+            }
+        }
+        finally
+        {
+            _saveGate.Release();
+        }
+
+        await ReloadNotebooksAsync(cancellationToken: cancellationToken);
+        if (deletingCurrent)
+        {
+            _isInitializing = true;
+            SelectedNotebook = Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.Unfiled)
+                ?? Notebooks.First(item => item.Kind == NotebookKind.All);
+            _isInitializing = false;
+        }
+        await ReloadNotesAsync(selectedNoteId, cancellationToken);
+        EditorStatus = "笔记本已删除，笔记已保留并移到未归类";
+        NoteSaved?.Invoke(this, EventArgs.Empty);
     }
 
     public async Task CreateNotebookGroupAsync(string name, CancellationToken cancellationToken = default)
@@ -617,26 +711,39 @@ public sealed partial class MainViewModel(
     }
 
     [RelayCommand]
-    private async Task NewNoteAsync()
+    private Task NewNoteAsync() => CreateNoteInScopeAsync(SelectedNotebook);
+
+    public Task CreateNoteInNotebookAsync(string? notebookId)
+    {
+        var target = notebookId is null
+            ? Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.Unfiled)
+                ?? Notebooks.First(item => item.Kind == NotebookKind.All)
+            : Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.User && item.Id == notebookId)
+                ?? throw new InvalidOperationException("目标笔记本已经不存在。");
+        return CreateNoteInScopeAsync(target);
+    }
+
+    private async Task CreateNoteInScopeAsync(NotebookListItem? target)
     {
         if (IsSearchActive)
         {
             SearchQuery = string.Empty;
         }
 
-        if (SelectedNotebook?.Kind is NotebookKind.Trash)
+        if (target?.Kind is NotebookKind.Trash)
         {
-            SelectedNotebook = Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.Recent)
+            target = Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.Recent)
                 ?? Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.All)
                 ?? Notebooks.First();
         }
 
-        var selectedTag = SelectedNotebook?.Kind == NotebookKind.Tag ? SelectedNotebook : null;
+        SelectedNotebook = target;
+        var selectedTag = target?.Kind == NotebookKind.Tag ? target : null;
         var now = DateTimeOffset.UtcNow;
         var note = new Note
         {
             Id = Guid.NewGuid().ToString(),
-            NotebookId = SelectedNotebook?.Kind == NotebookKind.User ? SelectedNotebook.Id : null,
+            NotebookId = target?.Kind == NotebookKind.User ? target.Id : null,
             Title = "无标题笔记",
             BodyJson = "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}",
             BodyHtml = "<p></p>",
@@ -983,6 +1090,10 @@ public sealed partial class MainViewModel(
             Notebooks.Add(new NotebookListItem(null, "最近笔记", NotebookKind.Recent));
         }
         Notebooks.Add(new NotebookListItem(null, "全部笔记", NotebookKind.All));
+        if (_showUnfiledNavigation)
+        {
+            Notebooks.Add(new NotebookListItem(null, "未归类", NotebookKind.Unfiled));
+        }
         Notebooks.Add(new NotebookListItem(null, "笔记本组", NotebookKind.GroupRoot));
         foreach (var group in groups)
         {
@@ -1097,6 +1208,36 @@ public sealed partial class MainViewModel(
         return match?.Name ?? "未归类";
     }
 
+    /// <summary>
+    /// 选中笔记本、笔记本组或“未归类”时，搜索只在其中进行；其余视图（全部、最近、标签等）搜索全部笔记。
+    /// </summary>
+    private async Task<(IReadOnlyList<string>? NotebookIds, bool UnfiledOnly)> GetSearchScopeAsync(
+        NotebookListItem notebook,
+        CancellationToken cancellationToken)
+    {
+        switch (notebook.Kind)
+        {
+            case NotebookKind.User when notebook.Id is not null:
+                return ([notebook.Id], false);
+            case NotebookKind.Group when notebook.Id is not null:
+                var members = (await notebookRepository.ListGroupAssignmentsAsync(cancellationToken))
+                    .Where(item => item.Value == notebook.Id)
+                    .Select(item => item.Key)
+                    .ToArray();
+                return (members, false);
+            case NotebookKind.Unfiled:
+                return (null, true);
+            default:
+                return (null, false);
+        }
+    }
+
+    /// <summary>搜索范围的名称，仅在范围被限定时有值。</summary>
+    private string? SearchScopeName => SelectedNotebook?.Kind is
+        NotebookKind.User or NotebookKind.Group or NotebookKind.Unfiled
+        ? SelectedNotebook.Name
+        : null;
+
     private async Task<IReadOnlyList<NoteListItem>> LoadNoteItemsAsync(
         NotebookListItem notebook,
         int offset,
@@ -1106,11 +1247,14 @@ public sealed partial class MainViewModel(
         if (IsSearchActive)
         {
             var query = SearchQuery.Trim();
+            var (scopeNotebookIds, unfiledOnly) = await GetSearchScopeAsync(notebook, cancellationToken);
             var hits = await noteRepository.SearchAsync(
                 query,
                 limit,
                 offset,
-                cancellationToken);
+                cancellationToken,
+                scopeNotebookIds,
+                unfiledOnly);
             var rawNotes = hits.Select(hit =>
                 _pendingSaves.TryGetValue(hit.Note.Id, out var pending)
                     ? pending.Note
@@ -1170,6 +1314,9 @@ public sealed partial class MainViewModel(
             NotebookKind.All or NotebookKind.GroupRoot =>
                 await noteRepository.CountAsync(
                     null, allNotebooks: true, deletedOnly: false, cancellationToken: cancellationToken),
+            NotebookKind.Unfiled =>
+                await noteRepository.CountAsync(
+                    null, allNotebooks: false, deletedOnly: false, cancellationToken: cancellationToken),
             NotebookKind.User when notebook.Id is not null =>
                 await noteRepository.CountAsync(
                     notebook.Id, allNotebooks: false, deletedOnly: false, cancellationToken: cancellationToken),
@@ -1265,6 +1412,14 @@ public sealed partial class MainViewModel(
         await _saveGate.WaitAsync(cancellationToken);
         try
         {
+            // Another save or edit may have completed while this one waited for the gate.
+            if (!_pendingSaves.TryGetValue(noteId, out pending) || !pending.IsDirty ||
+                expectedRevision is not null && pending.Revision != expectedRevision)
+            {
+                return;
+            }
+            snapshot = pending.Note;
+            snapshotRevision = pending.Revision;
             await noteRepository.UpsertAsync(snapshot, cancellationToken);
             if (attachmentService is not null)
             {
@@ -1281,8 +1436,12 @@ public sealed partial class MainViewModel(
                 }
             }
 
-            _knownNotes[noteId] = snapshot;
-            Notes.FirstOrDefault(item => item.Model.Id == noteId)?.Update(snapshot);
+            // Completing an older disk write must not roll the visible note back over new typing.
+            var visibleNote = _pendingSaves.TryGetValue(noteId, out var currentDraft) && currentDraft.IsDirty
+                ? currentDraft.Note
+                : snapshot;
+            _knownNotes[noteId] = visibleNote;
+            Notes.FirstOrDefault(item => item.Model.Id == noteId)?.Update(visibleNote);
             NoteSaved?.Invoke(this, EventArgs.Empty);
 
             if (_pendingSaves.TryGetValue(noteId, out var latest) && latest.Revision == snapshotRevision)

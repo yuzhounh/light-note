@@ -29,6 +29,12 @@ internal static class WindowNativeHelper
             return;
         }
 
+        // Initialize before Loaded, so layout and the first displayed frame use the native Tall height.
+        if (window.Content is DependencyObject content)
+        {
+            FindTitleBar(content)?.InitializeForWindow(window);
+        }
+
         var isDark = false;
         if (HwndSource.FromHwnd(handle) is { CompositionTarget: { } compositionTarget })
         {
@@ -72,6 +78,16 @@ internal static class WindowNativeHelper
         catch (EntryPointNotFoundException)
         {
         }
+    }
+
+    private static WindowTitleBar? FindTitleBar(DependencyObject root)
+    {
+        if (root is WindowTitleBar titleBar) return titleBar;
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (FindTitleBar(child) is { } found) return found;
+        }
+        return null;
     }
 
     public static void ApplyImmersiveDarkMode(Window window, bool isDark)

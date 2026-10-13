@@ -12,6 +12,9 @@ import { HistoryModal } from './components/modals/HistoryModal'
 import { SettingsModal } from './components/modals/SettingsModal'
 import { loginWithGoogle, logoutFirebase, subscribeAuth } from './core/auth/firebaseAuth'
 import { Plus } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+
+const keepMobileListMounted = Capacitor.getPlatform() === 'android'
 
 function readStoredJson(key, fallback) {
   try {
@@ -378,6 +381,7 @@ export function App() {
                 notes={notes}
                 activeNoteId={activeNote?.id}
                 onSelectNote={handleSelectNote}
+                onCreateNote={handleCreateNote}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 sort={noteSort}
@@ -399,6 +403,7 @@ export function App() {
             <div className="flex-1 min-w-0 h-full overflow-hidden">
               <NoteDetail
                 note={activeNote}
+                onBackMobile={() => setMobileView('list')}
                 onUpdateTitle={handleUpdateTitle}
                 onUpdateContent={handleUpdateContent}
                 onOpenHistory={handleOpenHistory}
@@ -448,12 +453,14 @@ export function App() {
             )}
 
             {/* Mobile Screen: List View */}
-            {isMobile && mobileView === 'list' && (
-              <div className="relative w-full h-full flex flex-col">
+            {isMobile && (mobileView === 'list' || keepMobileListMounted) && (
+              <div className={mobileView === 'list' ? 'relative w-full h-full flex flex-col' : 'absolute inset-0 invisible pointer-events-none flex flex-col'}>
                 <NoteList
                   notes={notes}
+                  isViewActive={mobileView === 'list'}
                   activeNoteId={activeNote?.id}
                   onSelectNote={handleSelectNote}
+                  onCreateNote={handleCreateNote}
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
                   sort={noteSort}

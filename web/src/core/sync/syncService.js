@@ -12,6 +12,11 @@ import { db } from '../db/database.js'
 import { mergeRemoteNote, mergeRemoteNotebook, pushPendingChanges, toIsoString } from './syncStore.js'
 import { buildSyncPayload } from './syncPayload.js'
 import { noteDrafts } from './noteDrafts.js'
+import { ATTACHMENT_URL_PREFIX, findAttachmentCloudPath, normalizeAttachmentPath } from './attachmentPaths.js'
+import { Capacitor } from '@capacitor/core'
+import { cachedImageUrl, releaseImageUrls } from './imageCache.js'
+
+const usesPersistentImageCache = Capacitor.getPlatform() === 'android'
 
 let firestoreInstance = null
 let storageInstance = null
@@ -84,6 +89,8 @@ export const syncService = {
 
     if (prevUid !== nextUid) {
       this.stopRealtimeSync()
+      attachmentUrlCache.clear()
+      releaseImageUrls()
       if (nextUid) {
         this.syncNow(user, this.onDataChange).catch(err => {
           console.warn('Initial sync error:', err)
@@ -132,12 +139,9 @@ export const syncService = {
       })
 
       // 2. Pull remote notes
-      const notesColRef = collection(firestore, 'users', uid, 'notes')
-      const notesSnap = await getDocs(notesColRef)
       const remoteNotes = []
-      notesSnap.forEach(d => {
-        remoteNotes.push({ id: d.id, ...d.data() })
-      })
+      const notesSnap = await getDocs(collection(firestore, 'users', uid, 'notes'))
+      notesSnap.forEach(d => remoteNotes.push({ id: d.id, ...d.data() }))
 
       // 3. Pull remote attachments
       try {
@@ -154,7 +158,7 @@ export const syncService = {
               sha256: att.sha256 || '',
               filename: att.filename || '',
               cloud_path: att.cloudPath || '',
-              relative_path: att.relativePath || '',
+              relative_path: normalizeAttachmentPath(att.relativePath),
               byte_size: att.size || 0,
               mime_type: att.mimeType || 'image/png',
               created_at: toIsoString(att.createdAt)
@@ -307,7 +311,15 @@ export const syncService = {
    * If it's `https://lightnote.attachments/{relPath}`, fetches a signed download URL from Firebase Storage.
    */
   async resolveImageUrl(src, user = this.currentUser) {
-    if (!src || !src.startsWith('https://lightnote.attachments/')) {
+    if (usesPersistentImageCache) {
+      try { return await cachedImageUrl(src || '', user?.uid, () => this.resolveDownloadUrl(src, user)) }
+      catch (error) { console.warn('图片缓存加载失败:', error); return src }
+    }
+    return this.resolveDownloadUrl(src, user)
+  },
+
+  async resolveDownloadUrl(src, user = this.currentUser) {
+    if (!src || !src.startsWith(ATTACHMENT_URL_PREFIX)) {
       return src
     }
 
@@ -315,23 +327,13 @@ export const syncService = {
       return attachmentUrlCache.get(src)
     }
 
-    const relPath = src.replace('https://lightnote.attachments/', '').trim()
-    const { storage } = getServices()
     const uid = user?.uid
 
     if (!uid) return src
 
     try {
-      // Find attachment by relative_path in db
-      const att = await db.attachments.where('relative_path').equals(relPath).first()
-      let cloudPath = att?.cloud_path
-      if (!cloudPath) {
-        // Fallback: construct standard cloud path from filename
-        const filename = relPath.split('/').pop()
-        const sha256 = filename.split('.')[0]
-        cloudPath = `users/${uid}/attachments/${sha256}/${filename}`
-      }
-
+      const { storage } = getServices()
+      const cloudPath = await findAttachmentCloudPath(db.attachments, src, uid)
       const storageRef = ref(storage, cloudPath)
       const downloadUrl = await getDownloadURL(storageRef)
       attachmentUrlCache.set(src, downloadUrl)

@@ -3,6 +3,15 @@ import { X, Download, Upload, Trash2, Sun, Moon, Database } from 'lucide-react'
 import { db } from '../../core/db/database'
 import { NotesRepository } from '../../core/db/notesRepository'
 import { APP_DISPLAY_VERSION } from '../../core/version'
+import { useBackDismiss } from '../../hooks/useBackDismiss'
+
+function readMarkdownAutoFormat() {
+  try {
+    return localStorage.getItem('lightnote.markdownAutoFormat') !== 'false'
+  } catch {
+    return true
+  }
+}
 
 export function SettingsModal({
   isOpen,
@@ -12,8 +21,10 @@ export function SettingsModal({
   onDataImported
 }) {
   const [activeTab, setActiveTab] = useState('appearance') // 'appearance' | 'data'
+  const [markdownAutoFormat, setMarkdownAutoFormat] = useState(readMarkdownAutoFormat)
   const [isExporting, setIsExporting] = useState(false)
   const [msg, setMsg] = useState('')
+  useBackDismiss(isOpen, onClose, 55)
 
   if (!isOpen) return null
 
@@ -228,6 +239,28 @@ export function SettingsModal({
                       <div className="font-medium text-xs truncate">深色模式</div>
                       <div className="text-[10px] text-zinc-400 truncate">暗色护眼界面</div>
                     </div>
+                  </button>
+                </div>
+
+                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">Markdown 自动排版</div>
+                    <p className="text-zinc-500 text-[11px] leading-relaxed mt-0.5">
+                      输入 1. 、# 、- 、&gt; 、**粗体**、$公式$ 等符号时自动转换为列表、标题、引用、粗体、公式。关闭后这些符号按原样输入，工具栏和快捷键仍可使用。
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={markdownAutoFormat}
+                    onClick={() => {
+                      const next = !markdownAutoFormat
+                      setMarkdownAutoFormat(next)
+                      try { localStorage.setItem('lightnote.markdownAutoFormat', String(next)) } catch { /* 忽略存储失败 */ }
+                    }}
+                    className={`relative shrink-0 w-10 h-6 rounded-full transition cursor-pointer ${markdownAutoFormat ? 'bg-[#009467]' : 'bg-zinc-300 dark:bg-zinc-600'}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${markdownAutoFormat ? 'translate-x-4' : ''}`} />
                   </button>
                 </div>
               </div>

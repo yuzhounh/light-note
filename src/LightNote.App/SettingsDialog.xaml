@@ -2,52 +2,19 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:LightNote.App"
-        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="设置"
+        Icon="Assets/pen-note-icon-green.ico"
         Width="920"
         Height="680"
         MinWidth="780"
         MinHeight="600"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
-        WindowStyle="None"
+        WindowStyle="SingleBorderWindow" PreviewKeyDown="OnSettingsPreviewKeyDown"
         Background="{DynamicResource AppBackgroundBrush}">
-    <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="42" ResizeBorderThickness="6"
-                            GlassFrameThickness="0" CornerRadius="8" UseAeroCaptionButtons="False" />
-    </shell:WindowChrome.WindowChrome>
     <Window.Resources>
         <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimVerticalScrollBarStyle}" />
 
-        <Style x:Key="CaptionCloseButtonStyle" TargetType="Button">
-            <Setter Property="Margin" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="MinHeight" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="ButtonBackground" Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBackground" Property="Background" Value="#E81123" />
-                                <Setter Property="Foreground" Value="#FFFFFFFF" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBackground" Property="Background" Value="#C4101E" />
-                                <Setter Property="Foreground" Value="#FFFFFFFF" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
 
         <Style x:Key="SettingsNavItemStyle" TargetType="ListBoxItem">
             <Setter Property="Padding" Value="10,8" />
@@ -136,38 +103,15 @@
     </Window.Resources>
 
     <Border Background="{DynamicResource AppBackgroundBrush}"
-            BorderBrush="{DynamicResource BorderBrush}"
-            BorderThickness="1"
-            CornerRadius="8"
+            BorderThickness="0"
             SnapsToDevicePixels="True">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="42" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- 顶部轻量标题栏与关闭按钮 -->
-            <Border Grid.Row="0" Height="42" Background="{DynamicResource SecondaryPanelBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="46" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
-                        <Image Width="22" Height="22" Source="{DynamicResource AppIconImage}" />
-                        <TextBlock Margin="8,0,0,0" FontSize="13" VerticalAlignment="Center"
-                                   Text="设置" Foreground="{DynamicResource TextBrush}" />
-                    </StackPanel>
-                    <Button Grid.Column="1" Style="{StaticResource CaptionCloseButtonStyle}"
-                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                            Click="OnCloseClick" ToolTip="关闭 (Esc)" IsCancel="True">
-                        <Path Width="11" Height="11" Data="M0,0 L11,11 M11,0 L0,11" Stretch="Fill"
-                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                              StrokeThickness="1" />
-                    </Button>
-                </Grid>
-            </Border>
+            <local:WindowTitleBar Grid.Row="0" ShowMinMax="False" />
 
             <!-- 下方主体两栏结构 -->
             <Grid Grid.Row="1">
@@ -375,6 +319,45 @@
                                               Style="{StaticResource ToggleSwitchStyle}"
                                               HorizontalAlignment="Right" VerticalAlignment="Center"
                                               Click="OnCompressImagesToggleClicked" />
+                                </Grid>
+                            </Border>
+
+                            <TextBlock Text="编辑" Style="{StaticResource SectionTitleStyle}" />
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Markdown 自动排版" Style="{StaticResource CardTitleStyle}" />
+                                        <TextBlock Margin="0,4,12,0" TextWrapping="Wrap"
+                                                   Text="输入 1. 、# 、- 、&gt; 、**粗体**、$公式$ 等 Markdown 符号时自动转换为列表、标题、引用、粗体、公式。关闭后这些符号会按原样输入，工具栏和快捷键仍可使用。"
+                                                   Style="{StaticResource CardDescriptionStyle}" />
+                                    </StackPanel>
+                                    <CheckBox x:Name="MarkdownAutoFormatBox" Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Click="OnMarkdownAutoFormatToggleClicked" />
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsCardStyle}" Margin="0,12,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="粘贴时记录来源" Style="{StaticResource CardTitleStyle}" />
+                                        <TextBlock Margin="0,4,12,0" TextWrapping="Wrap"
+                                                   Text="从网页复制内容并粘贴后，在其下方自动加一行“来源：网站名”，点击可打开原网页；从 Word 等软件复制时记录软件名。仅桌面端可用，笔记内部的复制粘贴不记录。"
+                                                   Style="{StaticResource CardDescriptionStyle}" />
+                                    </StackPanel>
+                                    <CheckBox x:Name="RecordPasteSourceBox" Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Click="OnRecordPasteSourceToggleClicked" />
                                 </Grid>
                             </Border>
                         </StackPanel>

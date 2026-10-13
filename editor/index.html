@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://lightnote.attachments; style-src 'self'; script-src 'self'" />
+    <!-- Inline styles carry the notes' font, size and highlight marks and Tiptap's base editor CSS
+         (white-space: pre-wrap); KaTeX's smallest fonts are bundled as data: URLs. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://lightnote.attachments; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'" />
     <title>LightNote Editor</title>
   </head>
   <body>

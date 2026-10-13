@@ -3,11 +3,52 @@ import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
-import { Node, Mark, mergeAttributes, nodeInputRule, nodePasteRule } from '@tiptap/core'
+import { Node, Mark, Extension, mergeAttributes, nodeInputRule, nodePasteRule } from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
+import Table from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
 import katex from 'katex'
 import { LatexModal } from '../components/modals/LatexModal'
-import { syncService } from '../core/sync/syncService'
+import { syncService, subscribeSyncState } from '../core/sync/syncService'
 import { imageFileToDataUrl } from './imageCompress'
+import { useBackDismiss } from '../hooks/useBackDismiss'
+
+// “Markdown 自动排版”开关（设置 → 外观）：关闭时在输入规则之前接管文字输入，按原样插入，
+// 因此 `1. `、`# `、`**粗体**`、`$公式$` 等规则都不会触发；工具栏与快捷键不受影响。
+function isMarkdownAutoFormatEnabled() {
+  try {
+    return localStorage.getItem('lightnote.markdownAutoFormat') !== 'false'
+  } catch {
+    return true
+  }
+}
+
+const MarkdownGate = Extension.create({
+  name: 'markdownGate',
+  priority: 1000,
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('markdownGate'),
+        props: {
+          handleTextInput(view, from, to, text) {
+            if (isMarkdownAutoFormatEnabled()) return false
+            view.dispatch(view.state.tr.insertText(text, from, to).scrollIntoView())
+            return true
+          },
+        },
+      }),
+    ]
+  },
+})
+
+const TABLE_ACTIONS = [
+  ['上方加行', 'addRowBefore'], ['下方加行', 'addRowAfter'], ['删除行', 'deleteRow'],
+  ['左侧加列', 'addColumnBefore'], ['右侧加列', 'addColumnAfter'], ['删除列', 'deleteColumn'],
+  ['表头', 'toggleHeaderRow'], ['删除表格', 'deleteTable'],
+]
 
 // 1. Underline Mark
 const Underline = Mark.create({
@@ -229,16 +270,23 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
 
   useEffect(() => {
     let active = true
+    let unsubscribe = () => {}
     if (node.attrs.src && node.attrs.src.startsWith('https://lightnote.attachments/')) {
-      syncService.resolveImageUrl(node.attrs.src).then(resolved => {
-        if (active && resolved) {
-          setResolvedSrc(resolved)
-        }
+      const resolve = () => syncService.resolveImageUrl(node.attrs.src).then(resolved => {
+        if (active && resolved) setResolvedSrc(resolved)
+      })
+      resolve()
+      // Cached notes can open before sign-in and attachment metadata finish loading.
+      unsubscribe = subscribeSyncState(state => {
+        if (state.status === 'syncing' || state.status === 'synced' || state.status === 'error') resolve()
       })
     } else {
       setResolvedSrc(node.attrs.src || '')
     }
-    return () => { active = false }
+    return () => {
+      active = false
+      unsubscribe()
+    }
   }, [node.attrs.src])
 
   const handleResizeStart = (e) => {
@@ -430,6 +478,7 @@ export const LightEditor = forwardRef(function LightEditor(
   const [selectedFont, setSelectedFont] = useState('微软雅黑')
   const [selectedSize, setSelectedSize] = useState('12')
   const [lightboxSrc, setLightboxSrc] = useState(null)
+  useBackDismiss(!!lightboxSrc, () => setLightboxSrc(null), 51)
 
   const titleInputRef = useRef(null)
   const lastDispatchedHtml = useRef(content || '')
@@ -446,6 +495,11 @@ export const LightEditor = forwardRef(function LightEditor(
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
+      MarkdownGate,
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
       Underline,
       TextAppearance,
       MathNode,
@@ -573,6 +627,7 @@ export const LightEditor = forwardRef(function LightEditor(
     getEditor: () => editor,
   }))
 
+
   useEffect(() => {
     if (editor && content !== undefined) {
       if (content !== lastDispatchedHtml.current && editor.getHTML() !== content) {
@@ -591,6 +646,38 @@ export const LightEditor = forwardRef(function LightEditor(
       return () => clearTimeout(timer)
     }
   }, [autoFocus, editor, onFocused])
+
+  // 光标位于表格内时，在表格上方显示行、列操作条
+  const [tableBar, setTableBar] = useState(null)
+  useEffect(() => {
+    if (!editor) return undefined
+    const update = () => {
+      if (!editor.isEditable || !editor.isActive('table')) {
+        setTableBar(prev => (prev ? null : prev))
+        return
+      }
+      const node = editor.view.domAtPos(editor.state.selection.from).node
+      const element = (node.nodeType === 3 ? node.parentElement : node)?.closest?.('table')
+      if (!element) {
+        setTableBar(prev => (prev ? null : prev))
+        return
+      }
+      const rect = element.getBoundingClientRect()
+      setTableBar({ left: Math.max(rect.left, 8), top: Math.max(rect.top - 42, 8) })
+    }
+    editor.on('selectionUpdate', update)
+    editor.on('update', update)
+    editor.on('focus', update)
+    window.addEventListener('scroll', update, true)
+    window.addEventListener('resize', update)
+    return () => {
+      editor.off('selectionUpdate', update)
+      editor.off('update', update)
+      editor.off('focus', update)
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+    }
+  }, [editor])
 
   if (!editor) return null
 
@@ -877,6 +964,22 @@ export const LightEditor = forwardRef(function LightEditor(
           </svg>
         </button>
 
+        {/* Table */}
+        <button
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
+            editor.isActive('table')
+              ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
+              : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 dark:hover:text-zinc-100'
+          }`}
+          title="插入表格"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 5h18v14H3z" />
+            <path d="M3 10h18M3 14.5h18M9 5v14M15 5v14" />
+          </svg>
+        </button>
+
         {/* Timestamp */}
         <button
           onClick={handleInsertTimestamp}
@@ -953,6 +1056,24 @@ export const LightEditor = forwardRef(function LightEditor(
           className="note-title w-full text-[21px] font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-3 tracking-tight shrink-0 cursor-text"
         />
         <EditorContent editor={editor} className="tiptap-editor-wrapper flex-1 flex flex-col cursor-text" />
+        {tableBar && (
+          <div
+            className="table-bar"
+            style={{ left: tableBar.left, top: tableBar.top }}
+            onMouseDown={event => event.preventDefault()}
+          >
+            {TABLE_ACTIONS.map(([label, command]) => (
+              <button
+                key={command}
+                type="button"
+                className={command === 'deleteTable' ? 'table-bar-danger' : undefined}
+                onClick={() => editor.chain().focus()[command]().run()}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Interactive LaTeX Formula Modal with Left Code & Right Live Preview */}

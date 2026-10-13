@@ -49,9 +49,13 @@ public interface INoteRepository
         IReadOnlyList<string> notebookIds,
         CancellationToken cancellationToken = default);
 
+    /// <param name="notebookIds">不为 null 时只在这些笔记本内搜索（空列表表示没有可搜索的笔记）。</param>
+    /// <param name="unfiledOnly">为 true 时只搜索不属于任何笔记本的笔记。</param>
     Task<IReadOnlyList<NoteSearchHit>> SearchAsync(
         string query,
         int limit = 100,
         int offset = 0,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IReadOnlyList<string>? notebookIds = null,
+        bool unfiledOnly = false);
 }

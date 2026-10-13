@@ -6,6 +6,7 @@ namespace LightNote.App;
 
 public sealed class ThemeService
 {
+    public static event EventHandler? ThemeChanged;
     public bool IsDark { get; private set; }
 
     public void Apply(string preference)
@@ -40,6 +41,7 @@ public sealed class ThemeService
         SetBrush("ScrollBarThumbBrush", IsDark ? "#FF2F343A" : "#FFEEF0F2");
         SetBrush("ScrollBarThumbHoverBrush", IsDark ? "#FF3F454D" : "#FFDDE1E5");
         SetBrush("ScrollBarThumbDragBrush", IsDark ? "#FF525963" : "#FFC4CAD1");
+        ThemeChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private static bool SystemUsesDarkTheme()

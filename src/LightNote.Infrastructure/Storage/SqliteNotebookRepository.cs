@@ -82,6 +82,56 @@ public sealed class SqliteNotebookRepository(SqliteConnectionFactory connectionF
         await transaction.CommitAsync(cancellationToken);
     }
 
+    public async Task DeleteKeepingNotesAsync(
+        string notebookId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await connectionFactory.OpenAsync(cancellationToken);
+        await using var transaction = connection.BeginTransaction();
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT COUNT(*) FROM notebooks WHERE id = $id AND deleted_at IS NULL;";
+        command.Parameters.AddWithValue("$id", notebookId);
+        if (Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken)) == 0)
+        {
+            return;
+        }
+
+        // Queue every affected note before removing the relation, including unloaded pages and trash.
+        command.CommandText = """
+            INSERT INTO sync_outbox (
+                id, entity_type, entity_id, operation, local_version,
+                attempt_count, next_attempt_at, last_error)
+            SELECT lower(hex(randomblob(16))), 'note', id, 'upsert', sync_revision + 1, 0, NULL, NULL
+            FROM notes WHERE notebook_id = $id
+            ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+                operation = 'upsert', local_version = excluded.local_version,
+                attempt_count = 0, next_attempt_at = NULL, last_error = NULL;
+
+            UPDATE notes
+            SET notebook_id = NULL, updated_at = $now,
+                version = version + 1, sync_state = 'dirty', sync_revision = sync_revision + 1
+            WHERE notebook_id = $id;
+
+            DELETE FROM notebook_group_memberships WHERE notebook_id = $id;
+            UPDATE notebooks
+            SET deleted_at = $now, updated_at = $now, sync_revision = sync_revision + 1
+            WHERE id = $id;
+
+            INSERT INTO sync_outbox (
+                id, entity_type, entity_id, operation, local_version,
+                attempt_count, next_attempt_at, last_error)
+            SELECT lower(hex(randomblob(16))), 'notebook', id, 'upsert', sync_revision, 0, NULL, NULL
+            FROM notebooks WHERE id = $id
+            ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+                operation = 'upsert', local_version = excluded.local_version,
+                attempt_count = 0, next_attempt_at = NULL, last_error = NULL;
+            """;
+        command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<NotebookGroup>> ListGroupsAsync(
         CancellationToken cancellationToken = default)
     {

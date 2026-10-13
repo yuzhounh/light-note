@@ -1,75 +1,27 @@
 <UserControl x:Class="LightNote.App.WindowTitleBar"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-             Height="42"
-             MouseLeftButtonDown="OnMouseLeftButtonDown">
-    <UserControl.Resources>
-        <Style x:Key="CaptionButtonStyle" TargetType="Button">
-            <Setter Property="Margin" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="MinHeight" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-            <Setter Property="Tag" Value="#FFE81123" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="ButtonBackground"
-                                Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBackground" Property="Background"
-                                        Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
-                                <Setter Property="Foreground" Value="#FFFFFFFF" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBackground" Property="Opacity" Value="0.8" />
-                                <Setter Property="Foreground" Value="#FFFFFFFF" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </UserControl.Resources>
+             Height="48" Focusable="False">
+    <!-- The right-hand caption buttons are drawn and handled by Windows App SDK. -->
     <Border Background="{DynamicResource SecondaryPanelBrush}"
             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
         <Grid>
             <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="LeftCaptionInset" Width="0" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="46" />
-                <ColumnDefinition Width="46" />
-                <ColumnDefinition Width="46" />
+                <ColumnDefinition x:Name="RightCaptionInset" Width="138" />
             </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+            <Grid Grid.Column="1" Margin="12,0,12,0" IsHitTestVisible="False">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="22" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
                 <Image Width="22" Height="22" Source="{DynamicResource AppIconImage}" />
-                <TextBlock Margin="8,0,0,0" FontSize="13" VerticalAlignment="Center"
+                <TextBlock x:Name="CaptionText" Grid.Column="1" Margin="8,0,0,0" FontSize="13"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextBrush}"
                            Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" />
-            </StackPanel>
-            <Button x:Name="MinimizeButton" Grid.Column="1" Style="{StaticResource CaptionButtonStyle}" Tag="#FFF59E0B"
-                    shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                    Click="OnMinimizeClick" ToolTip="最小化">
-                <Path Width="11" Height="1" Data="M0,0 H11" Stretch="Fill"
-                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1" />
-            </Button>
-            <Button x:Name="MaximizeButton" Grid.Column="2" Style="{StaticResource CaptionButtonStyle}" Tag="#FF16A765"
-                    shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                    Click="OnMaximizeClick" ToolTip="最大化或还原">
-                <Path x:Name="MaximizeIcon" Width="11" Height="11" Data="M0.5,0.5 H10.5 V10.5 H0.5 Z"
-                      Stretch="Fill" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1" />
-            </Button>
-            <Button Grid.Column="3" Style="{StaticResource CaptionButtonStyle}"
-                    shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                    Click="OnCloseClick" ToolTip="关闭">
-                <Path Width="11" Height="11" Data="M0,0 L11,11 M11,0 L0,11" Stretch="Fill"
-                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1" />
-            </Button>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

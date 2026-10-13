@@ -65,7 +65,7 @@ public partial class FirebaseSignInDialog : Window
         {
             GoogleConfigPanel.Visibility = Visibility.Visible;
             GoogleClientIdBox.Focus();
-            MessageBox.Show(this,
+            MessageDialog.Show(this,
                 "使用 Google 登录需要填写 Google OAuth 客户端 ID (Client ID)。\n\n" +
                 "请在 Google Cloud 控制台凭据页面创建一个「桌面应用」类型的客户端 ID。",
                 "提示",
@@ -93,7 +93,7 @@ public partial class FirebaseSignInDialog : Window
         catch (Exception exception)
         {
             _logger?.Error("Google Sign-In failed.", exception);
-            MessageBox.Show(this,
+            MessageDialog.Show(this,
                 $"Google 登录失败：{exception.Message}",
                 "LightNote",
                 MessageBoxButton.OK,
@@ -111,7 +111,7 @@ public partial class FirebaseSignInDialog : Window
     {
         if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrEmpty(Password))
         {
-            MessageBox.Show(this, "请输入邮箱和密码。", "LightNote",
+            MessageDialog.Show(this, "请输入邮箱和密码。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -136,7 +136,7 @@ public partial class FirebaseSignInDialog : Window
         catch (Exception exception)
         {
             _logger?.Error("Email Sign-In failed.", exception);
-            MessageBox.Show(this,
+            MessageDialog.Show(this,
                 $"登录失败：{exception.Message}",
                 "LightNote",
                 MessageBoxButton.OK,

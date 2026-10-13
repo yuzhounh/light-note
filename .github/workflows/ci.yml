@@ -21,10 +21,13 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Build embedded editor
+      - name: Test and build embedded editor
         working-directory: editor
         run: |
           npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run build
 
       - name: Restore
@@ -34,7 +37,18 @@ jobs:
         run: dotnet build LightNote.slnx --configuration Release --no-restore
 
       - name: Test with coverage
-        run: dotnet test LightNote.slnx --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory artifacts/test-results
+        shell: pwsh
+        run: |
+          dotnet test tests/LightNote.Core.Tests/LightNote.Core.Tests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory artifacts/test-results
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet test tests/LightNote.IntegrationTests/LightNote.IntegrationTests.csproj --configuration Release --no-build --filter 'FullyQualifiedName!~MessageDialogTests&FullyQualifiedName!~SidebarContextMenuTests' --collect:"XPlat Code Coverage" --results-directory artifacts/test-results
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Native WinRT activation needs the application's executable host; each UI suite also owns one WPF Application.
+          $uiRunner = 'tests/LightNote.IntegrationTests/bin/Release/net10.0-windows10.0.19041.0/win-x64/LightNote.IntegrationTests.exe'
+          foreach ($suite in @('message-dialog', 'sidebar', 'window-controls')) {
+            & $uiRunner $suite
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
       - name: Publish self-contained application
         run: dotnet publish src/LightNote.App/LightNote.App.csproj --configuration Release --runtime win-x64 --self-contained true --output artifacts/publish/win-x64
@@ -44,6 +58,9 @@ jobs:
         run: |
           $required = @(
             'artifacts/publish/win-x64/LightNote.exe',
+            'artifacts/publish/win-x64/Microsoft.WindowsAppRuntime.dll',
+            'artifacts/publish/win-x64/Microsoft.UI.Windowing.Core.dll',
+            'artifacts/publish/win-x64/WinRT.Runtime.dll',
             'artifacts/publish/win-x64/Editor/index.html'
           )
           foreach ($path in $required) {

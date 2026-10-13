@@ -204,7 +204,9 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         string query,
         int limit = 100,
         int offset = 0,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyList<string>? notebookIds = null,
+        bool unfiledOnly = false)
     {
         var terms = query
             .Trim()
@@ -217,8 +219,8 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         }
 
         return terms.Any(term => term.EnumerateRunes().Count() < 3)
-            ? await SearchWithLikeAsync(terms, limit, offset, cancellationToken)
-            : await SearchWithFtsAsync(terms, limit, offset, cancellationToken);
+            ? await SearchWithLikeAsync(terms, limit, offset, notebookIds, unfiledOnly, cancellationToken)
+            : await SearchWithFtsAsync(terms, limit, offset, notebookIds, unfiledOnly, cancellationToken);
     }
 
     public async Task UpsertAsync(
@@ -400,20 +402,54 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         return await ReadNotesAsync(command, cancellationToken);
     }
 
+    /// <summary>搜索范围条件：限定在若干笔记本内，或只看未归类的笔记；不限定时返回空串。</summary>
+    private static string BuildScopeFilter(
+        SqliteCommand command,
+        IReadOnlyList<string>? notebookIds,
+        bool unfiledOnly)
+    {
+        if (unfiledOnly)
+        {
+            return " AND n.notebook_id IS NULL";
+        }
+
+        if (notebookIds is null)
+        {
+            return string.Empty;
+        }
+
+        if (notebookIds.Count == 0)
+        {
+            return " AND 0";
+        }
+
+        var names = new string[notebookIds.Count];
+        for (var index = 0; index < notebookIds.Count; index++)
+        {
+            names[index] = $"$scope{index}";
+            command.Parameters.AddWithValue(names[index], notebookIds[index]);
+        }
+
+        return $" AND n.notebook_id IN ({string.Join(", ", names)})";
+    }
+
     private async Task<IReadOnlyList<NoteSearchHit>> SearchWithFtsAsync(
         IReadOnlyList<string> terms,
         int limit,
         int offset,
+        IReadOnlyList<string>? notebookIds,
+        bool unfiledOnly,
         CancellationToken cancellationToken)
     {
         await using var connection = await connectionFactory.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
+        var scopeFilter = BuildScopeFilter(command, notebookIds, unfiledOnly);
         command.CommandText = $"""
             SELECT {PrefixedColumns},
                    snippet(notes_fts, 2, '', '', ' … ', 24)
             FROM notes_fts
             INNER JOIN notes AS n ON n.id = notes_fts.note_id
-            WHERE notes_fts MATCH $query AND n.deleted_at IS NULL AND n.purged_at IS NULL
+            WHERE notes_fts MATCH $query AND n.deleted_at IS NULL AND n.purged_at IS NULL{scopeFilter}
             ORDER BY bm25(notes_fts, 8.0, 1.0), n.updated_at DESC
             LIMIT $limit OFFSET $offset;
             """;
@@ -429,10 +465,13 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         IReadOnlyList<string> terms,
         int limit,
         int offset,
+        IReadOnlyList<string>? notebookIds,
+        bool unfiledOnly,
         CancellationToken cancellationToken)
     {
         await using var connection = await connectionFactory.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
+        var scopeFilter = BuildScopeFilter(command, notebookIds, unfiledOnly);
         var filters = new List<string>(terms.Count);
         for (var index = 0; index < terms.Count; index++)
         {
@@ -444,7 +483,7 @@ public sealed class SqliteNoteRepository(SqliteConnectionFactory connectionFacto
         command.CommandText = $"""
             SELECT {PrefixedColumns}, n.body_text
             FROM notes AS n
-            WHERE n.deleted_at IS NULL AND n.purged_at IS NULL AND {string.Join(" AND ", filters)}
+            WHERE n.deleted_at IS NULL AND n.purged_at IS NULL{scopeFilter} AND {string.Join(" AND ", filters)}
             ORDER BY n.updated_at DESC
             LIMIT $limit OFFSET $offset;
             """;
