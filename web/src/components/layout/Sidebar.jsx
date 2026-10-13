@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react'
+import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { 
   FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2, Sun, Moon, RefreshCw, Search
 } from 'lucide-react'
@@ -32,6 +33,8 @@ export function Sidebar({
 
   // 笔记本长按操作（移动端/触摸屏）
   const [activeActionNotebook, setActiveActionNotebook] = useState(null)
+  useBackDismiss(!!activeActionNotebook, () => setActiveActionNotebook(null), 50)
+  useBackDismiss(isProfileModalOpen && !!currentUser && !isMobile, () => setIsProfileModalOpen(false), 50)
   const longPressTimerRef = useRef(null)
   const touchStartPosRef = useRef({ x: 0, y: 0 })
   const isLongPressActiveRef = useRef(false)
@@ -115,7 +118,7 @@ export function Sidebar({
               placeholder="搜索标题和正文..."
               value={searchQuery}
               onChange={e => onSearchChange(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-transparent focus:border-emerald-500 dark:focus:border-emerald-500 text-xs text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none transition"
+              className="sidebar-search-input w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-transparent focus:border-emerald-500 dark:focus:border-emerald-500 text-xs text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none transition"
             />
             <Search size={15} className="absolute left-3 text-zinc-400 pointer-events-none" />
             {searchQuery && (
@@ -132,8 +135,7 @@ export function Sidebar({
         </div>
       )}
 
-      {/* Top Action: '+ 新建笔记'（无底色，悬停时显示背景，与下方导航行等高） */}
-      <div className="px-2 pt-1 pb-1">
+      {isMobile && <div className="px-2 pt-1 pb-1">
         <button
           onClick={() => {
             onCreateNote()
@@ -144,7 +146,7 @@ export function Sidebar({
           <Plus size={15} strokeWidth={1.6} className="shrink-0" />
           <span>新建笔记</span>
         </button>
-      </div>
+      </div>}
 
       {/* Main Navigation List */}
       <div className="sidebar-navigation flex-1 min-h-0 overflow-y-auto px-2 space-y-0.5">

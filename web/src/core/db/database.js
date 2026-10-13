@@ -1,5 +1,6 @@
 import Dexie from 'dexie'
 import { noteDrafts } from '../sync/noteDrafts.js'
+import { normalizeAttachmentPath } from '../sync/attachmentPaths.js'
 
 export class LightNoteDatabase extends Dexie {
   constructor() {
@@ -19,6 +20,14 @@ export class LightNoteDatabase extends Dexie {
     this.version(2).stores({
       note_versions: 'id, note_id, created_at'
     })
+
+    // Index image lookups and normalize metadata already stored by older APKs.
+    this.version(3).stores({
+      attachments: 'sha256, filename, relative_path, byte_size, created_at'
+    }).upgrade(transaction => transaction.table('attachments').toCollection().modify(attachment => {
+      attachment.relative_path = normalizeAttachmentPath(attachment.relative_path)
+    }))
+    this.version(4).stores({ image_cache: 'key, owner_uid, last_accessed' })
   }
 }
 

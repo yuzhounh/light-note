@@ -27,6 +27,15 @@ namespace LightNote.App;
 /// </summary>
 public partial class MainWindow : Window
 {
+    public static readonly DependencyProperty IsSidebarContextTargetProperty = DependencyProperty.RegisterAttached(
+        "IsSidebarContextTarget", typeof(bool), typeof(MainWindow), new PropertyMetadata(false));
+
+    public static bool GetIsSidebarContextTarget(DependencyObject target) =>
+        (bool)target.GetValue(IsSidebarContextTargetProperty);
+
+    public static void SetIsSidebarContextTarget(DependencyObject target, bool value) =>
+        target.SetValue(IsSidebarContextTargetProperty, value);
+
     private const string EditorHostName = "lightnote.editor";
     private const string AttachmentHostName = "lightnote.attachments";
     private readonly MainViewModel _viewModel;
@@ -97,7 +106,8 @@ public partial class MainWindow : Window
         AccountSettingsVersionText.Text = $"LightNote {typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "unknown"}";
         _viewModel.ConfigureNavigation(
             _settings.ShowRecentNavigation,
-            _settings.ShowTrashNavigation);
+            _settings.ShowTrashNavigation,
+            _settings.ShowUnfiledNavigation);
         _viewModel.ConfigureNoteSort(_settings.NoteSortByUpdated, _settings.NoteSortDescending);
         ApplyNoteListDensity(_settings.NoteListDensity);
         ApplyWindowSettings();
@@ -127,6 +137,8 @@ public partial class MainWindow : Window
             }
         };
         _syncTimer.Tick += async (_, _) => await RunSyncAsync(silent: true);
+        // 笔记列表滚动到接近底部（或内容不足一屏）时自动加载下一批
+        NoteListBox.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler(OnNoteListScrollChanged));
         _postSaveSyncTimer.Tick += async (_, _) =>
         {
             _postSaveSyncTimer.Stop();
@@ -185,7 +197,7 @@ public partial class MainWindow : Window
         }
         catch (WebView2RuntimeNotFoundException)
         {
-            var choice = MessageBox.Show(this,
+            var choice = MessageDialog.Show(this,
                 "LightNote 需要 Microsoft Edge WebView2 Runtime 才能显示编辑器。是否打开微软官方下载页？",
                 "缺少 WebView2 Runtime",
                 MessageBoxButton.YesNo,
@@ -235,6 +247,7 @@ public partial class MainWindow : Window
             {
                 _logger.Info("Local editor resources loaded in WebView2.");
                 PostEditorMessage(new { type = "theme.changed", payload = new { isDark = _themeService.IsDark } });
+                PostEditorSettings();
             }
             else
             {
@@ -286,8 +299,15 @@ public partial class MainWindow : Window
                 case "editor.state":
                     HandleEditorState(message.RootElement);
                     break;
+                case "editor.focusTitle":
+                    TitleBox.Focus();
+                    TitleBox.CaretIndex = TitleBox.Text.Length;
+                    break;
                 case "attachment.create":
                     await HandleAttachmentCreateAsync(message.RootElement);
+                    break;
+                case "clipboard.source.request":
+                    HandleClipboardSourceRequest(message.RootElement);
                     break;
             }
         }
@@ -296,6 +316,24 @@ public partial class MainWindow : Window
             _logger.Error("Invalid message received from the editor.", exception);
             _viewModel.EditorStatus = "编辑器消息解析失败";
         }
+    }
+
+    /// <summary>编辑器刚发生一次外部粘贴：读取剪贴板来源并回复给编辑器。</summary>
+    private void HandleClipboardSourceRequest(JsonElement message)
+    {
+        if (!_settings.RecordPasteSource ||
+            !message.TryGetProperty("payload", out var payload) ||
+            !payload.TryGetProperty("requestId", out var requestId))
+        {
+            return;
+        }
+
+        var source = ClipboardSourceReader.TryRead();
+        PostEditorMessage(new
+        {
+            type = "clipboard.source",
+            payload = new { requestId = requestId.GetString(), label = source?.Label, url = source?.Url },
+        });
     }
 
     private void SendSelectedNote()
@@ -323,6 +361,7 @@ public partial class MainWindow : Window
                 json = bodyJson.RootElement,
                 html = note.BodyHtml,
                 text = note.BodyText,
+                readOnly = note.DeletedAt is not null,
             },
         });
         EditorWebView.CoreWebView2.PostWebMessageAsJson(message);
@@ -496,6 +535,15 @@ public partial class MainWindow : Window
             type = "editor.command",
             payload = new { command = "fontSize", value = fontSize },
         });
+    }
+
+    // Picking a font or size returns the keyboard to the text, so typing does not change the font.
+    private void OnEditorToolbarDropDownClosed(object? sender, EventArgs e)
+    {
+        if (_editorReady && _viewModel.IsEditorEnabled)
+        {
+            FocusEditor(null);
+        }
     }
 
     private void PostEditorMessage(object message)
@@ -696,7 +744,7 @@ public partial class MainWindow : Window
             var saved = await _viewModel.FlushAllAsync();
             if (!saved)
             {
-                var choice = MessageBox.Show(
+                var choice = MessageDialog.Show(
                     "仍有内容未能保存。是否放弃未保存内容并退出？",
                     "LightNote",
                     MessageBoxButton.YesNo,
@@ -717,7 +765,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Failed while saving before exit.", exception);
-            MessageBox.Show(
+            MessageDialog.Show(
                 "退出前保存失败，LightNote 将保持打开。详情已写入日志。",
                 "LightNote",
                 MessageBoxButton.OK,
@@ -1028,7 +1076,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Failed to save the color mode.", exception);
-            MessageBox.Show(this, $"颜色模式未能保存：{exception.Message}", "LightNote",
+            MessageDialog.Show(this, $"颜色模式未能保存：{exception.Message}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1041,14 +1089,94 @@ public partial class MainWindow : Window
         }
     }
 
-    private void UpdateSidebarContextMenuChecks(ContextMenu menu)
+    private void OnSidebarContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        ContextMenu? menu = null;
+        FrameworkElement target = SidebarPanel;
+        var source = e.OriginalSource as DependencyObject;
+        while (source is not null && source != SidebarPanel)
+        {
+            // Preserve native text editing and menus inside the account popup; scrollbars have no actions.
+            if (source is System.Windows.Controls.Primitives.TextBoxBase or
+                System.Windows.Controls.Primitives.ScrollBar || source == AccountPopupCard)
+            {
+                e.Handled = source is not System.Windows.Controls.Primitives.TextBoxBase;
+                return;
+            }
+
+            if (source is ListBoxItem { DataContext: NotebookListItem item } row)
+            {
+                target = row;
+                menu = CreateNotebookContextMenu(item);
+                break;
+            }
+
+            if (source is Button button)
+            {
+                if (button != SidebarSettingsButton && button != AccountButton)
+                {
+                    // The account popup's theme selector owns its own menu.
+                    e.Handled = button.ContextMenu is null;
+                    return;
+                }
+                target = button;
+                menu = new ContextMenu();
+                if (button == SidebarSettingsButton)
+                {
+                    menu.Items.Add(CreateNotebookMenuItem("打开设置", null, OnSettingsClick));
+                }
+                else if (button == AccountButton)
+                {
+                    menu.Items.Add(CreateNotebookMenuItem(
+                        _syncService.CurrentAccount is null ? "Google 登录" : "立即同步", null, OnAccountPopupPrimaryClick));
+                    ((MenuItem)menu.Items[0]).IsEnabled = !_syncInProgress;
+                    if (_syncService.CurrentAccount is not null)
+                    {
+                        menu.Items.Add(new Separator());
+                        var signOut = CreateNotebookMenuItem("退出登录", null, OnAccountPopupSignOutClick);
+                        signOut.IsEnabled = !_syncInProgress;
+                        menu.Items.Add(signOut);
+                    }
+                }
+                break;
+            }
+
+            source = source is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(source)
+                : LogicalTreeHelper.GetParent(source);
+        }
+
+        // Suppress the inherited background menu for every object, including objects without actions.
+        e.Handled = true;
+        menu ??= target == SidebarPanel ? SidebarPanel.ContextMenu : null;
+        if (menu is null || menu.Items.Count == 0)
+        {
+            return;
+        }
+
+        target.ContextMenu = menu;
+        menu.PlacementTarget = target;
+        menu.Placement = e.CursorLeft < 0
+            ? System.Windows.Controls.Primitives.PlacementMode.Bottom
+            : System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+        if (target is ListBoxItem)
+        {
+            SetIsSidebarContextTarget(target, true);
+            menu.Closed += (_, _) => SetIsSidebarContextTarget(target, false);
+        }
+        menu.IsOpen = true;
+    }
+
+    private void UpdateSidebarContextMenuChecks(ItemsControl menu)
     {
         foreach (var item in menu.Items.OfType<MenuItem>())
         {
+            UpdateSidebarContextMenuChecks(item);
             item.IsChecked = item.Tag?.ToString() switch
             {
                 "navigation:recent" => _settings.ShowRecentNavigation,
                 "navigation:trash" => _settings.ShowTrashNavigation,
+                "navigation:unfiled" => _settings.ShowUnfiledNavigation,
                 _ => false,
             };
         }
@@ -1065,6 +1193,7 @@ public partial class MainWindow : Window
         {
             "navigation:recent" => _settings with { ShowRecentNavigation = item.IsChecked },
             "navigation:trash" => _settings with { ShowTrashNavigation = item.IsChecked },
+            "navigation:unfiled" => _settings with { ShowUnfiledNavigation = item.IsChecked },
             _ => _settings,
         };
 
@@ -1073,12 +1202,13 @@ public partial class MainWindow : Window
             _settingsService.Save(_settings);
             await _viewModel.UpdateNavigationAsync(
                 _settings.ShowRecentNavigation,
-                _settings.ShowTrashNavigation);
+                _settings.ShowTrashNavigation,
+                _settings.ShowUnfiledNavigation);
         }
         catch (Exception exception)
         {
             _logger.Error("Failed to update sidebar navigation.", exception);
-            MessageBox.Show(this, "无法更新导航显示设置，请查看日志。", "LightNote",
+            MessageDialog.Show(this, "无法更新导航显示设置，请查看日志。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1157,19 +1287,9 @@ public partial class MainWindow : Window
 
     private void OnNotebookPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (sender is not ListBoxItem { DataContext: NotebookListItem item } container)
-        {
-            return;
-        }
-
-        container.IsSelected = true;
-        container.Focus();
-        var menu = CreateNotebookContextMenu(item);
-        container.ContextMenu = menu;
-        if (menu is null)
-        {
-            e.Handled = true;
-        }
+        // Opening a menu must not select a different notebook or switch the editor.
+        // ContextMenuOpening handles both the subsequent right-button release and keyboard invocation.
+        e.Handled = true;
     }
 
     private Point _noteDragStartPoint;
@@ -1255,7 +1375,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Failed to change note sort order.", exception);
-            MessageBox.Show("无法更改排序方式，请查看日志。", "LightNote", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageDialog.Show("无法更改排序方式，请查看日志。", "LightNote", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -1638,27 +1758,64 @@ public partial class MainWindow : Window
         if (item.Kind == NotebookKind.GroupRoot)
         {
             menu.Items.Add(CreateNotebookMenuItem("新建笔记本组", null, OnNewNotebookGroupClick));
+            menu.Items.Add(CreateNotebookMenuItem("新建笔记本", null, OnNewNotebookClick));
         }
         else if (item.Kind == NotebookKind.Group)
         {
+            menu.Items.Add(CreateNotebookMenuItem("在此组新建笔记本…", item.Id, OnNewNotebookInGroupClick));
             menu.Items.Add(CreateNotebookMenuItem("重命名笔记本组…", item.Id, OnRenameNotebookGroupClick));
-            menu.Items.Add(CreateNotebookMenuItem("删除笔记本组", item.Id, OnDeleteNotebookGroupClick));
+            menu.Items.Add(new Separator());
+            menu.Items.Add(CreateNotebookMenuItem("删除笔记本组…", item.Id, OnDeleteNotebookGroupClick));
         }
         else if (item.Kind == NotebookKind.User && item.Id is not null)
         {
+            menu.Items.Add(CreateNotebookMenuItem("在此笔记本新建笔记", item, OnNewSidebarNoteClick));
+            menu.Items.Add(CreateNotebookMenuItem("重命名笔记本…", item.Id, OnRenameNotebookClick));
+            var move = new MenuItem { Header = "移动到笔记本组" };
             if (item.GroupId is not null)
             {
-                menu.Items.Add(CreateNotebookMenuItem("移出笔记本组", new NotebookGroupAssignment(item.Id, null),
+                move.Items.Add(CreateNotebookMenuItem("移出当前组", new NotebookGroupAssignment(item.Id, null),
                     OnAssignNotebookGroupClick));
             }
 
             foreach (var group in _viewModel.Notebooks.Where(candidate =>
                          candidate.Kind == NotebookKind.Group && candidate.Id != item.GroupId))
             {
-                menu.Items.Add(CreateNotebookMenuItem(
-                    $"移到“{group.Name}”",
+                move.Items.Add(CreateNotebookMenuItem(
+                    group.Name,
                     new NotebookGroupAssignment(item.Id, group.Id),
                     OnAssignNotebookGroupClick));
+            }
+            if (move.Items.Count > 0)
+            {
+                menu.Items.Add(move);
+            }
+            menu.Items.Add(new Separator());
+            menu.Items.Add(CreateNotebookMenuItem("删除笔记本…", item.Id, OnDeleteNotebookClick));
+        }
+        else
+        {
+            if (item.Kind is NotebookKind.All or NotebookKind.Unfiled)
+            {
+                menu.Items.Add(CreateNotebookMenuItem(
+                    item.Kind == NotebookKind.Unfiled ? "新建未归类笔记" : "新建笔记", item, OnNewSidebarNoteClick));
+            }
+            else
+            {
+                menu.Items.Add(CreateNotebookMenuItem($"打开{item.Name}", item, OnOpenSidebarViewClick));
+            }
+
+            var navigationTag = item.Kind switch
+            {
+                NotebookKind.Recent => "navigation:recent",
+                NotebookKind.Unfiled => "navigation:unfiled",
+                NotebookKind.Trash => "navigation:trash",
+                _ => null,
+            };
+            if (navigationTag is not null)
+            {
+                menu.Items.Add(new Separator());
+                menu.Items.Add(CreateNotebookMenuItem("隐藏此入口", navigationTag, OnNavigationMenuItemClick));
             }
         }
 
@@ -1767,7 +1924,7 @@ public partial class MainWindow : Window
     private async void OnNewNotebookRequested(object? sender, EventArgs e) =>
         await ShowNewNotebookDialogAsync();
 
-    private async Task ShowNewNotebookDialogAsync()
+    private async Task ShowNewNotebookDialogAsync(string? groupId = null)
     {
         if (_notebookDialogOpen)
         {
@@ -1780,13 +1937,13 @@ public partial class MainWindow : Window
             var dialog = new TextPromptDialog("新建笔记本", "输入笔记本名称：") { Owner = this };
             if (dialog.ShowDialog() == true)
             {
-                await _viewModel.CreateNotebookAsync(dialog.Value);
+                await _viewModel.CreateNotebookAsync(dialog.Value, groupId: groupId);
             }
         }
         catch (Exception exception)
         {
             _logger.Error("Failed to create a notebook.", exception);
-            MessageBox.Show("无法创建笔记本，请查看日志。", "LightNote", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageDialog.Show(this, $"无法创建笔记本：{exception.Message}", "LightNote", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -1809,7 +1966,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Failed to create a notebook group.", exception);
-            MessageBox.Show(this, "无法创建笔记本组；名称可能已经存在。", "LightNote",
+            MessageDialog.Show(this, "无法创建笔记本组；名称可能已经存在。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1837,7 +1994,7 @@ public partial class MainWindow : Window
             catch (Exception exception)
             {
                 _logger.Error("Failed to rename a notebook group.", exception);
-                MessageBox.Show(this, "无法重命名笔记本组；名称可能已经存在。", "LightNote",
+                MessageDialog.Show(this, "无法重命名笔记本组；名称可能已经存在。", "LightNote",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1851,22 +2008,143 @@ public partial class MainWindow : Window
         }
 
         var group = _viewModel.Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.Group && item.Id == groupId);
-        if (group is null || MessageBox.Show(this,
-                $"删除笔记本组“{group.Name}”？组内笔记本和笔记都会保留。",
+        if (group is null || MessageDialog.Show(this,
+                $"删除笔记本组“{group.Name}”？组内笔记本和笔记都会保留，笔记本将显示在组外。",
                 "LightNote", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
         {
             return;
         }
 
-        await _viewModel.DeleteNotebookGroupAsync(groupId);
+        try
+        {
+            await CaptureEditorSnapshotAsync();
+            if (!await _viewModel.FlushAllAsync())
+            {
+                throw new InvalidOperationException("当前笔记尚未保存。");
+            }
+            await _viewModel.DeleteNotebookGroupAsync(groupId);
+        }
+        catch (Exception exception)
+        {
+            ShowSidebarOperationError("删除笔记本组", exception);
+        }
     }
 
     private async void OnAssignNotebookGroupClick(object sender, RoutedEventArgs e)
     {
         if (sender is MenuItem { Tag: NotebookGroupAssignment assignment })
         {
-            await _viewModel.AssignNotebookToGroupAsync(assignment.NotebookId, assignment.GroupId);
+            try
+            {
+                await _viewModel.AssignNotebookToGroupAsync(assignment.NotebookId, assignment.GroupId);
+            }
+            catch (Exception exception)
+            {
+                ShowSidebarOperationError("移动笔记本", exception);
+            }
         }
+    }
+
+    private async void OnNewNotebookInGroupClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: string groupId })
+        {
+            await ShowNewNotebookDialogAsync(groupId);
+        }
+    }
+
+    private void OnOpenSidebarViewClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: NotebookListItem target })
+        {
+            _viewModel.SelectedNotebook = _viewModel.Notebooks.FirstOrDefault(item =>
+                item.Kind == target.Kind && item.Id == target.Id);
+        }
+    }
+
+    private async void OnNewSidebarNoteClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: NotebookListItem target })
+        {
+            return;
+        }
+        try
+        {
+            await CaptureEditorSnapshotAsync();
+            if (!await _viewModel.FlushAllAsync())
+            {
+                throw new InvalidOperationException("当前笔记尚未保存。");
+            }
+            if (target.Kind == NotebookKind.User)
+            {
+                await _viewModel.CreateNoteInNotebookAsync(target.Id);
+            }
+            else
+            {
+                OnOpenSidebarViewClick(sender, e);
+                await _viewModel.NewNoteCommand.ExecuteAsync(null);
+            }
+        }
+        catch (Exception exception)
+        {
+            ShowSidebarOperationError("新建笔记", exception);
+        }
+    }
+
+    private async void OnRenameNotebookClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string notebookId })
+        {
+            return;
+        }
+        var notebook = _viewModel.Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.User && item.Id == notebookId);
+        if (notebook is null)
+        {
+            return;
+        }
+        var dialog = new TextPromptDialog("重命名笔记本", "输入新的笔记本名称：", notebook.Name) { Owner = this };
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                await _viewModel.RenameNotebookAsync(notebookId, dialog.Value);
+            }
+            catch (Exception exception)
+            {
+                ShowSidebarOperationError("重命名笔记本", exception);
+            }
+        }
+    }
+
+    private async void OnDeleteNotebookClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string notebookId })
+        {
+            return;
+        }
+        var notebook = _viewModel.Notebooks.FirstOrDefault(item => item.Kind == NotebookKind.User && item.Id == notebookId);
+        if (notebook is null || MessageDialog.Show(this,
+                $"删除笔记本“{notebook.Name}”？其中的笔记会保留，并移到“未归类”；回收站里的笔记保持原有状态。",
+                "LightNote", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+        try
+        {
+            await CaptureEditorSnapshotAsync();
+            await _viewModel.DeleteNotebookAsync(notebookId);
+        }
+        catch (Exception exception)
+        {
+            ShowSidebarOperationError("删除笔记本", exception);
+        }
+    }
+
+    private void ShowSidebarOperationError(string operation, Exception exception)
+    {
+        _logger.Error($"Failed sidebar operation: {operation}.", exception);
+        MessageDialog.Show(this, $"无法{operation}：{exception.Message}", "LightNote",
+            MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     private async void OnNoteMouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -1906,7 +2184,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Failed to open a note window.", exception);
-            MessageBox.Show(this, "无法在独立窗口打开笔记，请查看日志。", "LightNote",
+            MessageDialog.Show(this, "无法在独立窗口打开笔记，请查看日志。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1925,7 +2203,7 @@ public partial class MainWindow : Window
         var message = ids.Count == 1
             ? $"永久删除“{_viewModel.SelectedNote?.Title}”？此操作无法撤销。"
             : $"永久删除选中的 {ids.Count} 篇笔记？此操作无法撤销。";
-        var choice = MessageBox.Show(
+        var choice = MessageDialog.Show(
             message,
             "LightNote",
             MessageBoxButton.YesNo,
@@ -1963,7 +2241,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Failed to edit note tags.", exception);
-            MessageBox.Show("无法保存标签，请查看日志。", "LightNote", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageDialog.Show("无法保存标签，请查看日志。", "LightNote", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -1993,7 +2271,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Failed to move a note.", exception);
-            MessageBox.Show("无法移动笔记，请查看日志。", "LightNote", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageDialog.Show("无法移动笔记，请查看日志。", "LightNote", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -2015,7 +2293,7 @@ public partial class MainWindow : Window
             var versions = await _viewModel.GetSelectedHistoryAsync();
             if (versions.Count == 0)
             {
-                MessageBox.Show(this, "这篇笔记还没有历史版本。", "LightNote",
+                MessageDialog.Show(this, "这篇笔记还没有历史版本。", "LightNote",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -2029,7 +2307,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Failed to restore note history.", exception);
-            MessageBox.Show(this, "无法读取或恢复历史版本，请查看日志。", "LightNote",
+            MessageDialog.Show(this, "无法读取或恢复历史版本，请查看日志。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -2046,13 +2324,13 @@ public partial class MainWindow : Window
             }
 
             var backupPath = await _backupService.CreateAsync();
-            MessageBox.Show(owner, $"备份已创建：\n{backupPath}", "LightNote",
+            MessageDialog.Show(owner, $"备份已创建：\n{backupPath}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception)
         {
             _logger.Error("Failed to create a backup.", exception);
-            MessageBox.Show(owner, "备份失败，请查看日志。", "LightNote",
+            MessageDialog.Show(owner, "备份失败，请查看日志。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -2095,7 +2373,7 @@ public partial class MainWindow : Window
                 prefixRelativeDirectory = true;
                 if (sourcePaths.Count == 0)
                 {
-                    MessageBox.Show(owner, "该文件夹中没有可导入的 ENEX、Google Keep JSON、CSV、Markdown、文本或 HTML 文件。", "LightNote",
+                    MessageDialog.Show(owner, "该文件夹中没有可导入的 ENEX、Google Keep JSON、CSV、Markdown、文本或 HTML 文件。", "LightNote",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -2160,14 +2438,14 @@ public partial class MainWindow : Window
                 details.Add("失败文件：" + string.Join("；", result.Failures.Take(5).Select(failure =>
                     $"{System.IO.Path.GetFileName(failure.SourcePath)}（{failure.Message}）")));
             }
-            MessageBox.Show(owner, string.Join(Environment.NewLine + Environment.NewLine, details), "导入完成",
+            MessageDialog.Show(owner, string.Join(Environment.NewLine + Environment.NewLine, details), "导入完成",
                 MessageBoxButton.OK,
                 result.FailedCount == 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
         catch (Exception exception)
         {
             _logger.Error("Failed to import notes.", exception);
-            MessageBox.Show(owner, $"导入失败：{exception.Message}", "LightNote",
+            MessageDialog.Show(owner, $"导入失败：{exception.Message}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -2218,13 +2496,13 @@ public partial class MainWindow : Window
         try
         {
             await _backupService.RestoreAsync(archiveDialog.FileName, folderDialog.FolderName);
-            MessageBox.Show(owner, $"备份已安全恢复到：\n{folderDialog.FolderName}", "LightNote",
+            MessageDialog.Show(owner, $"备份已安全恢复到：\n{folderDialog.FolderName}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception)
         {
             _logger.Error("Failed to restore a backup.", exception);
-            MessageBox.Show(owner, $"恢复失败：{exception.Message}", "LightNote",
+            MessageDialog.Show(owner, $"恢复失败：{exception.Message}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -2272,13 +2550,13 @@ public partial class MainWindow : Window
                 _ => LightNote.Core.Models.NoteExportFormat.Html,
             };
             await _exportService.ExportAsync(note, format, dialog.FileName);
-            MessageBox.Show(owner, $"笔记已导出：\n{dialog.FileName}", "LightNote",
+            MessageDialog.Show(owner, $"笔记已导出：\n{dialog.FileName}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception)
         {
             _logger.Error("Failed to export a note.", exception);
-            MessageBox.Show(owner, "导出失败，请查看日志。", "LightNote",
+            MessageDialog.Show(owner, "导出失败，请查看日志。", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -2300,7 +2578,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Failed to open the logs directory.", exception);
-            MessageBox.Show(this, $"无法打开日志目录：\n{_paths.LogsDirectory}", "LightNote",
+            MessageDialog.Show(this, $"无法打开日志目录：\n{_paths.LogsDirectory}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -2339,14 +2617,16 @@ public partial class MainWindow : Window
                 _settings = dialog.Settings;
                 _settingsService.Save(_settings);
                 ApplyTheme();
+                PostEditorSettings();
                 _viewModel.ConfigureNavigation(
                     _settings.ShowRecentNavigation,
-                    _settings.ShowTrashNavigation);
+                    _settings.ShowTrashNavigation,
+                    _settings.ShowUnfiledNavigation);
             }
             catch (Exception exception)
             {
                 _logger.Error("Failed to save application settings.", exception);
-                MessageBox.Show(this, $"设置未能保存：{exception.Message}", "LightNote",
+                MessageDialog.Show(this, $"设置未能保存：{exception.Message}", "LightNote",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -2367,6 +2647,18 @@ public partial class MainWindow : Window
                 break;
         }
     }
+
+    /// <summary>把编辑器相关设置（目前是 Markdown 自动排版开关）发给网页编辑器。</summary>
+    private void PostEditorSettings() =>
+        PostEditorMessage(new
+        {
+            type = "editor.settings",
+            payload = new
+            {
+                markdownAutoFormat = _settings.MarkdownAutoFormat,
+                recordPasteSource = _settings.RecordPasteSource,
+            },
+        });
 
     private void ApplyTheme()
     {
@@ -2472,7 +2764,7 @@ public partial class MainWindow : Window
     {
         if (!_syncService.IsConfigured)
         {
-            MessageBox.Show(this,
+            MessageDialog.Show(this,
                 $"Firebase 尚未配置。配置文件稍后应放在：\n{_syncService.ConfigurationPath}\n\n" +
                 "需要 projectId 与 apiKey（storageBucket 仅图片同步需要，可选）。",
                 "LightNote",
@@ -2512,7 +2804,7 @@ public partial class MainWindow : Window
                 {
                     _logger.Error("Google sign-in failed.", exception);
                     _viewModel.SyncStatus = "登录未完成";
-                    MessageBox.Show(this, $"Google 登录失败：{exception.Message}", "LightNote",
+                    MessageDialog.Show(this, $"Google 登录失败：{exception.Message}", "LightNote",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -2547,7 +2839,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Firebase sign-out failed.", exception);
-            MessageBox.Show(this, $"退出登录失败：{exception.Message}", "LightNote",
+            MessageDialog.Show(this, $"退出登录失败：{exception.Message}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -2607,13 +2899,29 @@ public partial class MainWindow : Window
             _viewModel.SyncStatus = "同步失败 · 将自动重试";
             if (!silent)
             {
-                MessageBox.Show(this, $"同步失败：{exception.Message}", "LightNote",
+                MessageDialog.Show(this, $"同步失败：{exception.Message}", "LightNote",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         finally
         {
             _syncInProgress = false;
+        }
+    }
+
+    private void OnNoteListScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (e.OriginalSource is not ScrollViewer scrollViewer || scrollViewer.ViewportHeight <= 0)
+        {
+            return;
+        }
+
+        var nearBottom = scrollViewer.VerticalOffset + scrollViewer.ViewportHeight >=
+                         scrollViewer.ExtentHeight - 160;
+        if (nearBottom && _viewModel.HasMoreNotes && !_viewModel.IsLoadingMore &&
+            _viewModel.LoadMoreCommand.CanExecute(null))
+        {
+            _viewModel.LoadMoreCommand.Execute(null);
         }
     }
 

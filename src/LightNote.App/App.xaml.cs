@@ -21,9 +21,16 @@ public partial class App : System.Windows.Application
 {
     private ServiceProvider? _services;
     private SingleInstanceManager? _singleInstance;
+    private readonly bool _runRuntimeStartup = true;
+
+    public App() { }
+
+    // Resource-only application used by the isolated UI test runner.
+    public App(bool runRuntimeStartup) => _runRuntimeStartup = runRuntimeStartup;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        if (!_runRuntimeStartup) return;
         base.OnStartup(e);
         RenderOptions.ProcessRenderMode = RenderMode.Default;
         _singleInstance = SingleInstanceManager.Acquire();
@@ -61,6 +68,16 @@ public partial class App : System.Windows.Application
 
         _services = ConfigureServices();
         var logger = _services.GetRequiredService<IAppLogger>();
+
+        try
+        {
+            // Resolve the native runtime before the first HWND starts processing creation messages.
+            _ = Microsoft.UI.Windowing.AppWindowTitleBar.IsCustomizationSupported();
+        }
+        catch (Exception exception)
+        {
+            logger.Error("Native title bar runtime initialization failed; standard system captions remain available.", exception);
+        }
 
         DispatcherUnhandledException += (_, args) => HandleDispatcherException(logger, args);
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -142,6 +159,11 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        if (!_runRuntimeStartup)
+        {
+            base.OnExit(e);
+            return;
+        }
         try
         {
             _services?.GetService<TrayIconService>()?.Dispose();
