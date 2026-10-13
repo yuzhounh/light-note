@@ -81,8 +81,9 @@ export async function mergeRemoteNotebook(remote, type = 'modified') {
   })
 }
 
-export async function prepareUpload(item) {
+export async function prepareUpload(item, assertCurrent = () => {}) {
   return db.transaction('rw', db.notes, db.notebooks, db.sync_outbox, async () => {
+    assertCurrent()
     if (!await db.sync_outbox.get(item.id)) return null
     if (item.entity_type === 'note' && noteDrafts.has(item.entity_id)) return null
     const table = item.entity_type === 'note' ? db.notes
@@ -98,20 +99,29 @@ export async function prepareUpload(item) {
       await table.put(record)
     }
     if (!record) throw new Error('待上传记录不存在，已保留同步队列')
+    assertCurrent()
     return record
   })
 }
 
-export async function pushPendingChanges(upload) {
+export async function pushPendingChanges(upload, assertCurrent = () => {}) {
   const items = await db.sync_outbox.toArray()
+  assertCurrent()
   const latest = new Map()
   for (const item of items) latest.set(`${item.entity_type}:${item.entity_id}`, item)
   for (const item of latest.values()) {
-    const record = await prepareUpload(item)
+    assertCurrent()
+    const record = await prepareUpload(item, assertCurrent)
+    assertCurrent()
     if (!record) continue
     await upload(item.entity_type, item.entity_id, record)
+    assertCurrent()
     // New changes have a higher queue ID and survive this acknowledgement.
-    await db.sync_outbox.where('entity_type').equals(item.entity_type)
-      .and(queued => queued.entity_id === item.entity_id && queued.id <= item.id).delete()
+    await db.transaction('rw', db.sync_outbox, async () => {
+      assertCurrent()
+      await db.sync_outbox.where('entity_type').equals(item.entity_type)
+        .and(queued => queued.entity_id === item.entity_id && queued.id <= item.id).delete()
+      assertCurrent()
+    })
   }
 }

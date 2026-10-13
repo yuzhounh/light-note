@@ -32,8 +32,7 @@ after(async () => {
   await db.delete()
 })
 afterEach(() => {
-  syncService.currentUser = null
-  syncService.stopRealtimeSync()
+  syncService.setUser(null)
 })
 
 test('pending drafts survive full pulls, snapshots and remote deletion regardless of clock', async () => {
@@ -275,6 +274,7 @@ test('sync service reports upload failure and clears the error after successful 
     if (fail) throw new Error('network failure')
   })
   const user = { uid: 'test-user' }
+  syncService.currentUser = user
   await assert.rejects(syncService.pushOutbox(user), /network failure/)
   assert.equal(syncService.getSyncState().status, 'error')
   assert.equal(syncService.getSyncState().outboxCount, 1)
@@ -282,4 +282,92 @@ test('sync service reports upload failure and clears the error after successful 
   await syncService.pushOutbox(user)
   assert.equal(syncService.getSyncState().error, null)
   assert.equal(syncService.getSyncState().outboxCount, 0)
+})
+
+function fakeCloud(t, getDocs = async () => ({ forEach() {} })) {
+  const callbacks = []
+  t.mock.method(syncService, '_getServices', () => ({ firestore: {} }))
+  t.mock.method(syncService._firebase, 'collection', (_db, _users, uid, kind) => ({ uid, kind }))
+  t.mock.method(syncService._firebase, 'getDocs', getDocs)
+  t.mock.method(syncService._firebase, 'onSnapshot', (target, callback) => {
+    callbacks.push({ target, callback })
+    return () => {}
+  })
+  return callbacks
+}
+const cloudSnapshot = records => ({ forEach: fn => records.forEach(record => fn({ id: record.id, data: () => record })) })
+const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done }); return { promise, resolve } }
+async function createDraft(id, title) {
+  await mergeRemoteNote(remoteNote({ id }))
+  await save(id, title)
+}
+
+test('logout invalidates a delayed full pull and preserves local drafts', async t => {
+  const read = deferred()
+  fakeCloud(t, () => read.promise)
+  await createDraft('local-draft', 'Keep this draft')
+  syncService.currentUser = { uid: 'A' }
+  const pulling = syncService.syncNow()
+  syncService.setUser(null)
+  read.resolve(cloudSnapshot([{ id: 'old-account-notebook', name: 'A' }]))
+  await pulling
+  assert.equal(await db.notebooks.get('old-account-notebook'), undefined)
+  assert.equal((await db.notes.get('local-draft')).title, 'Keep this draft')
+  assert.equal(syncService.getSyncState().status, 'idle')
+})
+
+test('a new account gets its full pull after the old request settles; late snapshots are ignored', async t => {
+  const read = deferred()
+  const requests = []
+  const callbacks = fakeCloud(t, target => {
+    requests.push(target)
+    if (target.uid === 'A') return read.promise
+    return Promise.resolve(cloudSnapshot(target.kind === 'notes' ? [remoteNote({ id: 'b-note' })] : []))
+  })
+  syncService.currentUser = { uid: 'A' }
+  syncService.startRealtimeSync()
+  const old = syncService.syncNow()
+  syncService.setUser({ uid: 'B' })
+  const next = syncService.syncNow()
+  read.resolve(cloudSnapshot([]))
+  await Promise.all([old, next])
+  assert.equal(requests.filter(target => target.uid === 'B').length, 3)
+  assert.ok(await db.notes.get('b-note'))
+  const late = callbacks.find(item => item.target.uid === 'A' && item.target.kind === 'notes')
+  await late.callback({ docChanges: () => [{ type: 'added', doc: { id: 'a-note', data: () => remoteNote({ id: 'a-note' }) } }] })
+  assert.equal(await db.notes.get('a-note'), undefined)
+})
+
+test('an account change during a local merge rolls back all old remote writes', async t => {
+  fakeCloud(t)
+  syncService.currentUser = { uid: 'A' }
+  const session = syncService._session(syncService.currentUser)
+  await assert.rejects(syncService._applyRemote(session, async () => {
+    await mergeRemoteNote(remoteNote())
+    syncService.setUser(null)
+  }), /同步账户已经改变/)
+  assert.equal(await db.notes.get('note-1'), undefined)
+})
+
+test('switching accounts during upload stops the old batch without acknowledging pending changes', async t => {
+  fakeCloud(t)
+  await createDraft('first', 'First draft')
+  await createDraft('second', 'Second draft')
+  const started = deferred(), release = deferred(), uploads = []
+  t.mock.method(syncService, '_uploadRecord', async (user, _kind, id) => {
+    uploads.push({ uid: user.uid, id })
+    started.resolve()
+    await release.promise
+  })
+  syncService.currentUser = { uid: 'A' }
+  const pushing = syncService.pushOutbox()
+  await started.promise
+  syncService.setUser(null)
+  await createDraft('new-draft', 'Created after logout')
+  release.resolve()
+  await pushing
+  assert.equal(uploads.length, 1)
+  assert.equal(await db.sync_outbox.count(), 3)
+  assert.equal((await db.notes.get('new-draft')).title, 'Created after logout')
+  assert.equal(syncService.getSyncState().status, 'idle')
 })
