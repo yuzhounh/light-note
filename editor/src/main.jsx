@@ -2,42 +2,30 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { EditorContent, useEditor, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { Node, Mark, InputRule, mergeAttributes } from '@tiptap/core'
+import { Selection } from '@tiptap/pm/state'
 import StarterKit from '@tiptap/starter-kit'
+import { TableKit } from '@tiptap/extension-table'
+import { MarkdownGate } from './markdownGate.js'
+import { insertSourceLine } from './pasteSource.js'
 import Image from '@tiptap/extension-image'
+import { Placeholder } from '@tiptap/extensions'
 import katex from 'katex'
-import MarkdownIt from 'markdown-it'
+import { ATTACHMENT_HOST, createPasteProps, isLikelyMath } from './clipboard.js'
+import { EditingKeys, currentTextStyle, selectionForMarginClick } from './editorBehavior.js'
+import { applyNoteContent, clearDocument } from './noteDocument.js'
 import './style.css'
 
-const ATTACHMENT_HOST = 'lightnote.attachments'
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
 const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
-
-const mdParser = new MarkdownIt({ html: true, breaks: false })
 
 function post(type, payload = {}) {
   window.chrome?.webview?.postMessage({ type, payload })
 }
 
-function escapeHtml(text) {
-  return String(text || '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
-
-function isLikelyMath(str) {
-  if (!str || typeof str !== 'string') return false
-  const trimmed = str.trim()
-  if (!trimmed) return false
-  if (/^\d+(?:\.\d+)?$/.test(trimmed)) return false
-  if (/\\(?:[a-zA-Z]+|[^\s])/.test(trimmed)) return true
-  if (/[\\^_{}]/.test(trimmed)) return true
-  if (/[=<>+\-*/]/.test(trimmed) && !/^\s*[\u4e00-\u9fa5a-zA-Z]+\s+[\u4e00-\u9fa5a-zA-Z]+\s*$/.test(trimmed)) return true
-  if (/^[a-zA-Z]$/.test(trimmed)) return true
-  if (/^[a-zA-Z]\([a-zA-Z0-9, ]+\)$/.test(trimmed)) return true
-  return false
+function cssColorToHex(value) {
+  const match = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*1)?\)$/.exec(value || '')
+  if (!match) return value
+  return `#${match.slice(1, 4).map(part => Number(part).toString(16).padStart(2, '0')).join('')}`
 }
 
 const Underline = Mark.create({
@@ -94,7 +82,9 @@ const TextAppearance = Mark.create({
       },
       backgroundColor: {
         default: null,
-        parseHTML: element => element.style.backgroundColor || null,
+        // The browser reports #fff2a8 as rgb(255, 242, 168); without converting it back, reloaded
+        // highlights would no longer count as highlighted and could not be toggled off.
+        parseHTML: element => cssColorToHex(element.style.backgroundColor) || null,
       },
     }
   },
@@ -129,11 +119,13 @@ const TextAppearance = Mark.create({
   },
 })
 
-function ResizableImageComponent({ node, updateAttributes, selected, deleteNode }) {
+function ResizableImageComponent({ editor, node, updateAttributes, selected, deleteNode }) {
   const [hovered, setHovered] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const containerRef = useRef(null)
   const imageRef = useRef(null)
+  // Read-only notes (in the trash) keep only the double-click enlarged view.
+  const showTools = editor.isEditable && (hovered || selected || isResizing)
 
   const resolvedSrc = node.attrs.src || (node.attrs.attachmentId ? `https://${ATTACHMENT_HOST}/${node.attrs.attachmentId}` : '')
 
@@ -207,7 +199,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
         />
 
         {/* Floating Quick Action Toolbar */}
-        {(hovered || selected || isResizing) && (
+        {showTools && (
           <span className="resizable-image-toolbar">
             <button
               type="button"
@@ -262,7 +254,7 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
         )}
 
         {/* Bottom-right Drag Resize Handle */}
-        {(hovered || selected || isResizing) && (
+        {showTools && (
           <span
             onMouseDown={handleResizeStart}
             className="resizable-image-handle"
@@ -346,9 +338,10 @@ const InlineMath = Node.create({
   },
   addCommands() {
     return {
-      insertInlineMath: ({ latex, pos } = {}) => ({ commands, editor }) => {
+      insertInlineMath: ({ latex, pos, to } = {}) => ({ commands, editor }) => {
+        const from = pos ?? editor.state.selection.from
         return commands.insertContentAt(
-          pos ?? editor.state.selection.from,
+          { from, to: to ?? from },
           { type: this.name, attrs: { latex: latex || '' } }
         )
       },
@@ -380,6 +373,7 @@ const InlineMath = Node.create({
             isBlock: false,
             latex: selectedText || '',
             pos: from,
+            to,
           })
         }
         return true
@@ -394,6 +388,7 @@ const InlineMath = Node.create({
             isBlock: true,
             latex: selectedText || '',
             pos: from,
+            to,
           })
         }
         return true
@@ -414,7 +409,10 @@ const InlineMath = Node.create({
     ]
   },
   addNodeView() {
+    const { editor } = this
     return ({ node, getPos }) => {
+      // The click handler must see the formula as last edited, not as first rendered.
+      let current = node
       const dom = document.createElement('span')
       dom.className = 'tiptap-mathematics-render'
       dom.setAttribute('data-type', 'inline-math')
@@ -437,12 +435,13 @@ const InlineMath = Node.create({
       const onClick = e => {
         e.preventDefault()
         e.stopPropagation()
+        if (!editor.isEditable) return
         const pos = typeof getPos === 'function' ? getPos() : null
         if (pos != null && window.__openMathModal) {
           window.__openMathModal({
             isExisting: true,
             isBlock: false,
-            latex: node.attrs.latex || '',
+            latex: current.attrs.latex || '',
             pos,
           })
         }
@@ -453,6 +452,7 @@ const InlineMath = Node.create({
         dom,
         update: updatedNode => {
           if (updatedNode.type !== node.type) return false
+          current = updatedNode
           dom.setAttribute('data-latex', updatedNode.attrs.latex || '')
           render(updatedNode.attrs.latex)
           return true
@@ -492,9 +492,10 @@ const BlockMath = Node.create({
   },
   addCommands() {
     return {
-      insertBlockMath: ({ latex, pos } = {}) => ({ commands, editor }) => {
+      insertBlockMath: ({ latex, pos, to } = {}) => ({ commands, editor }) => {
+        const from = pos ?? editor.state.selection.from
         return commands.insertContentAt(
-          pos ?? editor.state.selection.from,
+          { from, to: to ?? from },
           { type: this.name, attrs: { latex: latex || '' } }
         )
       },
@@ -536,7 +537,10 @@ const BlockMath = Node.create({
     ]
   },
   addNodeView() {
+    const { editor } = this
     return ({ node, getPos }) => {
+      // The click handler must see the formula as last edited, not as first rendered.
+      let current = node
       const dom = document.createElement('div')
       dom.className = 'tiptap-mathematics-render tiptap-mathematics-render--block'
       dom.setAttribute('data-type', 'block-math')
@@ -559,12 +563,13 @@ const BlockMath = Node.create({
       const onClick = e => {
         e.preventDefault()
         e.stopPropagation()
+        if (!editor.isEditable) return
         const pos = typeof getPos === 'function' ? getPos() : null
         if (pos != null && window.__openMathModal) {
           window.__openMathModal({
             isExisting: true,
             isBlock: true,
-            latex: node.attrs.latex || '',
+            latex: current.attrs.latex || '',
             pos,
           })
         }
@@ -575,6 +580,7 @@ const BlockMath = Node.create({
         dom,
         update: updatedNode => {
           if (updatedNode.type !== node.type) return false
+          current = updatedNode
           dom.setAttribute('data-latex', updatedNode.attrs.latex || '')
           render(updatedNode.attrs.latex)
           return true
@@ -587,222 +593,6 @@ const BlockMath = Node.create({
   },
 })
 
-function extractExistingKatex(root) {
-  for (const el of [...root.querySelectorAll('.katex')]) {
-    const isBlock = Boolean(el.closest('.katex-display'))
-    const annotation = el.querySelector('annotation[encoding="application/x-tex"]')
-    const latex = annotation?.textContent?.trim()
-    if (latex) {
-      const target = isBlock ? el.closest('.katex-display') || el : el
-      const replacement = document.createElement(isBlock ? 'div' : 'span')
-      replacement.setAttribute('data-type', isBlock ? 'block-math' : 'inline-math')
-      replacement.setAttribute('data-latex', latex)
-      target.parentNode?.replaceChild(replacement, target)
-    }
-  }
-}
-
-function convertMathInTextNodes(root) {
-  for (const span of [...root.querySelectorAll('span')]) {
-    if (span.hasAttribute('data-type') || span.classList.contains('katex')) continue
-    const text = span.textContent?.trim() || ''
-    const match = text.match(/^\$([^$]+)\$$/)
-    if (match && isLikelyMath(match[1])) {
-      const inline = document.createElement('span')
-      inline.setAttribute('data-type', 'inline-math')
-      inline.setAttribute('data-latex', match[1].trim())
-      span.parentNode?.replaceChild(inline, span)
-    }
-  }
-
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
-  const textNodes = []
-  let currentNode
-  while ((currentNode = walker.nextNode())) {
-    const parentTag = currentNode.parentElement?.tagName?.toLowerCase()
-    if (
-      parentTag === 'script' ||
-      parentTag === 'style' ||
-      currentNode.parentElement?.closest('[data-type="inline-math"], [data-type="block-math"], .katex')
-    ) {
-      continue
-    }
-    if (currentNode.nodeValue && currentNode.nodeValue.includes('$')) {
-      textNodes.push(currentNode)
-    }
-  }
-
-  for (const node of textNodes) {
-    const text = node.nodeValue || ''
-    const mathPattern = /(\$\$[\s\S]+?\$\$|(?<!\$)\$[^\s$](?:[^$]*?[^\s$])?\$(?!\$))/g
-    if (!mathPattern.test(text)) continue
-
-    mathPattern.lastIndex = 0
-    const fragment = document.createDocumentFragment()
-    let lastIndex = 0
-    let match
-
-    while ((match = mathPattern.exec(text)) !== null) {
-      const matchIndex = match.index
-      if (matchIndex > lastIndex) {
-        fragment.appendChild(document.createTextNode(text.slice(lastIndex, matchIndex)))
-      }
-      const raw = match[0]
-      if (raw.startsWith('$$') && raw.endsWith('$$')) {
-        const latex = raw.slice(2, -2).trim()
-        const block = document.createElement('div')
-        block.setAttribute('data-type', 'block-math')
-        block.setAttribute('data-latex', latex)
-        fragment.appendChild(block)
-      } else {
-        const latex = raw.slice(1, -1).trim()
-        if (isLikelyMath(latex)) {
-          const inline = document.createElement('span')
-          inline.setAttribute('data-type', 'inline-math')
-          inline.setAttribute('data-latex', latex)
-          fragment.appendChild(inline)
-        } else {
-          fragment.appendChild(document.createTextNode(raw))
-        }
-      }
-      lastIndex = matchIndex + raw.length
-    }
-
-    if (lastIndex < text.length) {
-      fragment.appendChild(document.createTextNode(text.slice(lastIndex)))
-    }
-
-    node.parentNode?.replaceChild(fragment, node)
-  }
-}
-
-function removeRedundantEmptyElements(root) {
-  let changed = true
-  while (changed) {
-    changed = false
-    for (const el of [...root.querySelectorAll('div, span')]) {
-      if (el.querySelector('img, [data-type="inline-math"], [data-type="block-math"], hr, pre, table, p')) {
-        continue
-      }
-      const text = el.textContent?.replace(/[\s\u00a0\u200b]+/g, '') || ''
-      if (text.length === 0) {
-        el.remove()
-        changed = true
-      }
-    }
-  }
-
-  for (const li of [...root.querySelectorAll('li')]) {
-    if (
-      !li.querySelector('img, [data-type="inline-math"], [data-type="block-math"]') &&
-      (li.textContent?.replace(/[\s\u00a0\u200b]+/g, '') || '').length === 0
-    ) {
-      li.remove()
-      continue
-    }
-    const paragraphs = li.querySelectorAll(':scope > p')
-    if (paragraphs.length === 1 && li.children.length === 1) {
-      const p = paragraphs[0]
-      while (p.firstChild) {
-        li.insertBefore(p.firstChild, p)
-      }
-      p.remove()
-    }
-  }
-
-  for (const br of [...root.querySelectorAll('br')]) {
-    let next = br.nextSibling
-    while (next && next.nodeType === 3 && !next.nodeValue.trim()) {
-      next = next.nextSibling
-    }
-    if (next && next.nodeName === 'BR') {
-      br.remove()
-    }
-  }
-}
-
-function mergeTitleAndUrlParagraphs(root) {
-  const paragraphs = [...root.querySelectorAll(':scope > p, :scope > div')]
-  if (paragraphs.length === 2) {
-    const p1 = paragraphs[0]
-    const p2 = paragraphs[1]
-    const t1 = p1.textContent?.trim() || ''
-    const t2 = p2.textContent?.trim() || ''
-    const isUrl = str => /^https?:\/\/\S+$/i.test(str)
-    if (t1 && !isUrl(t1) && isUrl(t2) && !p1.querySelector('img, pre, table') && !p2.querySelector('img, pre, table')) {
-      const br = document.createElement('br')
-      p1.appendChild(br)
-      while (p2.firstChild) {
-        p1.appendChild(p2.firstChild)
-      }
-      p2.remove()
-    }
-  }
-}
-
-function cleanAndConvertHtml(html) {
-  const doc = new DOMParser().parseFromString(html || '<p></p>', 'text/html')
-  extractExistingKatex(doc.body)
-  convertMathInTextNodes(doc.body)
-  removeRedundantEmptyElements(doc.body)
-  mergeTitleAndUrlParagraphs(doc.body)
-
-  for (const image of doc.querySelectorAll('img')) {
-    try {
-      const url = new URL(image.getAttribute('src') || '')
-      if (url.protocol !== 'https:' || url.hostname !== ATTACHMENT_HOST) image.remove()
-    } catch {
-      image.remove()
-    }
-  }
-
-  return doc.body.innerHTML || '<p></p>'
-}
-
-function hasMarkdownSyntax(text) {
-  if (!text) return false
-  return (
-    /(?:^|\n)#{1,6}\s+/.test(text) ||
-    /(?:^|\n)\s*(?:[-*+]|\d+\.)\s+/.test(text) ||
-    /\*\*[^*]+\*\*/.test(text) ||
-    /\*[^*]+\*/.test(text) ||
-    /`[^`]+`/.test(text) ||
-    /```[\s\S]*?```/.test(text) ||
-    /(?:^|\n)>\s+/.test(text) ||
-    /\$\$[\s\S]+?\$\$/.test(text) ||
-    /(?<!\$)\$[^\s$](?:[^$]*?[^\s$])?\$(?!\$)/.test(text) ||
-    /\[[^\]]+\]\([^)]+\)/.test(text) ||
-    /!\[[^\]]*\]\([^)]+\)/.test(text) ||
-    /(?:^|\n)(?:---|\*\*\*)\s*(?:\n|$)/.test(text)
-  )
-}
-
-function markdownToCleanHtml(raw) {
-  let md = (raw || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  md = md.replace(/\n{3,}/g, '\n\n')
-
-  const listItemPattern = /(^|\n)(\s*(?:[-*+]|\d+\.)\s+[^\n]+)\n\s*\n(?=\s*(?:[-*+]|\d+\.)\s+)/g
-  let prev
-  do {
-    prev = md
-    md = md.replace(listItemPattern, '$1$2\n')
-  } while (md !== prev)
-
-  md = md.replace(/\$\$([\s\S]+?)\$\$/g, (_, latex) => {
-    return `\n<div data-type="block-math" data-latex="${escapeHtml(latex.trim())}"></div>\n`
-  })
-
-  md = md.replace(/(?<!\$)\$([^\s$](?:[^$]*?[^\s$])?)\$(?!\$)/g, (fullMatch, latex) => {
-    if (isLikelyMath(latex)) {
-      return `<span data-type="inline-math" data-latex="${escapeHtml(latex.trim())}"></span>`
-    }
-    return fullMatch
-  })
-
-  const rawHtml = mdParser.render(md.trim())
-  return cleanAndConvertHtml(rawHtml)
-}
-
 function EditorApp() {
   const [, setStatus] = useState('编辑器桥接初始化中')
   const [mathModal, setMathModal] = useState(null)
@@ -811,22 +601,34 @@ function EditorApp() {
   const editorRef = useRef(null)
   const noteIdRef = useRef(null)
   const changeTimerRef = useRef(null)
-  const isDirtyRef = useRef(false)
+  // Local edits count up revisionRef; reportedRevisionRef is the revision the host last received.
+  const revisionRef = useRef(0)
+  const reportedRevisionRef = useRef(0)
   const pendingImagesRef = useRef(new Map())
   const mathInputRef = useRef(null)
   const mathPreviewRef = useRef(null)
 
-  const emitSnapshot = () => {
+  const hasUnsentChanges = () => revisionRef.current !== reportedRevisionRef.current
+
+  // Returns the edits the host has not received yet, or null. Content the host already has is
+  // never sent again, so it cannot overwrite a newer version the host loaded from sync or history.
+  const takeSnapshot = () => {
     const editor = editorRef.current
     const id = noteIdRef.current
-    if (!editor || !id || !isDirtyRef.current) return
-    post('note.changed', {
+    if (!editor || !id || !hasUnsentChanges()) return null
+    reportedRevisionRef.current = revisionRef.current
+    return {
       id,
       isDirty: true,
       json: editor.getJSON(),
       html: editor.getHTML(),
       text: editor.getText({ blockSeparator: '\n' }),
-    })
+    }
+  }
+
+  const emitSnapshot = () => {
+    const snapshot = takeSnapshot()
+    if (snapshot) post('note.changed', snapshot)
   }
 
   const queueSnapshot = () => {
@@ -854,6 +656,7 @@ function EditorApp() {
       bulletList: editor.isActive('bulletList'),
       orderedList: editor.isActive('orderedList'),
       block,
+      ...currentTextStyle(editor),
       canUndo: editor.can().chain().undo().run(),
       canRedo: editor.can().chain().redo().run(),
     })
@@ -897,8 +700,27 @@ function EditorApp() {
     reader.readAsDataURL(file)
   }
 
+  const markdownAutoFormatRef = useRef(true)
+  const recordPasteSourceRef = useRef(false)
+  const pendingSourceRef = useRef(null)
+  const [tableBar, setTableBar] = useState(null)
+
   const editor = useEditor({
-    extensions: [StarterKit, Underline, TextAppearance, Link, LocalImage, InlineMath, BlockMath],
+    extensions: [
+      StarterKit.configure({ link: false, underline: false, codeBlock: { enableTabIndentation: true, tabSize: 4 } }),
+      MarkdownGate.configure({ isEnabled: () => markdownAutoFormatRef.current }),
+      TableKit.configure({ table: { resizable: true } }),
+      Underline,
+      TextAppearance,
+      Link,
+      LocalImage,
+      InlineMath,
+      BlockMath,
+      Placeholder.configure({ placeholder: '开始记录…' }),
+      EditingKeys.configure({ onExitTop: () => post('editor.focusTitle') }),
+    ],
+    // Copied paragraphs paste into plain-text apps one per line, without blank lines between.
+    coreExtensionOptions: { clipboardTextSerializer: { blockSeparator: '\n' } },
     content: '<p></p>',
     editable: false,
     immediatelyRender: true,
@@ -907,71 +729,9 @@ function EditorApp() {
         class: 'lightnote-content',
         spellcheck: 'true',
       },
-      handlePaste(view, event) {
-        const images = [...(event.clipboardData?.items || [])]
-          .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
-          .map(item => item.getAsFile())
-          .filter(Boolean)
-        if (images.length) {
-          event.preventDefault()
-          images.forEach((image, index) => importImage(image, view.state.selection.from + index))
-          return true
-        }
-
-        const clipboardHtml = event.clipboardData?.getData('text/html')
-        const clipboardText = event.clipboardData?.getData('text/plain')
-
-        if (clipboardText) {
-          const lines = clipboardText
-            .replace(/\r\n/g, '\n')
-            .replace(/\r/g, '\n')
-            .split('\n')
-            .map(line => line.trim())
-            .filter(Boolean)
-
-          if (
-            lines.length === 2 &&
-            !/^https?:\/\//i.test(lines[0]) &&
-            /^https?:\/\/\S+$/i.test(lines[1])
-          ) {
-            event.preventDefault()
-            const title = escapeHtml(lines[0])
-            const url = escapeHtml(lines[1])
-            const html = `<p>${title}<br><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></p>`
-            editor?.commands?.insertContent(html)
-            return true
-          }
-        }
-
-        if (clipboardText && (!clipboardHtml || hasMarkdownSyntax(clipboardText))) {
-          if (hasMarkdownSyntax(clipboardText)) {
-            event.preventDefault()
-            const html = markdownToCleanHtml(clipboardText)
-            editor?.commands?.insertContent(html)
-            return true
-          }
-        }
-
-        if (clipboardHtml) {
-          event.preventDefault()
-          const cleaned = cleanAndConvertHtml(clipboardHtml)
-          editor?.commands?.insertContent(cleaned)
-          return true
-        }
-
-        if (clipboardText) {
-          let text = clipboardText.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-          text = text.replace(/\n{3,}/g, '\n\n').trim()
-          if (text.includes('$')) {
-            event.preventDefault()
-            const html = markdownToCleanHtml(text)
-            editor?.commands?.insertContent(html)
-            return true
-          }
-        }
-
-        return false
-      },
+      ...createPasteProps({
+        onImages: (images, position) => images.forEach((image, index) => importImage(image, position + index)),
+      }),
       handleDrop(view, event, _slice, moved) {
         if (moved) return false
         const files = [...(event.dataTransfer?.files || [])]
@@ -984,7 +744,7 @@ function EditorApp() {
       },
       handleClick(view, pos, event) {
         const link = event.target?.closest?.('a')
-        if (link && link.href) {
+        if (link && link.href && (event.ctrlKey || event.metaKey)) {
           event.preventDefault()
           window.open(link.href, '_blank')
           return true
@@ -993,12 +753,93 @@ function EditorApp() {
       },
     },
     onUpdate: ({ editor: currentEditor }) => {
-      isDirtyRef.current = true
+      revisionRef.current += 1
       queueSnapshot()
       emitState(currentEditor)
     },
     onSelectionUpdate: ({ editor: currentEditor }) => emitState(currentEditor),
+    onTransaction: ({ transaction }) => {
+      // Images are inserted once the host has saved them; keep their spot in step with typing.
+      if (!transaction.docChanged) return
+      for (const pending of pendingImagesRef.current.values()) {
+        pending.position = transaction.mapping.map(pending.position, -1)
+      }
+    },
   })
+
+  // Editor-wide listeners belong here, once per editor, rather than once per image node.
+  useEffect(() => {
+    if (!editor) return undefined
+    const dom = editor.view.dom
+    let lastCopiedText = ''
+    const onCopy = () => {
+      lastCopiedText = window.getSelection()?.toString() ?? ''
+    }
+    const onPaste = event => {
+      if (!recordPasteSourceRef.current || !editor.isEditable) return
+      const data = event.clipboardData
+      const text = data?.getData('text/plain') ?? ''
+      if (text && text === lastCopiedText) return
+      if (!text.trim() && !data?.getData('text/html') && !data?.files?.length) return
+      const requestId = crypto.randomUUID()
+      const pending = { requestId, pos: null }
+      pendingSourceRef.current = pending
+      post('clipboard.source.request', { requestId })
+      setTimeout(() => {
+        if (pendingSourceRef.current === pending) pending.pos = editor.state.selection.to
+      }, 0)
+    }
+    const onTransaction = ({ transaction }) => {
+      const pending = pendingSourceRef.current
+      if (pending?.pos != null && transaction.docChanged) pending.pos = transaction.mapping.map(pending.pos)
+    }
+    dom.addEventListener('paste', onPaste, true)
+    dom.addEventListener('copy', onCopy)
+    dom.addEventListener('cut', onCopy)
+    editor.on('transaction', onTransaction)
+    return () => {
+      dom.removeEventListener('paste', onPaste, true)
+      dom.removeEventListener('copy', onCopy)
+      dom.removeEventListener('cut', onCopy)
+      editor.off('transaction', onTransaction)
+    }
+  }, [editor])
+
+  useEffect(() => {
+    if (!editor) return undefined
+    const update = () => {
+      if (!editor.isEditable || !editor.isActive('table')) {
+        setTableBar(prev => (prev ? null : prev))
+        return
+      }
+      const node = editor.view.domAtPos(editor.state.selection.from).node
+      const element = (node.nodeType === 3 ? node.parentElement : node)?.closest?.('table')
+      if (!element) {
+        setTableBar(prev => (prev ? null : prev))
+        return
+      }
+      const rect = element.getBoundingClientRect()
+      setTableBar({ left: Math.max(rect.left, 8), top: Math.max(rect.top - 42, 8) })
+    }
+    editor.on('selectionUpdate', update)
+    editor.on('update', update)
+    editor.on('focus', update)
+    window.addEventListener('scroll', update, true)
+    window.addEventListener('resize', update)
+    return () => {
+      editor.off('selectionUpdate', update)
+      editor.off('update', update)
+      editor.off('focus', update)
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+    }
+  }, [editor])
+
+  const tableActions = [
+    ['上方加行', 'addRowBefore'], ['下方加行', 'addRowAfter'], ['删除行', 'deleteRow'],
+    ['左侧加列', 'addColumnBefore'], ['右侧加列', 'addColumnAfter'], ['删除列', 'deleteColumn'],
+    ['表头', 'toggleHeaderRow'], ['删除表格', 'deleteTable'],
+  ]
 
   const openMathModal = info => {
     setMathModal(info)
@@ -1009,6 +850,26 @@ function EditorApp() {
     }, 50)
   }
 
+  // Closing the formula dialog returns to the text. After an existing formula the caret goes just
+  // past it: left selected, the formula would be replaced by the next typed character.
+  const closeMathModal = caret => {
+    setMathModal(null)
+    if (!editor) return
+    if (caret == null) {
+      editor.commands.focus()
+      return
+    }
+    editor.chain().focus().command(({ tr }) => {
+      tr.setSelection(Selection.near(tr.doc.resolve(Math.min(caret, tr.doc.content.size))))
+      return true
+    }).run()
+  }
+
+  const cancelMathModal = () => {
+    if (!mathModal) return
+    closeMathModal(mathModal.isExisting ? mathModal.pos + 1 : null)
+  }
+
   const applyMathModal = () => {
     if (!mathModal || !editor) return
     const latex = mathLatex.trim()
@@ -1016,7 +877,7 @@ function EditorApp() {
       if (mathModal.isExisting) {
         deleteMathModal()
       } else {
-        setMathModal(null)
+        closeMathModal()
       }
       return
     }
@@ -1027,15 +888,18 @@ function EditorApp() {
       } else {
         editor.commands.updateInlineMath({ latex, pos: mathModal.pos })
       }
-    } else {
-      if (mathModal.isBlock) {
-        editor.commands.insertBlockMath({ latex, pos: mathModal.pos })
-      } else {
-        editor.commands.insertInlineMath({ latex, pos: mathModal.pos })
-      }
+      closeMathModal(mathModal.pos + 1)
+      return
     }
-    setMathModal(null)
-    editor.commands.focus()
+
+    // The formula replaces the text it was made from.
+    const range = { latex, pos: mathModal.pos, to: mathModal.to }
+    if (mathModal.isBlock) {
+      editor.commands.insertBlockMath(range)
+    } else {
+      editor.commands.insertInlineMath(range)
+    }
+    closeMathModal()
   }
 
   const deleteMathModal = () => {
@@ -1047,8 +911,7 @@ function EditorApp() {
         editor.commands.deleteInlineMath({ pos: mathModal.pos })
       }
     }
-    setMathModal(null)
-    editor.commands.focus()
+    closeMathModal(mathModal.pos)
   }
 
   useEffect(() => {
@@ -1075,18 +938,6 @@ function EditorApp() {
     editorRef.current = editor
     if (!editor) return undefined
 
-    const getSnapshot = () => {
-      const id = noteIdRef.current
-      if (!id || !isDirtyRef.current) return null
-      return {
-        id,
-        isDirty: true,
-        json: editor.getJSON(),
-        html: editor.getHTML(),
-        text: editor.getText({ blockSeparator: '\n' }),
-      }
-    }
-
     const runCommand = (command, value) => {
       const commands = {
         paragraph: () => editor.chain().focus().setParagraph().run(),
@@ -1104,6 +955,7 @@ function EditorApp() {
         orderedList: () => editor.chain().focus().toggleOrderedList().run(),
         blockquote: () => editor.chain().focus().toggleBlockquote().run(),
         codeBlock: () => editor.chain().focus().toggleCodeBlock().run(),
+        insertTable: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
         inlineMath: () => {
           const { state } = editor
           const { from, to } = state.selection
@@ -1113,6 +965,7 @@ function EditorApp() {
             isBlock: false,
             latex: selectedText || '',
             pos: from,
+            to,
           })
         },
         blockMath: () => {
@@ -1124,6 +977,7 @@ function EditorApp() {
             isBlock: true,
             latex: selectedText || '',
             pos: from,
+            to,
           })
         },
         undo: () => editor.chain().focus().undo().run(),
@@ -1143,19 +997,28 @@ function EditorApp() {
           }
         },
       }
+      if (command !== 'focus' && !editor.isEditable) return
       commands[command]?.()
       emitState(editor)
+    }
+
+    const closeOverlays = () => {
+      setMathModal(null)
+      setLightboxSrc(null)
     }
 
     const onMessage = event => {
       const message = event.data
       if (message?.type === 'editor.clear') {
+        closeOverlays()
         clearTimeout(changeTimerRef.current)
-        isDirtyRef.current = false
+        reportedRevisionRef.current = revisionRef.current
         noteIdRef.current = null
+        pendingSourceRef.current = null
+        setTableBar(null)
         pendingImagesRef.current.clear()
-        editor.commands.setContent('<p></p>', { emitUpdate: false })
-        editor.setEditable(false)
+        clearDocument(editor)
+        editor.setEditable(false, false)
         setStatus('请选择或新建一篇笔记')
         return
       }
@@ -1164,6 +1027,20 @@ function EditorApp() {
         document.documentElement.classList.toggle('dark', isDark)
         document.documentElement.classList.toggle('light', !isDark)
         document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
+        return
+      }
+      if (message?.type === 'editor.settings') {
+        markdownAutoFormatRef.current = message.payload?.markdownAutoFormat !== false
+        recordPasteSourceRef.current = message.payload?.recordPasteSource === true
+        return
+      }
+      if (message?.type === 'clipboard.source') {
+        const pending = pendingSourceRef.current
+        if (!pending || pending.requestId !== message.payload?.requestId) return
+        pendingSourceRef.current = null
+        if (!message.payload?.label || !editor.isEditable) return
+        insertSourceLine(editor, pending.pos ?? editor.state.selection.to, message.payload)
+        emitState(editor)
         return
       }
       if (message?.type === 'editor.command') {
@@ -1175,7 +1052,11 @@ function EditorApp() {
         if (!pending || pending.noteId !== noteIdRef.current) return
         pendingImagesRef.current.delete(message.payload.requestId)
         const position = Math.min(pending.position, editor.state.doc.content.size)
-        editor.chain().focus().insertContentAt(position, {
+        // The caret moves past the image only if it is still where the image was pasted;
+        // otherwise the user has typed on, and the caret and the view stay where they are.
+        const { selection } = editor.state
+        const followCaret = selection.empty && selection.from === position
+        const insert = editor.chain().insertContentAt(position, {
           type: 'image',
           attrs: {
             src: message.payload.url,
@@ -1184,7 +1065,8 @@ function EditorApp() {
             width: message.payload.width,
             height: message.payload.height,
           },
-        }).run()
+        }, { updateSelection: followCaret })
+        ;(followCaret ? insert.focus() : insert).run()
         setStatus('图片已保存到本地')
         return
       }
@@ -1195,66 +1077,67 @@ function EditorApp() {
       }
       if (message?.type !== 'note.load') return
 
-      clearTimeout(changeTimerRef.current)
-      isDirtyRef.current = false
-      noteIdRef.current = message.payload.id
-      pendingImagesRef.current.clear()
-      const processedHtml = cleanAndConvertHtml(message.payload.html)
-      editor.commands.setContent(processedHtml, { emitUpdate: false })
-      editor.setEditable(true)
-      setStatus(`已载入：${message.payload.title}`)
-      post('note.loaded', { id: noteIdRef.current })
-      editor.commands.focus('start')
+      // The host re-sends the open note after every save-triggered sync and window activation.
+      const { id, html, title, readOnly } = message.payload
+      const sameNote = id === noteIdRef.current
+      if (!sameNote) {
+        // Edits typed after the host's last snapshot still belong to the note being left.
+        emitSnapshot()
+        closeOverlays()
+        pendingSourceRef.current = null
+        setTableBar(null)
+      }
+      // Notes in the trash are read-only: the host discards edits to them. emitUpdate=false keeps
+      // Tiptap from reporting this as an edit.
+      editor.setEditable(!readOnly, false)
+      const result = applyNoteContent(editor, html, { sameNote, hasUnsentChanges: hasUnsentChanges() })
+      if (result === 'loaded' || result === 'replaced') {
+        clearTimeout(changeTimerRef.current)
+        reportedRevisionRef.current = revisionRef.current
+      }
+      if (!sameNote) {
+        noteIdRef.current = id
+        pendingImagesRef.current.clear()
+      }
+      setStatus(`已载入：${title}`)
+      post('note.loaded', { id })
+      if (result === 'loaded') editor.commands.focus('start')
       emitState(editor)
     }
 
+    // Focus arriving by keyboard (Tab from the title, Alt+Tab back) lands on the page itself; hand it
+    // to the editor without moving the caret or scrolling. A click focuses the editor by itself and
+    // must keep the caret where it was clicked, so this waits until the click has been handled.
     const onWindowFocus = () => {
-      if (editor && !editor.isFocused && noteIdRef.current) {
-        editor.commands.focus()
-      }
+      setTimeout(() => {
+        if (noteIdRef.current && editor.isEditable && document.activeElement === document.body) {
+          editor.view.focus()
+        }
+      })
     }
     window.addEventListener('focus', onWindowFocus)
 
-    const onBodyClick = (e) => {
-      // If text is selected via drag, do not alter selection or refocus
-      const sel = window.getSelection()
-      if (sel && !sel.isCollapsed && sel.toString().length > 0) {
-        return
-      }
-
-      if (
-        e.target.closest('.math-modal-card') ||
-        e.target.closest('.image-lightbox-overlay') ||
-        e.target.closest('.resizable-image-toolbar') ||
-        e.target.closest('.resizable-image-handle') ||
-        e.target.closest('button') ||
-        e.target.closest('a') ||
-        e.target.closest('input')
-      ) {
-        return
-      }
-      if (!editor) return
-      if (editor.isEmpty) {
-        editor.commands.focus('start')
-      } else if (e.target === document.body || e.target.id === 'root') {
-        editor.commands.focus('end')
-      } else if (e.target === editor.view.dom) {
-        const lastChild = editor.view.dom.lastElementChild
-        if (lastChild) {
-          const rect = lastChild.getBoundingClientRect()
-          if (e.clientY > rect.bottom) {
-            editor.commands.focus('end')
-          }
-        }
-      }
+    // Clicks beside or below the text put the caret at the nearest text instead of jumping to the end.
+    const onBodyClick = e => {
+      if (!noteIdRef.current || !editor.isEditable || e.button !== 0) return
+      // Keep a selection made by dragging.
+      if (!window.getSelection()?.isCollapsed) return
+      const { view } = editor
+      const inMargin = e.target === document.body || e.target.id === 'root' || e.target === view.dom
+      // The page scrollbar sits to the right of the body's client area.
+      if (!inMargin || e.clientX >= document.body.clientWidth) return
+      const selection = selectionForMarginClick(view, e)
+      if (!selection) return
+      view.dispatch(view.state.tr.setSelection(selection))
+      view.focus()
     }
     document.addEventListener('click', onBodyClick)
 
     window.__openImageLightbox = (src) => setLightboxSrc(src)
 
     window.lightNoteEditor = {
-      getSnapshot,
-      focus: (position = 'start') => {
+      getSnapshot: takeSnapshot,
+      focus: position => {
         if (position === 'start' || position === 'end' || position === 'all') {
           editor.commands.focus(position)
         } else {
@@ -1287,8 +1170,28 @@ function EditorApp() {
   return (
     <>
       <EditorContent editor={editor} className="tiptap-editor-wrapper" />
+      {tableBar && (
+        <div
+          className="table-bar"
+          style={{ left: tableBar.left, top: tableBar.top }}
+          onMouseDown={event => event.preventDefault()}
+        >
+          {tableActions.map(([label, command]) => (
+            <button
+              key={command}
+              type="button"
+              className={command === 'deleteTable' ? 'table-bar-danger' : undefined}
+              onClick={() => {
+                editor.chain().focus()[command]().run()
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {mathModal && (
-        <div className="math-modal-overlay" onClick={() => setMathModal(null)}>
+        <div className="math-modal-overlay" onClick={cancelMathModal}>
           <div className="math-modal-card" onClick={e => e.stopPropagation()}>
             <div className="math-modal-header">
               <span className="math-modal-title">
@@ -1296,7 +1199,7 @@ function EditorApp() {
               </span>
               <button
                 className="math-modal-close"
-                onClick={() => setMathModal(null)}
+                onClick={cancelMathModal}
                 aria-label="关闭"
               >
                 ✕
@@ -1310,12 +1213,14 @@ function EditorApp() {
                 value={mathLatex}
                 onChange={e => setMathLatex(e.target.value)}
                 onKeyDown={e => {
+                  // Enter that confirms an input-method candidate is not a submit.
+                  if (e.nativeEvent.isComposing || e.keyCode === 229) return
                   if (e.key === 'Enter' && (e.ctrlKey || !e.shiftKey)) {
                     e.preventDefault()
                     applyMathModal()
                   } else if (e.key === 'Escape') {
                     e.preventDefault()
-                    setMathModal(null)
+                    cancelMathModal()
                   }
                 }}
                 placeholder="例如：\rightarrow, E = mc^2, \sum_{i=1}^n x_i"
@@ -1336,7 +1241,7 @@ function EditorApp() {
                   删除公式
                 </button>
               )}
-              <button className="math-modal-btn" onClick={() => setMathModal(null)}>
+              <button className="math-modal-btn" onClick={cancelMathModal}>
                 取消
               </button>
               <button className="math-modal-btn math-modal-btn-primary" onClick={applyMathModal}>

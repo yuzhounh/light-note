@@ -74,7 +74,7 @@ public sealed class TrayIconService : IDisposable
             {
                 _autoStartMenuItem.IsChecked = isEnabled;
                 _logger?.Error("Failed to update autostart setting.", ex);
-                System.Windows.MessageBox.Show(
+                MessageDialog.Show(
                     $"设置开机自启动失败：{ex.Message}",
                     "开机自启动",
                     MessageBoxButton.OK,

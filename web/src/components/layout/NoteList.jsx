@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Menu, Trash2, FileText, X, ArrowUpDown, Check, Search, History } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { Menu, Trash2, FileText, X, ArrowUpDown, Check, Search, History, Plus } from 'lucide-react'
 import { countWords, formatInfoTime } from '../../core/noteInfo'
+import { NoteContextMenu } from './NoteContextMenu'
+import { useBackDismiss } from '../../hooks/useBackDismiss'
+
+const isAndroidApp = Capacitor.getPlatform() === 'android'
 
 function getNotePreviewText(bodyText) {
   if (!bodyText) return '无附加正文...'
@@ -38,6 +43,7 @@ export function NoteList({
   notes,
   activeNoteId,
   onSelectNote,
+  onCreateNote,
   searchQuery,
   onSearchChange,
   currentNotebookName,
@@ -51,10 +57,12 @@ export function NoteList({
   density = 'comfortable',
   onDensityChange,
   isMobile,
-  isTablet = false
+  isTablet = false,
+  isViewActive = true
 }) {
   const [isOptionsOpen, setIsOptionsOpen] = useState(false)
   const optionsRef = useRef(null)
+  const scrollRef = useRef(null)
   const cardStyle = DENSITY_STYLES[density] || DENSITY_STYLES.comfortable
 
   useEffect(() => {
@@ -68,14 +76,37 @@ export function NoteList({
 
   const [visibleCount, setVisibleCount] = useState(25)
   const [activeActionNote, setActiveActionNote] = useState(null)
+  const [actionAnchor, setActionAnchor] = useState(null)
+  const [pressedNoteId, setPressedNoteId] = useState(null)
   const longPressTimerRef = useRef(null)
   const touchStartPosRef = useRef({ x: 0, y: 0 })
   const isLongPressActiveRef = useRef(false)
 
   const isTouchDevice = isMobile || isTablet
+  useBackDismiss(isViewActive && isOptionsOpen, () => setIsOptionsOpen(false), 30)
+  useBackDismiss(isViewActive && !!activeActionNote && !isAndroidApp, () => setActiveActionNote(null), 50)
+  useEffect(() => {
+    if (!isViewActive) {
+      clearTimeout(longPressTimerRef.current)
+      setIsOptionsOpen(false)
+      setActiveActionNote(null)
+      setPressedNoteId(null)
+    }
+  }, [isViewActive])
 
-  const startLongPress = (note, clientX, clientY) => {
+  function openActionMenu(note, clientX, clientY, rect) {
+    clearTimeout(longPressTimerRef.current)
+    longPressTimerRef.current = null
+    isLongPressActiveRef.current = true
+    setActionAnchor({ point: { x: clientX, y: clientY }, rect: { top: rect.top, bottom: rect.bottom } })
+    setActiveActionNote(note)
+    setPressedNoteId(null)
+  }
+
+  const startLongPress = (note, clientX, clientY, rect) => {
     if (!isTouchDevice) return
+    clearTimeout(longPressTimerRef.current)
+    setPressedNoteId(note.id)
     touchStartPosRef.current = { x: clientX, y: clientY }
     isLongPressActiveRef.current = false
 
@@ -86,13 +117,13 @@ export function NoteList({
           navigator.vibrate(40)
         } catch (_) {}
       }
-      setActiveActionNote(note)
+      openActionMenu(note, clientX, clientY, rect)
     }, 450)
   }
 
   const handleTouchStart = (e, note) => {
     const touch = e.touches[0]
-    startLongPress(note, touch.clientX, touch.clientY)
+    startLongPress(note, touch.clientX, touch.clientY, e.currentTarget.getBoundingClientRect())
   }
 
   const handleTouchMove = (e) => {
@@ -103,10 +134,12 @@ export function NoteList({
     if (dx > 10 || dy > 10) {
       clearTimeout(longPressTimerRef.current)
       longPressTimerRef.current = null
+      setPressedNoteId(null)
     }
   }
 
   const handleTouchEnd = () => {
+    setPressedNoteId(null)
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current)
       longPressTimerRef.current = null
@@ -116,7 +149,7 @@ export function NoteList({
   const handleMouseDown = (e, note) => {
     if (e.button !== 0) return
     if (!isTouchDevice) return
-    startLongPress(note, e.clientX, e.clientY)
+    startLongPress(note, e.clientX, e.clientY, e.currentTarget.getBoundingClientRect())
   }
 
   const handleMouseMove = (e) => {
@@ -126,10 +159,12 @@ export function NoteList({
     if (dx > 10 || dy > 10) {
       clearTimeout(longPressTimerRef.current)
       longPressTimerRef.current = null
+      setPressedNoteId(null)
     }
   }
 
   const handleMouseUp = () => {
+    setPressedNoteId(null)
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current)
       longPressTimerRef.current = null
@@ -155,10 +190,12 @@ export function NoteList({
     return found ? found.name : '未归类'
   }
 
-  // Reset pagination when filter or notes change
+  // Editing a note keeps the Android list mounted, including its rendered pages.
   useEffect(() => {
     setVisibleCount(25)
-  }, [notes.length, searchQuery, currentNotebookName])
+    if (isAndroidApp && scrollRef.current) scrollRef.current.scrollTop = 0
+  }, [isAndroidApp ? null : notes.length, searchQuery, currentNotebookName,
+    isAndroidApp ? currentNotebookId : null, isAndroidApp ? sort.by : null, isAndroidApp ? sort.descending : null])
 
   function handleScroll(e) {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
@@ -196,12 +233,37 @@ export function NoteList({
     )
   }
 
+  useEffect(() => () => clearTimeout(longPressTimerRef.current), [])
+
   const visibleNotes = notes.slice(0, visibleCount)
+  const isCompactHeader = isAndroidApp && isMobile
+  const ScrollContainer = isCompactHeader ? 'div' : React.Fragment
 
   return (
     <div className="note-list flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
+      <ScrollContainer {...(isCompactHeader ? {
+        className: 'note-list-native-scroll flex-1 min-h-0 overflow-y-auto',
+        onScroll: handleScroll,
+        ref: scrollRef,
+      } : {})}>
+      {isCompactHeader && (
+        <div className="note-list-brand flex items-center justify-between px-4 h-13 border-b border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <img src="/favicon.svg" alt="LightNote" className="w-7 h-7 rounded-lg shadow-xs shrink-0" />
+            <span className="font-bold text-base text-zinc-900 dark:text-zinc-100 tracking-tight">LightNote</span>
+          </div>
+          <button
+            onClick={onOpenSidebar}
+            aria-label="打开导航与设置"
+            title="打开导航与设置"
+            className="w-11 h-11 min-w-11 min-h-11 rounded-full border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:border-emerald-500 hover:text-emerald-500 transition cursor-pointer shadow-xs shrink-0"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      )}
       {/* Mobile Top Navbar with Right Hamburger */}
-      {isMobile ? (
+      {isMobile && !isCompactHeader && (
         <div className="flex items-center justify-between px-4 h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shrink-0">
           <div className="flex items-center gap-2.5">
             <img src="/favicon.svg" alt="LightNote" className="w-7 h-7 rounded-lg shadow-xs shrink-0" />
@@ -222,10 +284,11 @@ export function NoteList({
             <Menu size={20} />
           </button>
         </div>
-      ) : (
+      )}
+      {!isMobile && (
         /* Desktop Search Input */
-        <div className="p-3 pb-1.5 shrink-0">
-          <div className="relative flex items-center">
+        <div className="p-3 pb-1.5 shrink-0 flex items-center gap-2">
+          <div className="relative flex flex-1 min-w-0 items-center">
             <input
               type="text"
               placeholder="搜索标题和正文"
@@ -237,7 +300,7 @@ export function NoteList({
                   e.currentTarget.blur()
                 }
               }}
-              className="w-full h-[38px] pl-4 pr-11 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-transparent text-[15px] text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none transition"
+              className="w-full min-w-0 h-[38px] pl-4 pr-11 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-transparent text-[15px] text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none transition"
             />
             {searchQuery ? (
               <button
@@ -253,16 +316,27 @@ export function NoteList({
               <Search size={16} className="absolute right-4 text-zinc-700 dark:text-zinc-300 pointer-events-none" />
             )}
           </div>
+          {onCreateNote && (
+            <button
+              type="button"
+              onClick={onCreateNote}
+              title="新建笔记（Ctrl+N）"
+              aria-label="新建笔记"
+              className="w-[38px] h-[38px] shrink-0 rounded-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 hover:bg-[#dfe3e8] dark:hover:bg-[#363b43] active:bg-[#d8dce0] dark:active:bg-[#3e444d] transition cursor-pointer"
+            >
+              <Plus size={20} strokeWidth={1.8} />
+            </button>
+          )}
         </div>
       )}
 
       {/* Category & Status Subheader */}
-      <div className="px-4 py-2 border-b border-zinc-100 dark:border-zinc-800/60 text-xs text-zinc-700 dark:text-zinc-300 font-medium flex items-center justify-between shrink-0">
+      <div className={`note-list-toolbar ${isCompactHeader ? 'sticky top-0 z-20 px-3 h-12 gap-2 bg-white dark:bg-zinc-950' : 'px-4 py-2'} border-b border-zinc-100 dark:border-zinc-800/60 text-xs text-zinc-700 dark:text-zinc-300 font-medium flex items-center justify-between shrink-0`}>
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="truncate">
-            {searchQuery ? `搜索: "${searchQuery}"` : (currentNotebookName || '全部笔记')}
+            {searchQuery ? (isCompactHeader ? '搜索结果' : `搜索: "${searchQuery}"`) : (currentNotebookName || '全部笔记')}
           </span>
-          <span className="text-zinc-400 shrink-0">({notes.length}条)</span>
+          <span className="text-zinc-400 shrink-0">{isCompactHeader ? `· ${notes.length}` : `(${notes.length}条)`}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {onSortChange && (
@@ -271,7 +345,7 @@ export function NoteList({
                 onClick={() => setIsOptionsOpen(open => !open)}
                 title="排序与卡片密度"
                 aria-label="排序与卡片密度"
-                className="p-1 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                className={`${isCompactHeader ? 'w-11 h-11 rounded-full' : 'p-1 rounded'} flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer`}
               >
                 <ArrowUpDown size={14} />
               </button>
@@ -290,7 +364,18 @@ export function NoteList({
               )}
             </div>
           )}
-          {searchQuery && (
+          {isMobile && onCreateNote && (
+            <button
+              type="button"
+              onClick={onCreateNote}
+              title="新建笔记"
+              aria-label="新建笔记"
+              className={`${isCompactHeader ? 'w-11 h-11 rounded-full' : 'p-1 rounded'} flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:opacity-80 transition cursor-pointer`}
+            >
+              <Plus size={15} strokeWidth={1.6} />
+            </button>
+          )}
+          {searchQuery && !isCompactHeader && (
             <button
               onClick={() => onSearchChange('')}
               className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
@@ -298,7 +383,7 @@ export function NoteList({
               清除搜索
             </button>
           )}
-          {notes.length > visibleNotes.length && (
+          {!isCompactHeader && notes.length > visibleNotes.length && (
             <span className="text-[11px] text-zinc-400 font-normal">
               已载入 {visibleNotes.length}
             </span>
@@ -308,14 +393,14 @@ export function NoteList({
 
       {/* Note Cards List (Progressive Loading on Scroll) */}
       <div 
-        onScroll={handleScroll}
-        className="note-list-scroll flex-1 min-h-0 overflow-y-auto px-2 py-1 space-y-0.5"
+        onScroll={isCompactHeader ? undefined : handleScroll}
+        className={`note-list-scroll ${isCompactHeader ? '' : 'flex-1 min-h-0 overflow-y-auto'} px-2 py-1 space-y-0.5`}
       >
         {notes.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-zinc-400 text-sm text-center p-6 space-y-2 select-none">
             <FileText size={32} className="opacity-30 mb-1" />
             <p className="font-medium text-zinc-600 dark:text-zinc-300">暂无相关笔记</p>
-            <p className="text-xs text-zinc-400">点击左上角“新建笔记”或登录账号同步云端笔记</p>
+            <p className="text-xs text-zinc-400">可通过右下角新建笔记或登录读取云端笔记</p>
           </div>
         ) : (
           <>
@@ -337,10 +422,10 @@ export function NoteList({
                   onContextMenu={(e) => {
                     if (isTouchDevice) {
                       e.preventDefault()
-                      setActiveActionNote(note)
+                      openActionMenu(note, e.clientX, e.clientY, e.currentTarget.getBoundingClientRect())
                     }
                   }}
-                  className={`group relative ${cardStyle.card} rounded-md cursor-pointer transition select-none ${
+                  className={`note-card group relative ${pressedNoteId === note.id || (isAndroidApp && activeActionNote?.id === note.id) ? 'note-card-pressed' : ''} ${cardStyle.card} rounded-md cursor-pointer transition select-none ${
                     isSelected
                       ? 'my-0.5 bg-[#d3f0e3] dark:bg-[#234a3f] ring-1 ring-inset ring-[#a8e4cd] dark:ring-[#2a6552] text-zinc-900 dark:text-zinc-100'
                       : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200'
@@ -350,24 +435,24 @@ export function NoteList({
                     {/* Top part: Lines 1-3 (Title + Preview) */}
                     <div className="min-w-0">
                       <div className={`${cardStyle.titleGap} flex items-center gap-1.5`}>
-                        <h4 className="text-[14.5px] font-semibold truncate text-zinc-900 dark:text-zinc-100">
+                        <h4 className={`${isAndroidApp ? 'text-[13.5px]' : 'text-[14.5px]'} font-semibold truncate text-zinc-900 dark:text-zinc-100`}>
                           {highlightMatch(note.title || '无标题', searchQuery)}
                         </h4>
                       </div>
 
-                      <p className={`text-[13px] text-zinc-600 dark:text-zinc-400 line-clamp-2 ${cardStyle.summary}`}>
+                      <p className={`${isAndroidApp ? 'text-[12px]' : 'text-[13px]'} text-zinc-600 dark:text-zinc-400 line-clamp-2 ${cardStyle.summary}`}>
                         {highlightMatch(getNotePreviewText(note.body_text), searchQuery)}
                       </p>
                     </div>
 
                     {/* Bottom part: Line 4 (Date on left, Notebook name with expanded width) */}
-                    <div className={`note-card-footer flex items-center justify-between text-xs text-zinc-400 font-sans ${cardStyle.footer}`}>
+                    <div className={`note-card-footer flex items-center justify-between ${isAndroidApp ? 'text-[11px]' : 'text-xs'} text-zinc-400 font-sans ${cardStyle.footer}`}>
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className="shrink-0">{formatFullDate(sort.by === 'updated' ? note.updated_at : (note.created_at || note.updated_at))}</span>
 
                         {!isSingleNotebook && (
                           <span
-                            className={`truncate text-[11px] px-1.5 py-0.5 rounded max-w-[200px] transition ${
+                            className={`truncate ${isAndroidApp ? 'text-[10px]' : 'text-[11px]'} px-1.5 py-0.5 rounded max-w-[200px] transition ${
                               isSelected
                                 ? 'bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
                                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
@@ -407,17 +492,23 @@ export function NoteList({
               )
             })}
 
+
             {visibleCount < notes.length && (
               <div className="py-2 text-center text-xs text-zinc-400">
-                向下滚动加载更多...
+                {isCompactHeader ? `已显示 ${visibleNotes.length} / ${notes.length}，向下滚动查看更多` : '向下滚动加载更多...'}
               </div>
             )}
           </>
         )}
       </div>
+      </ScrollContainer>
 
       {/* Mobile Long-Press Bottom Action Sheet */}
-      {activeActionNote && (
+      {isViewActive && activeActionNote && isAndroidApp && actionAnchor && (
+        <NoteContextMenu note={activeActionNote} anchor={actionAnchor} scrollElement={scrollRef.current}
+          onClose={() => setActiveActionNote(null)} onOpenHistory={onOpenHistory} onSoftDelete={onSoftDelete} />
+      )}
+      {activeActionNote && !isAndroidApp && (
         <div 
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => setActiveActionNote(null)}
@@ -451,7 +542,7 @@ export function NoteList({
             </div>
 
             {/* Action Menu Options */}
-            <div className="space-y-1 pt-0.5">
+            <div className={`${isAndroidApp ? 'space-y-2' : 'space-y-1'} pt-0.5`}>
               {onOpenHistory && (
                 <button
                   onClick={() => {
@@ -459,7 +550,7 @@ export function NoteList({
                     setActiveActionNote(null)
                     onOpenHistory(target)
                   }}
-                  className="w-full h-11 flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                  className={`w-full ${isAndroidApp ? 'h-14 min-h-14' : 'h-11'} flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer`}
                 >
                   <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 shrink-0">
                     <History size={15} />
@@ -476,7 +567,7 @@ export function NoteList({
                       onSoftDelete(id)
                     }
                   }}
-                  className="w-full h-11 flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 active:bg-rose-100 dark:active:bg-rose-950/60 transition cursor-pointer"
+                  className={`w-full ${isAndroidApp ? 'h-14 min-h-14' : 'h-11'} flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 active:bg-rose-100 dark:active:bg-rose-950/60 transition cursor-pointer`}
                 >
                   <div className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-500 shrink-0">
                     <Trash2 size={15} />
@@ -486,13 +577,14 @@ export function NoteList({
               )}
             </div>
 
-            {/* Cancel Button */}
-            <button
-              onClick={() => setActiveActionNote(null)}
-              className="w-full h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs hover:bg-zinc-200 dark:hover:bg-zinc-700 active:bg-zinc-300 dark:active:bg-zinc-600 transition cursor-pointer"
-            >
-              取消
-            </button>
+            {!isAndroidApp && (
+              <button
+                onClick={() => setActiveActionNote(null)}
+                className="w-full h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs hover:bg-zinc-200 dark:hover:bg-zinc-700 active:bg-zinc-300 dark:active:bg-zinc-600 transition cursor-pointer"
+              >
+                取消
+              </button>
+            )}
           </div>
         </div>
       )}

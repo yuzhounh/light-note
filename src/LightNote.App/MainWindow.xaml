@@ -4,7 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LightNote.App"
-        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
         Title="LightNote"
@@ -15,12 +14,8 @@
         MinHeight="460"
         FontFamily="Microsoft YaHei"
         Background="{DynamicResource AppBackgroundBrush}"
-        WindowStyle="None"
+        WindowStyle="SingleBorderWindow"
         WindowStartupLocation="CenterScreen">
-    <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="42" ResizeBorderThickness="6"
-                            GlassFrameThickness="0" CornerRadius="8" UseAeroCaptionButtons="False" />
-    </shell:WindowChrome.WindowChrome>
     <Window.Resources>
         <Style x:Key="PaneGridSplitterStyle" TargetType="GridSplitter">
             <Setter Property="Width" Value="7" />
@@ -45,6 +40,34 @@
                                     Background="{DynamicResource BorderBrush}" />
                             <Border Grid.Column="2" Background="{TemplateBinding BorderBrush}" />
                         </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="QuickNewNoteButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource SecondaryPanelBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="QuickNewNoteBackground" Background="{TemplateBinding Background}" CornerRadius="19">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="QuickNewNoteBackground" Property="Background" Value="{DynamicResource NewNoteButtonHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="QuickNewNoteBackground" Property="Background" Value="{DynamicResource NewNoteButtonBorderBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="QuickNewNoteBackground" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -117,13 +140,11 @@
         <KeyBinding Key="F" Modifiers="Control" Command="ApplicationCommands.Find" />
     </Window.InputBindings>
     <Border Background="{DynamicResource AppBackgroundBrush}"
-            BorderBrush="{DynamicResource BorderBrush}"
-            BorderThickness="1"
-            CornerRadius="8"
+            BorderThickness="0"
             SnapsToDevicePixels="True">
     <Grid Background="{DynamicResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="42" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <local:WindowTitleBar />
@@ -136,58 +157,24 @@
                 <ColumnDefinition Width="*" MinWidth="260" />
             </Grid.ColumnDefinitions>
             <Border x:Name="SidebarPanel" Grid.Column="0" Padding="12,12,0,12"
-                    Background="{DynamicResource SecondaryPanelBrush}">
+                    Background="{DynamicResource SecondaryPanelBrush}"
+                    ContextMenuOpening="OnSidebarContextMenuOpening">
                 <Border.ContextMenu>
                     <ContextMenu Opened="OnSidebarContextMenuOpened">
                         <MenuItem Header="新建笔记本" Click="OnNewNotebookClick" />
                         <MenuItem Header="新建笔记本组" Click="OnNewNotebookGroupClick" />
                         <Separator Style="{StaticResource MenuSeparatorStyle}" />
-                        <MenuItem Header="最近笔记" Tag="navigation:recent" IsCheckable="True"
-                                  Click="OnNavigationMenuItemClick" />
-                        <MenuItem Header="回收站" Tag="navigation:trash" IsCheckable="True"
-                                  Click="OnNavigationMenuItemClick" />
+                        <MenuItem Header="显示导航项">
+                            <MenuItem Header="最近笔记" Tag="navigation:recent" IsCheckable="True"
+                                      Click="OnNavigationMenuItemClick" />
+                            <MenuItem Header="未归类" Tag="navigation:unfiled" IsCheckable="True"
+                                      Click="OnNavigationMenuItemClick" />
+                            <MenuItem Header="回收站" Tag="navigation:trash" IsCheckable="True"
+                                      Click="OnNavigationMenuItemClick" />
+                        </MenuItem>
                     </ContextMenu>
                 </Border.ContextMenu>
                 <DockPanel>
-                    <Button DockPanel.Dock="Top" Height="36" Margin="0,2,12,10"
-                            Padding="7,0" HorizontalContentAlignment="Stretch"
-                            Background="Transparent" BorderThickness="0"
-                            Command="{Binding NewNoteCommand}" ToolTip="新建笔记（Ctrl+N）"
-                            AutomationProperties.Name="新建笔记">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="NewNoteButtonBorder" CornerRadius="6"
-                                        Background="{TemplateBinding Background}"
-                                        Padding="{TemplateBinding Padding}">
-                                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                      VerticalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="NewNoteButtonBorder" Property="Background"
-                                                Value="{DynamicResource NavHoverBackgroundBrush}" />
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter TargetName="NewNoteButtonBorder" Property="Opacity" Value="0.82" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="24" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Viewbox Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                <Path Width="20" Height="20" Data="M10,3.5 V16.5 M3.5,10 H16.5"
-                                      Stroke="{DynamicResource TextBrush}" StrokeThickness="1.3"
-                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                      Stretch="None" />
-                            </Viewbox>
-                            <TextBlock Grid.Column="1" Text="新建笔记" FontSize="14"
-                                       Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
-                        </Grid>
-                    </Button>
                     <Border DockPanel.Dock="Bottom" Margin="0,12,12,0" Padding="0,12,0,0"
                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
                         <Grid x:Name="SidebarFooter">
@@ -224,7 +211,7 @@
                                                FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                 </Grid>
                             </Button>
-                            <Button Grid.Column="1" Margin="0" Padding="0"
+                            <Button x:Name="SidebarSettingsButton" Grid.Column="1" Margin="0" Padding="0"
                                     Style="{StaticResource SidebarActionButtonStyle}"
                                     HorizontalContentAlignment="Center"
                                     Click="OnSettingsClick" ToolTip="设置"
@@ -448,6 +435,7 @@
                                 <EventSetter Event="DragLeave" Handler="OnNotebookDragLeave" />
                                 <EventSetter Event="Drop" Handler="OnNotebookDrop" />
                                 <Setter Property="AllowDrop" Value="True" />
+                                <Setter Property="Background" Value="Transparent" />
                                 <Setter Property="Padding" Value="7,6" />
                                 <Setter Property="Margin" Value="0,2,12,2" />
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -473,6 +461,10 @@
                                                         CornerRadius="1" Visibility="Collapsed" IsHitTestVisible="False" />
                                             </Grid>
                                             <ControlTemplate.Triggers>
+                                                <Trigger Property="local:MainWindow.IsSidebarContextTarget" Value="True">
+                                                    <Setter TargetName="ItemBackground" Property="Background"
+                                                            Value="{DynamicResource NavHoverBackgroundBrush}" />
+                                                </Trigger>
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter TargetName="ItemBackground" Property="Background"
                                                             Value="{DynamicResource NavHoverBackgroundBrush}" />
@@ -541,7 +533,13 @@
                     <Border DockPanel.Dock="Top" Padding="14,12" BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,0,0,1">
                         <StackPanel>
-                            <Border Height="38" CornerRadius="19" Background="{DynamicResource SecondaryPanelBrush}">
+                            <Grid x:Name="NoteListSearchRow">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="38" />
+                                </Grid.ColumnDefinitions>
+                            <Border x:Name="NoteListSearchCapsule" Height="38" CornerRadius="19" Background="{DynamicResource SecondaryPanelBrush}">
                                 <Grid>
                                     <TextBox x:Name="SearchBox" Margin="16,0,42,0" Padding="0" BorderThickness="0" Background="Transparent"
                                              FontSize="15" VerticalAlignment="Center"
@@ -550,7 +548,7 @@
                                              PreviewKeyDown="OnSearchBoxPreviewKeyDown"
                                              Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
                                              ToolTip="搜索标题和正文（Ctrl+F）" />
-                                    <TextBlock Margin="18,0,42,0" Text="搜索标题和正文" FontSize="15" VerticalAlignment="Center"
+                                    <TextBlock Margin="18,0,42,0" Text="搜索标题和正文" FontSize="15" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                                Foreground="{DynamicResource MutedTextBrush}" IsHitTestVisible="False">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -603,16 +601,31 @@
                                     </Button>
                                 </Grid>
                             </Border>
+                            <Button x:Name="NoteListNewNoteButton" Grid.Column="2" Style="{StaticResource QuickNewNoteButtonStyle}"
+                                    Command="{Binding NewNoteCommand}" ToolTip="新建笔记（Ctrl+N）" AutomationProperties.Name="新建笔记">
+                                <Viewbox Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Path Width="20" Height="20" Data="M10,2 V18 M2,10 H18"
+                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stretch="None" />
+                                </Viewbox>
+                            </Button>
+                            </Grid>
                             <Grid Margin="2,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding NotesHeading}" FontSize="16" FontWeight="Normal"
-                                           VerticalAlignment="Center" />
-                                <Button x:Name="NoteListOptionsButton" HorizontalAlignment="Right"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button x:Name="NoteListOptionsButton"
                                         Style="{StaticResource ToolbarButtonStyle}" Margin="0"
                                         ToolTip="排序与卡片密度" AutomationProperties.Name="排序与卡片密度"
                                         Click="OnNoteListOptionsClick">
                                     <TextBlock FontFamily="Segoe Fluent Icons" FontSize="15" Text="&#xE8CB;"
                                                Foreground="{DynamicResource TextBrush}" />
                                 </Button>
+                                </StackPanel>
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -813,13 +826,14 @@
                 </Grid.RowDefinitions>
                 <Border Grid.Row="0" Padding="10,6" Background="Transparent"
                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
-                        IsEnabled="{Binding IsEditorEnabled}"
                         KeyboardNavigation.TabNavigation="None">
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                        <StackPanel Orientation="Horizontal">
+                        <DockPanel LastChildFill="False">
+                            <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsEditorEnabled}">
                             <ComboBox x:Name="FontFamilyBox" Width="130" Height="30" MinHeight="0" Margin="3,0"
                                       Style="{StaticResource ToolbarComboBoxStyle}"
                                       SelectedIndex="0" SelectionChanged="OnEditorFontFamilyChanged"
+                                      DropDownClosed="OnEditorToolbarDropDownClosed"
                                       ToolTip="字体">
                                 <ComboBoxItem Content="微软雅黑" Tag="Microsoft YaHei" />
                                 <ComboBoxItem Content="宋体" Tag="SimSun" />
@@ -827,7 +841,8 @@
                             </ComboBox>
                             <ComboBox x:Name="FontSizeBox" Width="56" Height="30" MinHeight="0" Margin="1,0,3,0"
                                       Style="{StaticResource ToolbarComboBoxStyle}"
-                                      SelectedIndex="0" SelectionChanged="OnEditorFontSizeChanged"
+                                      SelectedIndex="2" SelectionChanged="OnEditorFontSizeChanged"
+                                      DropDownClosed="OnEditorToolbarDropDownClosed"
                                       ToolTip="字号">
                                 <ComboBoxItem Content="12" Tag="12" />
                                 <ComboBoxItem Content="14" Tag="14" />
@@ -902,6 +917,20 @@
                                     </Canvas>
                                 </Viewbox>
                             </Button>
+                            <Button x:Name="TableButton" Tag="insertTable"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    Click="OnEditorCommandClick" ToolTip="插入表格">
+                                <Viewbox Width="15" Height="15" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              StrokeThickness="2"
+                                              StrokeStartLineCap="Round"
+                                              StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round"
+                                              Data="M 3,5 H 21 V 19 H 3 Z M 3,10 H 21 M 3,14.5 H 21 M 9,5 V 19 M 15,5 V 19" />
+                                    </Canvas>
+                                </Viewbox>
+                            </Button>
                             <Button x:Name="TimestampButton" Tag="insertTimestamp"
                                     Style="{StaticResource ToolbarButtonStyle}"
                                     Click="OnEditorCommandClick" ToolTip="插入当前时间">
@@ -920,6 +949,7 @@
                                 </Viewbox>
                             </Button>
                         </StackPanel>
+                        </DockPanel>
                     </ScrollViewer>
                 </Border>
                 <Border Grid.Row="1" Padding="24,14" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">

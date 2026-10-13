@@ -124,6 +124,122 @@ public sealed class MainViewModelSaveTests : IDisposable
         Assert.Equal("新计划。", saved?.Title);
     }
 
+    [Theory]
+    [InlineData("75%")]
+    [InlineData("50%")]
+    [InlineData("327px")]
+    public async Task ImageWidthAndEditedTextSurviveSavingAndReopening(string width)
+    {
+        var paths = new AppDataPaths(_testDirectory);
+        var connections = new SqliteConnectionFactory(paths);
+        var logger = new NullLogger();
+        await new SqliteDatabaseInitializer(connections, logger).InitializeAsync();
+        var notes = new SqliteNoteRepository(connections);
+        var notebooks = new SqliteNotebookRepository(connections);
+        var note = CreateNote("含图片的笔记", DateTimeOffset.UtcNow);
+        await notes.UpsertAsync(note);
+        var viewModel = new MainViewModel(notes, notebooks, logger);
+        await viewModel.InitializeAsync();
+        var html = $"<p>2026-10-11 22:40:12</p><p>新增文字</p><img src=\"https://lightnote.attachments/test.png\" width=\"{width}\" style=\"width: {width}\">";
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            type = "doc",
+            content = new object[]
+            {
+                new { type = "paragraph", content = new[] { new { type = "text", text = "2026-10-11 22:40:12" } } },
+                new { type = "paragraph", content = new[] { new { type = "text", text = "新增文字" } } },
+                new { type = "image", attrs = new { src = "https://lightnote.attachments/test.png", width } },
+            },
+        });
+        viewModel.ApplyEditorChange(note.Id, json, html, "2026-10-11 22:40:12\n新增文字");
+        Assert.True(await viewModel.FlushAllAsync());
+
+        var reopened = new MainViewModel(notes, notebooks, logger);
+        await reopened.InitializeAsync();
+        var stored = reopened.Notes.Single(item => item.Model.Id == note.Id).Model;
+        Assert.Equal(html, stored.BodyHtml);
+        Assert.Equal(json, stored.BodyJson);
+        Assert.Equal("2026-10-11 22:40:12\n新增文字", stored.BodyText);
+    }
+
+    [Fact]
+    public async Task ReloadingTheListKeepsPendingBodyTitleAndImageWidth()
+    {
+        var paths = new AppDataPaths(_testDirectory);
+        var connections = new SqliteConnectionFactory(paths);
+        var logger = new NullLogger();
+        await new SqliteDatabaseInitializer(connections, logger).InitializeAsync();
+        var notes = new SqliteNoteRepository(connections);
+        var notebooks = new SqliteNotebookRepository(connections);
+        var note = CreateNote("原始标题", DateTimeOffset.UtcNow);
+        await notes.UpsertAsync(note);
+        var viewModel = new MainViewModel(notes, notebooks, logger);
+        await viewModel.InitializeAsync();
+        const string html = "<p>刚刚输入的正文</p><img src=\"https://lightnote.attachments/test.png\" width=\"50%\">";
+        viewModel.ApplyEditorChange(note.Id, "{\"newDraft\":true}", html, "刚刚输入的正文");
+        viewModel.ApplyNoteTitleChange(note.Id, "刚刚修改的标题");
+        await viewModel.UpdateNavigationAsync(showRecent: true, showTrash: true);
+
+        var shown = viewModel.Notes.Single(item => item.Model.Id == note.Id).Model;
+        Assert.Equal(html, shown.BodyHtml);
+        Assert.Equal("刚刚修改的标题", shown.Title);
+        Assert.True(await viewModel.FlushAllAsync());
+        Assert.Equal(html, (await notes.GetAsync(note.Id))?.BodyHtml);
+    }
+
+    [Fact]
+    public async Task OlderSaveCompletionCannotReplaceEditsTypedWhileSaving()
+    {
+        var paths = new AppDataPaths(_testDirectory);
+        var connections = new SqliteConnectionFactory(paths);
+        var logger = new NullLogger();
+        await new SqliteDatabaseInitializer(connections, logger).InitializeAsync();
+        var notes = new SqliteNoteRepository(connections);
+        var note = CreateNote("正在编辑", DateTimeOffset.UtcNow);
+        await notes.UpsertAsync(note);
+        var repository = System.Reflection.DispatchProxy.Create<INoteRepository, BlockingSaveProxy>();
+        var proxy = (BlockingSaveProxy)repository;
+        proxy.Inner = notes;
+        var viewModel = new MainViewModel(repository, new SqliteNotebookRepository(connections), logger);
+        await viewModel.InitializeAsync();
+        viewModel.ApplyEditorChange(note.Id, "{\"edit\":1}", "<p>第一版</p>", "第一版");
+        proxy.BlockNextSave = true;
+        var saving = viewModel.FlushAllAsync();
+        await proxy.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        viewModel.ApplyEditorChange(note.Id, "{\"edit\":2}", "<p>第二版</p>", "第二版");
+        proxy.Release.SetResult();
+        await saving;
+
+        Assert.Equal("第二版", viewModel.Notes.Single(item => item.Model.Id == note.Id).Model.BodyText);
+        Assert.True(await viewModel.FlushAllAsync());
+        Assert.Equal("第二版", (await notes.GetAsync(note.Id))?.BodyText);
+    }
+
+    public class BlockingSaveProxy : System.Reflection.DispatchProxy
+    {
+        public INoteRepository Inner { get; set; } = null!;
+        public bool BlockNextSave { get; set; }
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        protected override object? Invoke(System.Reflection.MethodInfo? method, object?[]? args)
+        {
+            if (method!.Name == nameof(INoteRepository.UpsertAsync) && BlockNextSave)
+            {
+                BlockNextSave = false;
+                return BlockedSaveAsync(method, args);
+            }
+            return method.Invoke(Inner, args);
+        }
+
+        private async Task BlockedSaveAsync(System.Reflection.MethodInfo method, object?[]? args)
+        {
+            Started.SetResult();
+            await Release.Task;
+            await (Task)method.Invoke(Inner, args)!;
+        }
+    }
+
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();

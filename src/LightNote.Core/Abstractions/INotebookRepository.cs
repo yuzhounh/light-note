@@ -8,6 +8,9 @@ public interface INotebookRepository
 
     Task UpsertAsync(Notebook notebook, CancellationToken cancellationToken = default);
 
+    /// <summary>软删除笔记本，保留全部笔记并移除其笔记本归属。</summary>
+    Task DeleteKeepingNotesAsync(string notebookId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<NotebookGroup>> ListGroupsAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<string, string>> ListGroupAssignmentsAsync(

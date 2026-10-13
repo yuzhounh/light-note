@@ -14,6 +14,39 @@ public sealed class SearchAndOrganizationTests : IDisposable
         Guid.NewGuid().ToString("N"));
 
     [Fact]
+    public async Task SearchCanBeLimitedToNotebooksOrUnfiledNotes()
+    {
+        var (_, notes, notebooks, _) = await CreateServicesAsync();
+        var now = DateTimeOffset.UtcNow;
+        var work = new Notebook { Id = "nb-work", Name = "Work", SortOrder = 0, CreatedAt = now, UpdatedAt = now };
+        var home = new Notebook { Id = "nb-home", Name = "Home", SortOrder = 1, CreatedAt = now, UpdatedAt = now };
+        await notebooks.UpsertAsync(work);
+        await notebooks.UpsertAsync(home);
+        await notes.UpsertAsync(CreateNote("Work plan", "quarterly roadmap 本地", now) with { NotebookId = work.Id });
+        await notes.UpsertAsync(CreateNote("Home plan", "quarterly budget 本地", now) with { NotebookId = home.Id });
+        await notes.UpsertAsync(CreateNote("Loose plan", "quarterly ideas 本地", now));
+
+        // 不限定范围：三篇都能搜到（三个字符以上走全文索引，两个字符走 LIKE，两种路径都要受范围限制）
+        Assert.Equal(3, (await notes.SearchAsync("quarterly")).Count);
+        Assert.Equal(3, (await notes.SearchAsync("本地")).Count);
+
+        foreach (var term in new[] { "quarterly", "本地" })
+        {
+            var inWork = await notes.SearchAsync(term, notebookIds: [work.Id]);
+            Assert.Equal("Work plan", Assert.Single(inWork).Note.Title);
+
+            var inBoth = await notes.SearchAsync(term, notebookIds: [work.Id, home.Id]);
+            Assert.Equal(2, inBoth.Count);
+            Assert.DoesNotContain(inBoth, hit => hit.Note.Title == "Loose plan");
+
+            Assert.Empty(await notes.SearchAsync(term, notebookIds: []));
+
+            var unfiled = await notes.SearchAsync(term, unfiledOnly: true);
+            Assert.Equal("Loose plan", Assert.Single(unfiled).Note.Title);
+        }
+    }
+
+    [Fact]
     public async Task SearchHandlesChineseEnglishNumbersAndIndexUpdates()
     {
         var (_, notes, _, _) = await CreateServicesAsync();

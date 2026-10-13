@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { NotesRepository } from '../../core/db/notesRepository'
+import { useBackDismiss } from '../../hooks/useBackDismiss'
 
 function formatTime(iso) {
   if (!iso) return '-'
@@ -13,6 +14,7 @@ function formatTime(iso) {
 export function HistoryModal({ note, onClose, onRestore }) {
   const [versions, setVersions] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
+  useBackDismiss(true, onClose, 60)
 
   useEffect(() => {
     let cancelled = false
