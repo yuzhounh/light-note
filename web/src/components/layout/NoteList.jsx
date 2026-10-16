@@ -447,9 +447,9 @@ export function NoteList({
                       </p>
                     </div>
 
-                    {/* Touch cards use both ends; desktop keeps room for hover actions. */}
+                    {/* Date and notebook use opposite ends in every column layout. */}
                     <div className={`note-card-footer flex items-center justify-between ${isAndroidApp ? 'text-[11px]' : 'text-xs'} text-zinc-400 font-sans ${cardStyle.footer}`}>
-                      <div className={`flex items-center gap-2 min-w-0 flex-1 ${isMobile || isTablet ? 'justify-between' : ''}`}>
+                      <div className="flex items-center justify-between gap-2 min-w-0 flex-1">
                         <span className="shrink-0">{formatFullDate(sort.by === 'updated' ? note.updated_at : (note.created_at || note.updated_at))}</span>
 
                         {!isSingleNotebook && (
