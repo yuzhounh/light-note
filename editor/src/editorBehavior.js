@@ -1,5 +1,21 @@
 import { Extension } from '@tiptap/core'
-import { Selection } from '@tiptap/pm/state'
+import { Selection, TextSelection } from '@tiptap/pm/state'
+
+// This page scrolls body while html is fixed. ProseMirror treats body as the window
+// and calls window.scrollBy, which cannot move this independent scroll container.
+// Run only on its explicit scroll requests, so reading with the wheel stays put.
+export function scrollCaretIntoBodyView(view) {
+  if (!(view.state.selection instanceof TextSelection)) return false
+  const body = view.dom.ownerDocument.body
+  const rect = view.coordsAtPos(view.state.selection.head, 1)
+  const top = body.getBoundingClientRect().top + body.clientTop
+  const bottom = top + body.clientHeight
+  const margin = 32
+  if (rect.bottom > bottom - margin) body.scrollTop += rect.bottom - bottom + margin
+  else if (rect.top < top + margin) body.scrollTop += rect.top - top - margin
+  // Keep ProseMirror's handling of nested scroll containers, including wide tables.
+  return false
+}
 
 // Tab keeps the focus in the note, as in a word processor. List items indent (ListItem runs first)
 // and code blocks indent with spaces (CodeBlock option); elsewhere Tab types a tab character.

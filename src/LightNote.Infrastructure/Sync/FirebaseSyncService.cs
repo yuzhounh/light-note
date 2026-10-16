@@ -23,6 +23,8 @@ public sealed class FirebaseSyncService(
     private readonly FirebaseConfigurationProvider _configurationProvider = new(paths);
     private readonly FirebaseSessionStore _sessionStore = new(paths);
     private readonly SemaphoreSlim _syncGate = new(1, 1);
+    private readonly SemaphoreSlim _attachmentSyncGate = new(1, 1);
+    private readonly SemaphoreSlim _sessionRefreshGate = new(1, 1);
     private FirebaseSession? _session;
 
     public bool IsConfigured => _configurationProvider.IsConfigured;
@@ -350,7 +352,29 @@ public sealed class FirebaseSyncService(
 
     public async Task<SyncResult> SyncAsync(CancellationToken cancellationToken = default)
     {
-        await _syncGate.WaitAsync(cancellationToken);
+        var text = await SyncTextAsync(cancellationToken);
+        var attachments = await SyncAttachmentsAsync(cancellationToken);
+        var result = text with
+        {
+            Uploaded = text.Uploaded + attachments.Uploaded,
+            Downloaded = text.Downloaded + attachments.Downloaded,
+            CompletedAt = attachments.CompletedAt,
+            PendingAttachments = attachments.PendingAttachments,
+        };
+        LastSyncResult = result;
+        return result;
+    }
+
+    public Task<SyncResult> SyncTextAsync(CancellationToken cancellationToken = default) =>
+        Task.Run(() => SyncCoreAsync(attachmentsOnly: false, cancellationToken), cancellationToken);
+
+    public Task<SyncResult> SyncAttachmentsAsync(CancellationToken cancellationToken = default) =>
+        Task.Run(() => SyncCoreAsync(attachmentsOnly: true, cancellationToken), cancellationToken);
+
+    private async Task<SyncResult> SyncCoreAsync(bool attachmentsOnly, CancellationToken cancellationToken)
+    {
+        var gate = attachmentsOnly ? _attachmentSyncGate : _syncGate;
+        await gate.WaitAsync(cancellationToken);
         try
         {
             var configuration = _configurationProvider.Load();
@@ -358,73 +382,90 @@ public sealed class FirebaseSyncService(
             var downloaded = 0;
             var conflicts = 0;
 
-            var notebookBatch = await QueryDocumentsAsync(
-                configuration,
-                session,
-                "notebooks",
-                await GetLastPullAsync(session.UserId, "notebooks", cancellationToken),
-                cancellationToken);
-            foreach (var document in notebookBatch.Documents)
+            if (!attachmentsOnly)
             {
-                downloaded += await ApplyNotebookAsync(
-                    document, notebookBatch.IsInitial, cancellationToken);
-            }
-            await AdvanceLastPullAsync(
-                session.UserId, "notebooks", notebookBatch.Cursor, cancellationToken);
-
-            var noteBatch = await QueryDocumentsAsync(
-                configuration,
-                session,
-                "notes",
-                await GetLastPullAsync(session.UserId, "notes", cancellationToken),
-                cancellationToken);
-            foreach (var document in noteBatch.Documents)
-            {
-                var outcome = await ApplyNoteAsync(
-                    document, noteBatch.IsInitial, cancellationToken);
-                downloaded += outcome.Applied ? 1 : 0;
-                conflicts += outcome.Conflict ? 1 : 0;
-            }
-            await AdvanceLastPullAsync(
-                session.UserId, "notes", noteBatch.Cursor, cancellationToken);
-
-            var attachmentBatch = await QueryDocumentsAsync(
-                configuration,
-                session,
-                "attachments",
-                await GetLastPullAsync(session.UserId, "attachments", cancellationToken),
-                cancellationToken);
-            foreach (var document in attachmentBatch.Documents)
-            {
-                downloaded += await ApplyAttachmentAsync(
+                var notebookBatch = await QueryDocumentsAsync(
                     configuration,
                     session,
-                    document,
-                    attachmentBatch.IsInitial,
+                    "notebooks",
+                    await GetLastPullAsync(session.UserId, "notebooks", cancellationToken),
                     cancellationToken);
-            }
-            await AdvanceLastPullAsync(
-                session.UserId, "attachments", attachmentBatch.Cursor, cancellationToken);
+                foreach (var document in notebookBatch.Documents)
+                {
+                    EnsureCurrentSession(session, cancellationToken);
+                    downloaded += await ApplyNotebookAsync(
+                        document, notebookBatch.IsInitial, cancellationToken);
+                }
+                await AdvanceLastPullAsync(
+                    session.UserId, "notebooks", notebookBatch.Cursor, cancellationToken);
 
-            await RequeueAttachmentsForStorageAsync(configuration, cancellationToken);
-            var uploaded = await PushOutboxAsync(configuration, session, cancellationToken);
+                var noteBatch = await QueryDocumentsAsync(
+                    configuration,
+                    session,
+                    "notes",
+                    await GetLastPullAsync(session.UserId, "notes", cancellationToken),
+                    cancellationToken);
+                foreach (var document in noteBatch.Documents)
+                {
+                    EnsureCurrentSession(session, cancellationToken);
+                    var outcome = await ApplyNoteAsync(
+                        document, noteBatch.IsInitial, cancellationToken);
+                    downloaded += outcome.Applied ? 1 : 0;
+                    conflicts += outcome.Conflict ? 1 : 0;
+                }
+                await AdvanceLastPullAsync(
+                    session.UserId, "notes", noteBatch.Cursor, cancellationToken);
+            }
+
+            if (attachmentsOnly)
+            {
+                var attachmentBatch = await QueryDocumentsAsync(
+                    configuration,
+                    session,
+                    "attachments",
+                    await GetLastPullAsync(session.UserId, "attachments", cancellationToken),
+                    cancellationToken);
+                foreach (var document in attachmentBatch.Documents)
+                {
+                    EnsureCurrentSession(session, cancellationToken);
+                    downloaded += await ApplyAttachmentAsync(
+                        configuration,
+                        session,
+                        document,
+                        attachmentBatch.IsInitial,
+                        cancellationToken);
+                }
+                await AdvanceLastPullAsync(
+                    session.UserId, "attachments", attachmentBatch.Cursor, cancellationToken);
+
+                await RequeueAttachmentsForStorageAsync(configuration, cancellationToken);
+            }
+            var uploaded = await PushOutboxAsync(configuration, session, attachmentsOnly, cancellationToken);
             var result = new SyncResult
             {
                 Uploaded = uploaded,
                 Downloaded = downloaded,
                 Conflicts = conflicts,
                 CompletedAt = DateTimeOffset.UtcNow,
+                PendingAttachments = attachmentsOnly ? await CountPendingAttachmentsAsync(cancellationToken) : 0,
             };
-            LastSyncResult = result;
+            if (!attachmentsOnly) LastSyncResult = result;
             return result;
         }
         finally
         {
-            _syncGate.Release();
+            gate.Release();
         }
     }
 
     private async Task<FirebaseSession> EnsureFreshSessionAsync(CancellationToken cancellationToken)
+    {
+        await _sessionRefreshGate.WaitAsync(cancellationToken);
+        try { return await EnsureFreshSessionCoreAsync(cancellationToken); }
+        finally { _sessionRefreshGate.Release(); }
+    }
+
+    private async Task<FirebaseSession> EnsureFreshSessionCoreAsync(CancellationToken cancellationToken)
     {
         _session ??= _sessionStore.Load();
         if (_session is null)
@@ -432,9 +473,10 @@ public sealed class FirebaseSyncService(
             throw new InvalidOperationException("请先登录 Firebase 账户。");
         }
 
-        if (_session.ExpiresAt > DateTimeOffset.UtcNow.AddMinutes(2))
+        var session = _session;
+        if (session.ExpiresAt > DateTimeOffset.UtcNow.AddMinutes(2))
         {
-            return _session;
+            return session;
         }
 
         var configuration = _configurationProvider.Load();
@@ -442,12 +484,13 @@ public sealed class FirebaseSyncService(
         using var content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["grant_type"] = "refresh_token",
-            ["refresh_token"] = _session.RefreshToken,
+            ["refresh_token"] = session.RefreshToken,
         });
         using var response = await httpClient.PostAsync(endpoint, content, cancellationToken);
         using var document = await ReadSuccessfulJsonAsync(response, cancellationToken);
         var root = document.RootElement;
-        _session = _session with
+        EnsureCurrentSession(session, cancellationToken);
+        _session = session with
         {
             IdToken = RequiredString(root, "id_token"),
             RefreshToken = RequiredString(root, "refresh_token"),
@@ -461,15 +504,17 @@ public sealed class FirebaseSyncService(
     private async Task<int> PushOutboxAsync(
         FirebaseConfiguration configuration,
         FirebaseSession session,
+        bool attachmentsOnly,
         CancellationToken cancellationToken)
     {
-        var items = await ListOutboxAsync(cancellationToken);
+        var items = await ListOutboxAsync(attachmentsOnly, cancellationToken);
         var uploaded = 0;
         Exception? firstError = null;
         foreach (var item in items)
         {
             try
             {
+                EnsureCurrentSession(session, cancellationToken);
                 var fields = item.EntityType switch
                 {
                     "notebook" => await ReadNotebookFieldsAsync(item.EntityId, cancellationToken),
@@ -484,6 +529,7 @@ public sealed class FirebaseSyncService(
                     continue;
                 }
 
+                EnsureCurrentSession(session, cancellationToken);
                 await PatchDocumentAsync(
                     configuration,
                     session,
@@ -491,6 +537,7 @@ public sealed class FirebaseSyncService(
                     item.EntityId,
                     fields,
                     cancellationToken);
+                EnsureCurrentSession(session, cancellationToken);
                 await CompleteOutboxAsync(item, cancellationToken);
                 uploaded++;
             }
@@ -508,6 +555,13 @@ public sealed class FirebaseSyncService(
         }
 
         return uploaded;
+    }
+
+    private void EnsureCurrentSession(FirebaseSession session, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_session?.UserId != session.UserId)
+            throw new OperationCanceledException("账户已变更，已停止本次同步。");
     }
 
     private async Task<QueryBatch> QueryDocumentsAsync(
@@ -681,17 +735,8 @@ public sealed class FirebaseSyncService(
         var relativePath = reader.GetString(1);
         var mimeType = reader.GetString(2);
         var cloudPath = $"users/{session.UserId}/attachments/{reader.GetString(6)}/{Path.GetFileName(relativePath)}";
-        if (reader.IsDBNull(8))
-        {
-            var localPath = ResolveAttachmentPath(relativePath);
-            if (File.Exists(localPath))
-            {
-                await UploadAttachmentAsync(
-                    configuration, session, cloudPath, mimeType, localPath, cancellationToken);
-            }
-        }
-
-        return new JsonObject
+        var uploadFile = reader.IsDBNull(8);
+        var fields = new JsonObject
         {
             ["noteId"] = StringValue(reader.GetString(0)),
             ["relativePath"] = StringValue(relativePath),
@@ -705,6 +750,17 @@ public sealed class FirebaseSyncService(
             ["updatedAt"] = TimestampValue(ParseTimestamp(reader.GetString(9))),
             ["deletedAt"] = NullableTimestampValue(reader.IsDBNull(8) ? null : ParseTimestamp(reader.GetString(8))),
         };
+        // A network request must never keep an attachments-table reader open.
+        await reader.DisposeAsync();
+        await command.DisposeAsync();
+        await connection.DisposeAsync();
+        if (uploadFile)
+        {
+            var localPath = ResolveAttachmentPath(relativePath);
+            if (File.Exists(localPath))
+                await UploadAttachmentAsync(configuration, session, cloudPath, mimeType, localPath, cancellationToken);
+        }
+        return fields;
     }
 
     private async Task UploadAttachmentAsync(
@@ -1144,18 +1200,28 @@ public sealed class FirebaseSyncService(
         return Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, cancellationToken));
     }
 
-    private async Task<IReadOnlyList<OutboxItem>> ListOutboxAsync(CancellationToken cancellationToken)
+    private async Task<int> CountPendingAttachmentsAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = await connectionFactory.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM sync_outbox WHERE entity_type = 'attachment';";
+        return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));
+    }
+
+    private async Task<IReadOnlyList<OutboxItem>> ListOutboxAsync(bool attachmentsOnly, CancellationToken cancellationToken)
     {
         await using var connection = await connectionFactory.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT id, entity_type, entity_id, local_version, attempt_count
             FROM sync_outbox
-            WHERE next_attempt_at IS NULL OR next_attempt_at <= $now
+            WHERE (entity_type = 'attachment') = $attachmentsOnly
+              AND (next_attempt_at IS NULL OR next_attempt_at <= $now)
             ORDER BY CASE entity_type WHEN 'notebook' THEN 0 WHEN 'note' THEN 1 ELSE 2 END, rowid
             LIMIT 200;
             """;
         command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+        command.Parameters.AddWithValue("$attachmentsOnly", attachmentsOnly);
         var items = new List<OutboxItem>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))

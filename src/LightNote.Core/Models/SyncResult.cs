@@ -9,4 +9,6 @@ public sealed record SyncResult
     public required int Conflicts { get; init; }
 
     public required DateTimeOffset CompletedAt { get; init; }
+
+    public int PendingAttachments { get; init; }
 }

@@ -1,5 +1,5 @@
 #ifndef MyAppVersion
-#define MyAppVersion "2.2.19"
+#define MyAppVersion "2.2.20"
 #endif
 
 #define MyAppName "LightNote"

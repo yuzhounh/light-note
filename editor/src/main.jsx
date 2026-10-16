@@ -1,22 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { EditorContent, useEditor, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
-import { Node, Mark, InputRule, mergeAttributes } from '@tiptap/core'
-import { Selection } from '@tiptap/pm/state'
+import { Node, Mark, Extension, InputRule, mergeAttributes } from '@tiptap/core'
+import { Selection, Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import { TableMap } from '@tiptap/pm/tables'
+import { closeHistory } from '@tiptap/pm/history'
 import StarterKit from '@tiptap/starter-kit'
-import { TableKit } from '@tiptap/extension-table'
+import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table'
+import { createSizedTable, createTableSizing, tableContext } from './tableSizing.js'
 import { MarkdownGate } from './markdownGate.js'
 import { insertSourceLine } from './pasteSource.js'
 import Image from '@tiptap/extension-image'
 import { Placeholder } from '@tiptap/extensions'
 import katex from 'katex'
 import { ATTACHMENT_HOST, createPasteProps, isLikelyMath } from './clipboard.js'
-import { EditingKeys, currentTextStyle, selectionForMarginClick } from './editorBehavior.js'
+import { EditingKeys, currentTextStyle, selectionForMarginClick, scrollCaretIntoBodyView } from './editorBehavior.js'
 import { applyNoteContent, clearDocument } from './noteDocument.js'
+import { imageLayout, imageSizingAttributes, initialImageSize, presetImageSize } from './imageSizing.js'
 import './style.css'
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
 const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
+const SizedTable = createSizedTable(Table, TableMap)
+const TableSizing = createTableSizing({ Extension, Plugin, PluginKey, TextSelection, Decoration, DecorationSet, TableMap, closeHistory })
 
 function post(type, payload = {}) {
   window.chrome?.webview?.postMessage({ type, payload })
@@ -124,10 +131,17 @@ function ResizableImageComponent({ editor, node, updateAttributes, selected, del
   const [isResizing, setIsResizing] = useState(false)
   const containerRef = useRef(null)
   const imageRef = useRef(null)
+  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 })
   // Read-only notes (in the trash) keep only the double-click enlarged view.
   const showTools = editor.isEditable && (hovered || selected || isResizing)
 
   const resolvedSrc = node.attrs.src || (node.attrs.attachmentId ? `https://${ATTACHMENT_HOST}/${node.attrs.attachmentId}` : '')
+  const layout = imageLayout(node.attrs, naturalSize.width, naturalSize.height, window.devicePixelRatio || 1)
+  const readNaturalSize = () => {
+    const image = imageRef.current
+    if (image?.naturalWidth) setNaturalSize({ width: image.naturalWidth, height: image.naturalHeight })
+  }
+  useEffect(readNaturalSize, [resolvedSrc])
 
   const handleResizeStart = (e) => {
     e.preventDefault()
@@ -152,7 +166,7 @@ function ResizableImageComponent({ editor, node, updateAttributes, selected, del
       setIsResizing(false)
       const deltaX = upEvent.clientX - startX
       const finalWidth = Math.max(80, Math.min(parentWidth, startWidth + deltaX))
-      updateAttributes({ width: `${Math.round(finalWidth)}px` })
+      updateAttributes({ width: `${Math.round(finalWidth)}px`, baseWidth: layout.baseWidth, widthPreset: null, widthMode: 'manual' })
     }
 
     window.addEventListener('mousemove', onMouseMove)
@@ -162,7 +176,7 @@ function ResizableImageComponent({ editor, node, updateAttributes, selected, del
   const handleSetPresetWidth = (widthVal, e) => {
     e.preventDefault()
     e.stopPropagation()
-    updateAttributes({ width: widthVal })
+    updateAttributes(presetImageSize(layout.baseWidth, widthVal))
   }
 
   const handleDoubleClick = (e) => {
@@ -173,7 +187,7 @@ function ResizableImageComponent({ editor, node, updateAttributes, selected, del
     }
   }
 
-  const currentWidth = node.attrs.width || '100%'
+  const currentWidth = layout.width
 
   return (
     <NodeViewWrapper
@@ -195,6 +209,7 @@ function ResizableImageComponent({ editor, node, updateAttributes, selected, del
           data-attachment-id={node.attrs.attachmentId}
           style={{ width: '100%', maxWidth: '100%', display: 'block' }}
           className="resizable-image-img"
+          onLoad={readNaturalSize}
           onDoubleClick={handleDoubleClick}
         />
 
@@ -204,32 +219,32 @@ function ResizableImageComponent({ editor, node, updateAttributes, selected, del
             <button
               type="button"
               onClick={(e) => handleSetPresetWidth('25%', e)}
-              className={`preset-btn ${currentWidth === '25%' ? 'active' : ''}`}
-              title="25% 宽度"
+              className={`preset-btn ${layout.widthPreset === '25%' ? 'active' : ''}`}
+              title="25% 默认宽度"
             >
               25%
             </button>
             <button
               type="button"
               onClick={(e) => handleSetPresetWidth('50%', e)}
-              className={`preset-btn ${currentWidth === '50%' ? 'active' : ''}`}
-              title="50% 宽度"
+              className={`preset-btn ${layout.widthPreset === '50%' ? 'active' : ''}`}
+              title="50% 默认宽度"
             >
               50%
             </button>
             <button
               type="button"
               onClick={(e) => handleSetPresetWidth('75%', e)}
-              className={`preset-btn ${currentWidth === '75%' ? 'active' : ''}`}
-              title="75% 宽度"
+              className={`preset-btn ${layout.widthPreset === '75%' ? 'active' : ''}`}
+              title="75% 默认宽度"
             >
               75%
             </button>
             <button
               type="button"
               onClick={(e) => handleSetPresetWidth('100%', e)}
-              className={`preset-btn ${currentWidth === '100%' ? 'active' : ''}`}
-              title="100% 原始/全宽"
+              className={`preset-btn ${layout.widthPreset === '100%' ? 'active' : ''}`}
+              title="100% 默认宽度"
             >
               100%
             </button>
@@ -274,6 +289,7 @@ const LocalImage = Image.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+      ...imageSizingAttributes(),
       src: {
         default: null,
       },
@@ -704,12 +720,15 @@ function EditorApp() {
   const recordPasteSourceRef = useRef(false)
   const pendingSourceRef = useRef(null)
   const [tableBar, setTableBar] = useState(null)
+  const [columnPanel, setColumnPanel] = useState(false)
+  const [columnWidth, setColumnWidth] = useState('')
+  const columnStateRef = useRef('')
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ link: false, underline: false, codeBlock: { enableTabIndentation: true, tabSize: 4 } }),
       MarkdownGate.configure({ isEnabled: () => markdownAutoFormatRef.current }),
-      TableKit.configure({ table: { resizable: true } }),
+      SizedTable, TableRow, TableHeader, TableCell, TableSizing,
       Underline,
       TextAppearance,
       Link,
@@ -725,6 +744,7 @@ function EditorApp() {
     editable: false,
     immediatelyRender: true,
     editorProps: {
+      handleScrollToSelection: scrollCaretIntoBodyView,
       attributes: {
         class: 'lightnote-content',
         spellcheck: 'true',
@@ -810,6 +830,7 @@ function EditorApp() {
     const update = () => {
       if (!editor.isEditable || !editor.isActive('table')) {
         setTableBar(prev => (prev ? null : prev))
+        setColumnPanel(false)
         return
       }
       const node = editor.view.domAtPos(editor.state.selection.from).node
@@ -819,13 +840,23 @@ function EditorApp() {
         return
       }
       const rect = element.getBoundingClientRect()
-      setTableBar({ left: Math.max(rect.left, 8), top: Math.max(rect.top - 42, 8) })
+      const context = tableContext(editor.state, TableMap)
+      if (!context) return
+      const height = document.querySelector('.table-bar')?.offsetHeight || 36
+      setTableBar({ left: Math.max(rect.left, 8), top: Math.max(rect.top - height - 6, 8),
+        col: context.col, total: context.widths.reduce((sum, width) => sum + width, 0) })
+      const signature = `${context.pos}/${context.col}/${context.widths[context.col]}`
+      if (columnStateRef.current !== signature) {
+        columnStateRef.current = signature
+        setColumnWidth(String(context.widths[context.col]))
+      }
     }
     editor.on('selectionUpdate', update)
     editor.on('update', update)
     editor.on('focus', update)
     window.addEventListener('scroll', update, true)
     window.addEventListener('resize', update)
+    update()
     return () => {
       editor.off('selectionUpdate', update)
       editor.off('update', update)
@@ -833,7 +864,7 @@ function EditorApp() {
       window.removeEventListener('scroll', update, true)
       window.removeEventListener('resize', update)
     }
-  }, [editor])
+  }, [editor, columnPanel])
 
   const tableActions = [
     ['上方加行', 'addRowBefore'], ['下方加行', 'addRowAfter'], ['删除行', 'deleteRow'],
@@ -1062,8 +1093,7 @@ function EditorApp() {
             src: message.payload.url,
             alt: pending.name,
             attachmentId: message.payload.id,
-            width: message.payload.width,
-            height: message.payload.height,
+            ...initialImageSize(message.payload.width, message.payload.height, window.devicePixelRatio || 1),
           },
         }, { updateSelection: followCaret })
         ;(followCaret ? insert.focus() : insert).run()
@@ -1174,8 +1204,16 @@ function EditorApp() {
         <div
           className="table-bar"
           style={{ left: tableBar.left, top: tableBar.top }}
-          onMouseDown={event => event.preventDefault()}
+          onMouseDown={event => { if (!event.target.closest('input')) event.preventDefault() }}
         >
+          <button type="button" onClick={() => {
+            if (!columnPanel) {
+              const context = tableContext(editor.state, TableMap)
+              if (context) setColumnWidth(String(context.widths[context.col]))
+            }
+            setColumnPanel(value => !value)
+          }} aria-expanded={columnPanel}>列宽</button>
+          <button type="button" onClick={() => editor.chain().focus().equalizeTableColumns().run()}>平均分配</button>
           {tableActions.map(([label, command]) => (
             <button
               key={command}
@@ -1188,6 +1226,23 @@ function EditorApp() {
               {label}
             </button>
           ))}
+          {columnPanel && (
+            <div className="table-width-panel">
+              <label>第 {tableBar.col + 1} 列
+                <input type="number" min="80" step="1" aria-label="当前列宽" value={columnWidth}
+                  onChange={event => setColumnWidth(event.target.value)}
+                  onKeyDown={event => {
+                    event.stopPropagation()
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      editor.chain().focus().setTableColumnWidth(Number(columnWidth)).run()
+                    } else if (event.key === 'Escape') setColumnPanel(false)
+                  }} /> px
+              </label>
+              <button type="button" onClick={() => editor.chain().focus().setTableColumnWidth(Number(columnWidth)).run()}>应用列宽</button>
+              <span>总宽 {tableBar.total}px · 拖动分隔线调整</span>
+            </div>
+          )}
         </div>
       )}
       {mathModal && (
