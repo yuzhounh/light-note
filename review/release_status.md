@@ -33,3 +33,10 @@
 - Windows 从同一源码构建到 `artifacts/releases/2.2.21/win-x64/`，已更新原桌面入口 `artifacts/development/current/win-x64/LightNote.exe`。先触发收起保存并确认无恢复草稿，再通过 Windows Restart Manager 的正常关闭请求退出（未使用强制关闭）；更新前后 108 篇笔记、3 个笔记本、26 条附件记录、附件文件清单及登录会话校验一致。新进程 PID 43592，运行版本 `2.2.21+5d7a2ef`，编辑器桥接已就绪；原快捷方式目标、参数和数据目录 `C:\Users\Jing Wang\.lightnote` 保持。
 - REDMI K80 Pro（1999ffe8）已通过 `adb install -r` 从 2.2.20 / code 25 覆盖升级至 2.2.21 / code 26。实际旧 APK 与新包证书一致；升级后 appId 10385、数据目录 `/data/user/0/com.lightnote.app`、首次安装时间 2026-10-07 18:33:08 均保持，未卸载或清除数据。安装后的 APK 与本地新包 SHA-256 完全一致；MainActivity 启动成功并在前台，观察到进程 PID 24892。
 - APK 为 `artifacts/android/2.2.21/LightNote-2.2.21.apk`，SHA-256：`88289D0D06F1132EFD299DAD787E7523F6725759EEC5B1A7147F46540F1698E1`。本次构建、部署、线上核对、桌面数据及手机安装回执位于 `tmp/release-2.2.21/`。所有本次授权事项已完成；原 2.2.20 发布结果保留在上文。不创建项目快照或额外 GitHub Release。Netlify 仍跳过（暂停至 2026-10-21 15:00，且原名属于第三方），第三方 Vercel 入口不部署。
+
+## 手机笔记删除入口与单篇重复标题（2026-10-16）
+
+- 移除笔记列表的行内删除图标；手机列表长按菜单也不再提供删除，保留详情右上角的删除和确认框。桌面/平板保留右键菜单删除入口。相关代码已随另一聊天的菜单统一提交 `955066d` 推送，本聊天没有重复触发部署。
+- 已核对 Firebase 正式网页主脚本 `index-DzSSFGFO.js` 与当前构建 SHA-256 一致，行内删除标记已移除。JSX 语法及详情删除入口保留检查通过。
+- `lightnote-dev-v2-2-20` 原有标题字段和正文首个 H1 完全重复。仅移除正文首个重复 H1，同步修正 HTML、JSON 和纯文本；标题、创建时间、笔记本归属及后续 11 个正文块保持。原内容存入历史版本；当前笔记 Version=2、Clean、outbox=0，文字同步 Uploaded=1、Downloaded=0、Conflicts=0。
+- 单篇修正及线上核对回执位于 `tmp/fix-note-title/`。这是既有笔记内容修正，没有修改编辑器的通用标题渲染规则；未卸载客户端、清除数据或再次覆盖安装 APK。
