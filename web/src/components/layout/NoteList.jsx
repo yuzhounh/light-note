@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Capacitor } from '@capacitor/core'
-import { Menu, Trash2, FileText, X, ArrowUpDown, Check, Search, History, Plus } from 'lucide-react'
-import { countWords, formatInfoTime } from '../../core/noteInfo'
+import { Menu, FileText, X, ArrowUpDown, Check, Search, Plus } from 'lucide-react'
 import { NoteContextMenu } from './NoteContextMenu'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
 
@@ -84,7 +83,6 @@ export function NoteList({
 
   const isTouchDevice = isMobile || isTablet
   useBackDismiss(isViewActive && isOptionsOpen, () => setIsOptionsOpen(false), 30)
-  useBackDismiss(isViewActive && !!activeActionNote && !isAndroidApp, () => setActiveActionNote(null), 50)
   useEffect(() => {
     if (!isViewActive) {
       clearTimeout(longPressTimerRef.current)
@@ -101,6 +99,11 @@ export function NoteList({
     setActionAnchor({ point: { x: clientX, y: clientY }, rect: { top: rect.top, bottom: rect.bottom } })
     setActiveActionNote(note)
     setPressedNoteId(null)
+  }
+
+  function closeActionMenu() {
+    isLongPressActiveRef.current = false
+    setActiveActionNote(null)
   }
 
   const startLongPress = (note, clientX, clientY, rect) => {
@@ -393,6 +396,7 @@ export function NoteList({
 
       {/* Note Cards List (Progressive Loading on Scroll) */}
       <div 
+        ref={isCompactHeader ? undefined : scrollRef}
         onScroll={isCompactHeader ? undefined : handleScroll}
         className={`note-list-scroll ${isCompactHeader ? '' : 'flex-1 min-h-0 overflow-y-auto'} px-2 py-1 space-y-0.5`}
       >
@@ -420,12 +424,10 @@ export function NoteList({
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onContextMenu={(e) => {
-                    if (isTouchDevice) {
-                      e.preventDefault()
-                      openActionMenu(note, e.clientX, e.clientY, e.currentTarget.getBoundingClientRect())
-                    }
+                    e.preventDefault()
+                    openActionMenu(note, e.clientX, e.clientY, e.currentTarget.getBoundingClientRect())
                   }}
-                  className={`note-card group relative ${pressedNoteId === note.id || (isAndroidApp && activeActionNote?.id === note.id) ? 'note-card-pressed' : ''} ${cardStyle.card} rounded-md cursor-pointer transition select-none ${
+                  className={`note-card group relative ${pressedNoteId === note.id || activeActionNote?.id === note.id ? 'note-card-pressed' : ''} ${cardStyle.card} rounded-md cursor-pointer transition select-none ${
                     isSelected
                       ? 'my-0.5 bg-[#d3f0e3] dark:bg-[#234a3f] ring-1 ring-inset ring-[#a8e4cd] dark:ring-[#2a6552] text-zinc-900 dark:text-zinc-100'
                       : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200'
@@ -464,23 +466,6 @@ export function NoteList({
                         )}
                       </div>
 
-                      {/* Quick action on hover (Desktop only, never on mobile or tablet) */}
-                      {!isMobile && !isTablet && (
-                        <div className="note-actions hidden lg:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0 ml-2">
-                          {onSoftDelete && (
-                            <button
-                              onClick={(e) => { 
-                                e.stopPropagation()
-                                if (confirm('确定移入回收站？')) onSoftDelete(note.id)
-                              }}
-                              className="p-0.5 hover:text-rose-500 rounded transition text-zinc-400"
-                              title="移入回收站"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -503,90 +488,11 @@ export function NoteList({
       </div>
       </ScrollContainer>
 
-      {/* Mobile Long-Press Bottom Action Sheet */}
-      {isViewActive && activeActionNote && isAndroidApp && actionAnchor && (
+      {/* One anchored menu for Android, browser long press and desktop right click. */}
+      {isViewActive && activeActionNote && actionAnchor && (
         <NoteContextMenu note={activeActionNote} anchor={actionAnchor} scrollElement={scrollRef.current}
-          onClose={() => setActiveActionNote(null)} onOpenHistory={onOpenHistory} onSoftDelete={onSoftDelete} />
-      )}
-      {activeActionNote && !isAndroidApp && (
-        <div 
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => setActiveActionNote(null)}
-        >
-          <div 
-            className="w-full max-w-sm mx-auto bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-4 shadow-2xl space-y-3 pb-[calc(1rem+var(--safe-bottom,0px))] sm:pb-4 animate-in slide-in-from-bottom duration-200"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Action Sheet Header */}
-            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
-              <div className="min-w-0 flex-1 pr-2">
-                <p className="text-[11px] text-zinc-400 font-medium">笔记快捷操作</p>
-                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate mt-0.5">
-                  {activeActionNote.title || '无标题笔记'}
-                </h4>
-              </div>
-              <button
-                onClick={() => setActiveActionNote(null)}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 cursor-pointer"
-                title="关闭"
-              >
-                <X size={15} />
-              </button>
-            </div>
-
-            {/* 笔记详情：字数、创建与编辑时间 */}
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-5">
-              <div>字数统计：{countWords(activeActionNote.body_text)}</div>
-              <div>创建于 {formatInfoTime(activeActionNote.created_at || activeActionNote.updated_at)}</div>
-              <div>编辑于 {formatInfoTime(activeActionNote.updated_at)}</div>
-            </div>
-
-            {/* Action Menu Options */}
-            <div className={`${isAndroidApp ? 'space-y-2' : 'space-y-1'} pt-0.5`}>
-              {onOpenHistory && (
-                <button
-                  onClick={() => {
-                    const target = activeActionNote
-                    setActiveActionNote(null)
-                    onOpenHistory(target)
-                  }}
-                  className={`w-full ${isAndroidApp ? 'h-14 min-h-14' : 'h-11'} flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer`}
-                >
-                  <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 shrink-0">
-                    <History size={15} />
-                  </div>
-                  <span className="flex-1 text-left">历史版本</span>
-                </button>
-              )}
-              {onSoftDelete && (
-                <button
-                  onClick={() => {
-                    const id = activeActionNote.id
-                    setActiveActionNote(null)
-                    if (confirm('确定将该笔记移入回收站？')) {
-                      onSoftDelete(id)
-                    }
-                  }}
-                  className={`w-full ${isAndroidApp ? 'h-14 min-h-14' : 'h-11'} flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 active:bg-rose-100 dark:active:bg-rose-950/60 transition cursor-pointer`}
-                >
-                  <div className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-500 shrink-0">
-                    <Trash2 size={15} />
-                  </div>
-                  <span className="flex-1 text-left">移入回收站</span>
-                </button>
-              )}
-            </div>
-
-            {!isAndroidApp && (
-              <button
-                onClick={() => setActiveActionNote(null)}
-                className="w-full h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs hover:bg-zinc-200 dark:hover:bg-zinc-700 active:bg-zinc-300 dark:active:bg-zinc-600 transition cursor-pointer"
-              >
-                取消
-              </button>
-            )}
-          </div>
-        </div>
+          onClose={closeActionMenu} onOpenHistory={onOpenHistory}
+          onSoftDelete={isMobile ? undefined : onSoftDelete} />
       )}
     </div>
   )
