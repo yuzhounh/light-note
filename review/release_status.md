@@ -1,13 +1,17 @@
 # LightNote 当前正式版本发布
 
-## V2.2.22（2026-10-16，发布中）
+## V2.2.22（2026-10-16，已正式发布）
 
 整理 2.2.21 之后的网页卡片对齐、浮动菜单与手机删除入口规则，统一 Windows/Web/Android 版本号为 2.2.22；Android code 28，高于现有本地 code 27。保留笔记本数量标记和既有原生 Windows 界面，不加入新的数据迁移。
 
 - 当前生产功能源码与此前已验证的卡片、菜单版本相同；复用既有隔离浏览器单/双/三栏布局及右键、长按、关闭、防误触检查。本次重新执行的 34 项 Web 测试通过，生产构建、Android assembleRelease/lintRelease 通过。
-- Windows 自包含包、安装器、便携 ZIP、APK 和 SHA-256 清单将按本次正式源码提交生成，并核对包内容与远端摘要。Android 保持原签名，支持覆盖升级。
+- [v2.2.22 正式版](https://github.com/yuzhounh/light-note/releases/tag/v2.2.22) 已于 2026-10-16 14:58（Asia/Shanghai）公开并设为 latest，标签指向 27d8f4654c9c8e94ba20d5db7edaf113a59a5211。Windows 安装 EXE、便携 ZIP、Android APK 和 SHA256SUMS-2.2.22.txt 均上传完成，四个远端资产的大小及 SHA-256 与本地一致。
+- Windows Release 自包含包构建成功，便携包内 629 个文件与发布目录一致；APK 为 2.2.22/code 28，v2 签名有效、与 code 27 证书相同，内嵌 69 个网页文件与构建一致。保留既有 SkiaSharp 过时 API 警告。本轮未覆盖安装手机，现有 2.2.21/code 27 保留，新 APK 支持覆盖升级。
+- [Windows CI](https://github.com/yuzhounh/light-note/actions/runs/38863239157) 和 [GitHub Pages](https://github.com/yuzhounh/light-note/actions/runs/38863239218) 成功。Cloudflare Pages 79fcf99f、Firebase Hosting lightnote-sync/light-note 完成，三个入口的首页、主 JS/CSS、PWA 清单及 service worker 均与 2.2.22 构建核对一致，旧底部面板已移除。
+- 本地当前 Windows 程序已通过 Restart Manager 正常退出后更新，629 个文件与正式目录一致，版本 2.2.22+27d8f46，恢复原后台托盘状态。升级前后 110 篇笔记、3 个笔记本、27 条附件记录、附件文件清单及登录会话哈希一致；原快捷入口和数据目录保留。
 - 部署仅面向 GitHub Pages、Cloudflare Pages light-note 和 Firebase Hosting lightnote-sync/light-note。Vercel/Netlify 原名属于第三方；不调用 Netlify，继续遵守暂停及每项目滚动 168 小时限制。
-- 发布后新增 V2.2.22 开发记录，并为原网页增量条目追加已汇总正式发布说明，保留原内容。具体源码、发布链接、CI、资源校验和同步回执在完成后更新。
+- 开发记录已新增“V2.2.22：卡片对齐与浮动菜单统一”（lightnote-dev-v2-2-22），原“V2.2.21 后续网页调整：卡片对齐与浮动菜单”追加正式发布说明，原内容节点保留。JSON/HTML/纯文本核对一致，文字同步 Uploaded=2、Downloaded=0、Conflicts=0；新条目 Version=1、旧条目 Version=2，均为 Clean、outbox=0。
+- 发布包位于 artifacts/installers/，Windows 可执行目录为 artifacts/releases/2.2.22/win-x64/。构建、包校验、线上校验、桌面数据保留及开发记录回执位于 tmp/release-2.2.22/。本版发布任务已完成，无剩余实施项。
 
 ## 既有版本及客户端更新记录（历史）
 
