@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { JSDOM } from '../../editor/node_modules/jsdom/lib/api.js'
+import { JSDOM } from 'jsdom'
 import { createSizedTable, createTableSizing, tableContext } from '../../editor/src/tableSizing.js'
 
 const { window } = new JSDOM('<!doctype html><html><body></body></html>', { pretendToBeVisual: true })
