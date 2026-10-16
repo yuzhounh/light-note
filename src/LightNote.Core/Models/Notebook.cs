@@ -8,6 +8,8 @@ public sealed record Notebook
 
     public int SortOrder { get; init; }
 
+    public int NoteCount { get; init; }
+
     public required DateTimeOffset CreatedAt { get; init; }
 
     public required DateTimeOffset UpdatedAt { get; init; }

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -1117,7 +1118,7 @@ public sealed partial class MainViewModel(
                     notebook.Name,
                     NotebookKind.User,
                     group.Id,
-                    notebook.SortOrder));
+                    notebook.SortOrder) { NoteCount = notebook.NoteCount });
             }
         }
         foreach (var notebook in notebooks.Where(item => !groupAssignments.ContainsKey(item.Id)))
@@ -1126,7 +1127,7 @@ public sealed partial class MainViewModel(
                 notebook.Id,
                 notebook.Name,
                 NotebookKind.User,
-                SortOrder: notebook.SortOrder));
+                SortOrder: notebook.SortOrder) { NoteCount = notebook.NoteCount });
         }
         foreach (var tag in tags)
         {
@@ -1171,6 +1172,7 @@ public sealed partial class MainViewModel(
         }
 
         var generation = Interlocked.Increment(ref _reloadGeneration);
+        var notebooksTask = notebookRepository.ListAsync(cancellationToken);
         var totalCountTask = CountNotesForHeadingAsync(notebook, cancellationToken);
         var page = await LoadNoteItemsAsync(
             notebook,
@@ -1178,11 +1180,17 @@ public sealed partial class MainViewModel(
             NotePageSize + 1,
             cancellationToken);
         var totalCount = await totalCountTask;
+        var notebookCounts = (await notebooksTask).ToDictionary(item => item.Id, item => item.NoteCount);
         var loadedItems = page.Take(NotePageSize).ToArray();
         var hasMore = page.Count > NotePageSize;
         if (generation != _reloadGeneration)
         {
             return;
+        }
+
+        foreach (var item in Notebooks.Where(item => item.Kind == NotebookKind.User))
+        {
+            item.NoteCount = notebookCounts.GetValueOrDefault(item.Id!);
         }
 
         var selectedId = preferredNoteId ?? SelectedNote?.Model.Id;
@@ -2038,8 +2046,25 @@ public sealed record NotebookListItem(
     string Name,
     NotebookKind Kind,
     string? GroupId = null,
-    int SortOrder = 0)
+    int SortOrder = 0) : INotifyPropertyChanged
 {
+    private int _noteCount;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public int NoteCount
+    {
+        get => _noteCount;
+        set
+        {
+            if (_noteCount == value) return;
+            _noteCount = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NoteCount)));
+        }
+    }
+
+    public bool ShowNoteCount => Kind == NotebookKind.User;
+
     public string DisplayName => Name;
 
     public double Indent => Kind switch

@@ -23,6 +23,8 @@ public sealed class ThemeService
         SetBrush("NavHoverBackgroundBrush", IsDark ? "#FF363B43" : "#FFE4E7EB");
         SetBrush("NavSelectedBackgroundBrush", IsDark ? "#FF234A3F" : "#FFD3F0E3");
         SetBrush("NavSelectedForegroundBrush", IsDark ? "#FF34D399" : "#FF007F55");
+        SetBrush("NotebookCountBackgroundBrush", IsDark ? "#FF272B31" : "#FFF1F3F5");
+        SetBrush("NotebookCountSelectedBackgroundBrush", IsDark ? "#FF2F5B4C" : "#FFBFE5D4");
         SetBrush("TextBrush", IsDark ? "#FFF2F4F7" : "#FF1F2328");
         SetBrush("MutedTextBrush", IsDark ? "#FFC4CAD1" : "#FF68717D");
         SetBrush("AccentBrush", IsDark ? "#FF34D399" : "#FF009467");

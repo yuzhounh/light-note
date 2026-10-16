@@ -84,6 +84,8 @@
         <SolidColorBrush x:Key="NavHoverBackgroundBrush" Color="#FFE4E7EB" />
         <SolidColorBrush x:Key="NavSelectedBackgroundBrush" Color="#FFD3F0E3" />
         <SolidColorBrush x:Key="NavSelectedForegroundBrush" Color="#FF007F55" />
+        <SolidColorBrush x:Key="NotebookCountBackgroundBrush" Color="#FFF1F3F5" />
+        <SolidColorBrush x:Key="NotebookCountSelectedBackgroundBrush" Color="#FFBFE5D4" />
         <SolidColorBrush x:Key="NewNoteButtonBrush" Color="#FFEAECEF" />
         <SolidColorBrush x:Key="NewNoteButtonHoverBrush" Color="#FFDFE3E8" />
         <SolidColorBrush x:Key="NewNoteButtonBorderBrush" Color="#FFD8DCE0" />

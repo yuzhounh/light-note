@@ -8,6 +8,7 @@ export function Sidebar({
   searchQuery = '',
   onSearchChange,
   notebooks,
+  notebookCounts = new Map(),
   currentNotebookId,
   currentView,
   onSelectNotebook,
@@ -207,32 +208,28 @@ export function Sidebar({
                       e.preventDefault()
                       setActiveActionNotebook(nb)
                     }}
-                    className={`notebook-row group flex items-center justify-between px-2 py-1 rounded-md text-[13px] cursor-pointer transition select-none ${
+                    className={`notebook-row group flex items-center justify-between gap-2 px-2 py-1 rounded-md text-[13px] cursor-pointer transition select-none ${
                       isActive
                         ? 'bg-[#d3f0e3] dark:bg-[#234a3f] text-[#007f55] dark:text-emerald-400 font-medium'
                         : 'text-zinc-600 dark:text-zinc-400 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43]'
                     }`}
                   >
-                    <div className="flex items-center gap-2 truncate">
+                    <div className="flex flex-1 min-w-0 items-center gap-2 truncate">
                       <Book size={14} className={isActive ? '' : 'text-zinc-400 shrink-0'} />
                       <span className="truncate">{nb.name}</span>
                     </div>
 
-                    {!isMobile && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (confirm(`确定删除笔记本“${nb.name}”？笔记仍会保留。`)) {
-                            onDeleteNotebook(nb.id)
-                          }
-                        }}
-                        className="btn-icon-compact opacity-0 group-hover:opacity-100 w-5 h-5 min-w-5 min-h-5 flex items-center justify-center hover:text-rose-500 rounded text-zinc-400 transition shrink-0"
-                        title="删除笔记本"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
+                    <span
+                      className={`notebook-count inline-flex shrink-0 items-center justify-center min-w-6 h-[22px] px-1.5 rounded-full font-normal tabular-nums ${
+                        isActive
+                          ? 'bg-[#bfe5d4] dark:bg-[#2f5b4c] text-[#007f55] dark:text-emerald-400'
+                          : 'bg-[#f1f3f5] dark:bg-[#272b31] text-zinc-500 dark:text-zinc-400'
+                      }`}
+                      title={`${notebookCounts.get(nb.id) || 0} 篇笔记`}
+                    >
+                      {notebookCounts.get(nb.id) || 0}
+                    </span>
+
                   </div>
                 )
               })}

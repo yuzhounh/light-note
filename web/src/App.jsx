@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { liveQuery } from 'dexie'
 import { NotesRepository } from './core/db/notesRepository'
 import { seedInitialData } from './core/db/database'
 import { syncService, subscribeSyncState, getSyncState } from './core/sync/syncService'
@@ -38,6 +39,7 @@ export function App() {
   
   // App state
   const [notebooks, setNotebooks] = useState([])
+  const [notebookCounts, setNotebookCounts] = useState(() => new Map())
   const [notes, setNotes] = useState([])
   const [activeNote, setActiveNote] = useState(null)
   const [currentNotebookId, setCurrentNotebookId] = useState(null)
@@ -103,6 +105,12 @@ export function App() {
     }
     init()
 
+    const notebookCountsSubscription = liveQuery(() => NotesRepository.getNotebookCounts())
+      .subscribe({
+        next: setNotebookCounts,
+        error: err => console.warn('Notebook counts could not be loaded:', err),
+      })
+
     // Subscribe to Firebase Google Auth state
     const unsubscribeAuth = subscribeAuth(user => {
       setCurrentUser(user)
@@ -115,6 +123,7 @@ export function App() {
     const unsubscribeDrafts = noteDrafts.subscribe(setSaveStatus)
 
     return () => {
+      notebookCountsSubscription.unsubscribe()
       unsubscribeAuth()
       unsubscribeSync()
       unsubscribeDrafts()
@@ -356,6 +365,7 @@ export function App() {
             <div className={`${isDesktop ? 'block' : 'hidden'} w-60 shrink-0 h-full`}>
               <Sidebar
                 notebooks={notebooks}
+                notebookCounts={notebookCounts}
                 currentNotebookId={currentNotebookId}
                 currentView={currentView}
                 onSelectNotebook={id => { setCurrentNotebookId(id); setCurrentView('all') }}
@@ -430,6 +440,7 @@ export function App() {
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}
                     notebooks={notebooks}
+                    notebookCounts={notebookCounts}
                     currentNotebookId={currentNotebookId}
                     currentView={currentView}
                     onSelectNotebook={id => { setCurrentNotebookId(id); setCurrentView('all'); setIsSidebarOpen(false) }}

@@ -59,6 +59,16 @@ async function trimVersions(noteId) {
 
 export const NotesRepository = {
   // --- Notebooks ---
+  async getNotebookCounts() {
+    const counts = new Map()
+    await db.notes.filter(note => !note.is_deleted && !note.purged_at).each(note => {
+      if (note.notebook_id) {
+        counts.set(note.notebook_id, (counts.get(note.notebook_id) || 0) + 1)
+      }
+    })
+    return counts
+  },
+
   async getAllNotebooks() {
     return await db.notebooks
       .filter(nb => !nb.deleted_at)
