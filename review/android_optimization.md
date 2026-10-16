@@ -9,12 +9,13 @@
 - Web 构建及 Android assembleRelease/lintRelease 通过；APK v2 签名与手机实际旧包一致。已通过 adb install -r 覆盖安装到 REDMI K80 Pro，安装包 SHA-256 与手机端读回一致，appId、数据目录及首次安装时间保持，应用已重新打开。未增加截图或额外界面巡查，由用户检查实际显示。
 - 此 APK 为 2.2.21 本地调整版，位于 artifacts/installers/LightNote-2.2.21-card-footer-dev.apk，安装与构建回执位于 tmp/card-footer-alignment/；网页卡片对齐随后已与浮动菜单一起部署，见下节。
 
-## 三栏网页卡片第四行对齐（2026-10-16）
+## 三栏网页卡片第四行对齐（2026-10-16，已完成）
 
 - 三栏第二列的笔记本名称仍靠近时间，是因为第四行内部的 `justify-between` 仅对 `isMobile || isTablet` 生效，曾为桌面悬停按钮保留空间。行内删除按钮移除后，该条件不再需要。
 - 现将三种布局统一为时间左对齐、笔记本标签右对齐，保留标签样式、长名称省略、日期宽度及单笔记本视图的隐藏规则。
 - 隔离 Chrome 在实际 578、878、1378 像素视口验证单栏、两栏、三栏，短/长名称的左右边缘误差均为 0，最小间距保持 8 像素。回执位于 `tmp/card-footer-desktop/layout-verification.json`。
-- 本次为现有 2.2.21 的网页布局增量，待生产构建和三平台部署后更新结果；不更改笔记数据、原生 Windows 程序或手机 APK。
+- 生产构建通过，功能提交 `3985901` 已推送。GitHub Pages `38855616245` 成功，Cloudflare Pages `cb97437b` 与 Firebase Hosting `lightnote-sync/light-note` 部署成功；三个入口的首页、主 JS/CSS、PWA 清单及 service worker 均与新构建核对一致，线上回执位于 `tmp/card-footer-desktop/verification.json`。
+- 本次为现有 2.2.21 的网页布局增量，不更改笔记数据、原生 Windows 程序或手机 APK；Netlify 继续跳过。随后仅文档提交同步发布回执，跳过重复构建。
 
 ## 网页浮动菜单与线上同步（2026-10-16，已完成）
 
