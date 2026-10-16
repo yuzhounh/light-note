@@ -445,14 +445,14 @@ export function NoteList({
                       </p>
                     </div>
 
-                    {/* Bottom part: Line 4 (Date on left, Notebook name with expanded width) */}
+                    {/* Touch cards use both ends; desktop keeps room for hover actions. */}
                     <div className={`note-card-footer flex items-center justify-between ${isAndroidApp ? 'text-[11px]' : 'text-xs'} text-zinc-400 font-sans ${cardStyle.footer}`}>
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className={`flex items-center gap-2 min-w-0 flex-1 ${isMobile || isTablet ? 'justify-between' : ''}`}>
                         <span className="shrink-0">{formatFullDate(sort.by === 'updated' ? note.updated_at : (note.created_at || note.updated_at))}</span>
 
                         {!isSingleNotebook && (
                           <span
-                            className={`truncate ${isAndroidApp ? 'text-[10px]' : 'text-[11px]'} px-1.5 py-0.5 rounded max-w-[200px] transition ${
+                            className={`min-w-0 truncate ${isAndroidApp ? 'text-[10px]' : 'text-[11px]'} px-1.5 py-0.5 rounded max-w-[200px] transition ${
                               isSelected
                                 ? 'bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
                                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
