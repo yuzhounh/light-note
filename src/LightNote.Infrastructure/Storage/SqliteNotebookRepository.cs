@@ -11,10 +11,17 @@ public sealed class SqliteNotebookRepository(SqliteConnectionFactory connectionF
         await using var connection = await connectionFactory.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, name, sort_order, created_at, updated_at, deleted_at
-            FROM notebooks
-            WHERE deleted_at IS NULL
-            ORDER BY sort_order, name COLLATE NOCASE;
+            SELECT b.id, b.name, b.sort_order, b.created_at, b.updated_at, b.deleted_at,
+                   COALESCE(c.note_count, 0)
+            FROM notebooks b
+            LEFT JOIN (
+                SELECT notebook_id, COUNT(*) AS note_count
+                FROM notes
+                WHERE deleted_at IS NULL AND purged_at IS NULL
+                GROUP BY notebook_id
+            ) c ON c.notebook_id = b.id
+            WHERE b.deleted_at IS NULL
+            ORDER BY b.sort_order, b.name COLLATE NOCASE;
             """;
 
         var notebooks = new List<Notebook>();
@@ -29,6 +36,7 @@ public sealed class SqliteNotebookRepository(SqliteConnectionFactory connectionF
                 CreatedAt = ParseUtc(reader.GetString(3)),
                 UpdatedAt = ParseUtc(reader.GetString(4)),
                 DeletedAt = reader.IsDBNull(5) ? null : ParseUtc(reader.GetString(5)),
+                NoteCount = reader.GetInt32(6),
             });
         }
 

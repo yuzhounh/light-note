@@ -17,7 +17,7 @@
   <a href="https://light-note.web.app/">在线体验</a> · <a href="https://github.com/yuzhounh/light-note/releases/latest">发布版本</a> · <a href="#开发">快速开始</a> · <a href="LICENSE">开源协议</a>
 </p>
 
-LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，支持毫秒级 SQLite FTS5 全文搜索、多级分组、KaTeX 数学公式、多版本历史记录、系统托盘常驻与可选的云端同步。当前版本为 **2.2.20**，Windows、Web 与 Android 版本号统一；[Release](https://github.com/yuzhounh/light-note/releases/tag/v2.2.20) 分别说明各平台的变更与验收范围。本版更新图片清晰度与固定显示尺寸、表格列宽操作，并修复 Windows 后台保存同步、回车跟随光标和软件来源名称显示。升级时保留原有数据库、附件和应用数据。
+LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，支持毫秒级 SQLite FTS5 全文搜索、多级分组、KaTeX 数学公式、多版本历史记录、系统托盘常驻与可选的云端同步。当前版本为 **2.2.21**，Windows、Web 与 Android 版本号统一；[更新日志](docs/CHANGELOG.md) 说明各平台的变更与验收范围。本版在各端笔记本列表增加右对齐的笔记数量，并将网页版删除笔记本操作统一到右键／长按菜单。升级时保留原有数据库、附件和应用数据。
 
 ## 在线访问
 

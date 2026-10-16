@@ -497,6 +497,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="24" />
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <Viewbox Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center">
                                         <Path Width="20" Height="20" Data="{Binding IconData}"
@@ -517,6 +518,34 @@
                                     </Viewbox>
                                     <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                    <Border Grid.Column="2" CornerRadius="11" MinWidth="24" Height="22"
+                                            Padding="6,0" Margin="8,0,0,0" VerticalAlignment="Center"
+                                            HorizontalAlignment="Right" IsHitTestVisible="False"
+                                            Visibility="{Binding ShowNoteCount, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{DynamicResource NotebookCountBackgroundBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource NotebookCountSelectedBackgroundBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding NoteCount}" FontWeight="Normal"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource NavSelectedForegroundBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
