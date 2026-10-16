@@ -17,6 +17,7 @@ public sealed class AttachmentService(
         "src\\s*=\\s*[\\\"'](?<url>https://lightnote\\.attachments/[^\\\"']+)[\\\"']",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     private readonly SemaphoreSlim _fileGate = new(1, 1);
+    private readonly SemaphoreSlim _importGate = new(1, 1);
 
     public async Task<AttachmentImportResult> ImportAsync(
         string noteId,
@@ -24,6 +25,26 @@ public sealed class AttachmentService(
         string declaredMimeType,
         byte[] content,
         CancellationToken cancellationToken = default)
+    {
+        // One worker bounds bitmap memory, while the caller remains free to edit and paint.
+        await _importGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await Task.Run(() => ImportCoreAsync(
+                noteId, fileName, declaredMimeType, content, cancellationToken), cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _importGate.Release();
+        }
+    }
+
+    private async Task<AttachmentImportResult> ImportCoreAsync(
+        string noteId,
+        string fileName,
+        string declaredMimeType,
+        byte[] content,
+        CancellationToken cancellationToken)
     {
         if (content.Length == 0 || content.Length > MaxImageBytes)
         {

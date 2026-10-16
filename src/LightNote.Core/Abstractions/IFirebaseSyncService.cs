@@ -30,4 +30,8 @@ public interface IFirebaseSyncService
     Task SignOutAsync(CancellationToken cancellationToken = default);
 
     Task<SyncResult> SyncAsync(CancellationToken cancellationToken = default);
+
+    Task<SyncResult> SyncTextAsync(CancellationToken cancellationToken = default);
+
+    Task<SyncResult> SyncAttachmentsAsync(CancellationToken cancellationToken = default);
 }

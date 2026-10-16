@@ -128,6 +128,72 @@ public sealed class FirebaseSyncTests : IDisposable
     }
 
     [Fact]
+    public async Task DelayedAttachmentUploadAllowsLocalImageEditing()
+    {
+        var (paths, factory, notes) = await CreateServicesAsync();
+        var note = CreateNote("Editing during upload", "local text");
+        await notes.UpsertAsync(note);
+        var attachments = new AttachmentService(paths, factory);
+        var image = await attachments.ImportAsync(note.Id, "capture.png", "image/png", OnePixelPng);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new RecordingFirebaseHandler
+        {
+            OnStorageUpload = () => { entered.TrySetResult(); return release.Task; },
+        };
+        var service = new FirebaseSyncService(paths, factory, new HttpClient(handler), new NullLogger());
+        await service.SignInAsync("test@example.com", "password123");
+        var sync = service.SyncAsync();
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            // Bound the failing reproduction to one second instead of freezing a UI for 30 seconds.
+            await using (var connection = await factory.OpenAsync())
+            await using (var command = connection.CreateCommand())
+            {
+                command.CommandTimeout = 1;
+                command.CommandText = "UPDATE attachments SET width = width WHERE note_id = $noteId;";
+                command.Parameters.AddWithValue("$noteId", note.Id);
+                Assert.Equal(1, await command.ExecuteNonQueryAsync());
+            }
+            await attachments.ImportAsync(note.Id, "another-capture.png", "image/png", OnePixelPng);
+            await attachments.ReconcileReferencesAsync(note.Id, $"<img src=\"https://lightnote.attachments/{image.RelativePath}\">");
+            await notes.UpsertAsync(note with { BodyText = "typed while uploading", UpdatedAt = DateTimeOffset.UtcNow });
+            Assert.Equal("typed while uploading", (await notes.GetAsync(note.Id))!.BodyText);
+            var textSync = await service.SyncTextAsync().WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Equal(1, textSync.Uploaded);
+            Assert.Contains(handler.CommittedBodies, body => body.Contains("typed while uploading", StringComparison.Ordinal));
+            Assert.False(sync.IsCompleted);
+        }
+        finally
+        {
+            release.TrySetResult();
+            await sync.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+    }
+
+    [Fact]
+    public async Task UploadUsesTheCompressedLocalAttachment()
+    {
+        var (paths, factory, notes) = await CreateServicesAsync();
+        var note = CreateNote("Compressed screenshot", "local text");
+        await notes.UpsertAsync(note);
+        var settings = new LightNote.Infrastructure.Settings.AppSettingsService(paths);
+        settings.Save(new LightNote.Infrastructure.Settings.AppSettings { CompressImages = true });
+        var original = ImageCompressorTests.CreateNoisyImage(1080, 2400, SkiaSharp.SKEncodedImageFormat.Png, 100);
+        var image = await new AttachmentService(paths, factory, settings).ImportAsync(note.Id, "capture.png", "image/png", original);
+        var saved = await File.ReadAllBytesAsync(Path.Combine(paths.AttachmentsDirectory, image.RelativePath));
+        Assert.True(saved.Length <= original.Length);
+        Assert.Equal(1080, image.Width);
+        Assert.Equal(2400, image.Height);
+        var handler = new RecordingFirebaseHandler();
+        var service = new FirebaseSyncService(paths, factory, new HttpClient(handler), new NullLogger());
+        await service.SignInAsync("test@example.com", "password123");
+        await service.SyncAsync();
+        Assert.Equal(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(saved)), Assert.Single(handler.StorageUploadHashes));
+    }
+
+    [Fact]
     public async Task SyncKeepsAttachmentQueuedWhenCloudStorageBucketNotFound()
     {
         var (paths, factory, notes) = await CreateServicesAsync();
@@ -318,10 +384,13 @@ public sealed class FirebaseSyncTests : IDisposable
         public List<string> CommittedBodies { get; } = [];
 
         public List<string> StorageUploads { get; } = [];
+        public List<string> StorageUploadHashes { get; } = [];
 
         public string? RemoteNoteResponse { get; init; }
 
         public bool StorageShouldReturnNotFound { get; init; }
+
+        public Func<Task>? OnStorageUpload { get; init; }
 
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
@@ -393,6 +462,9 @@ public sealed class FirebaseSyncTests : IDisposable
                     };
                 }
 
+                if (OnStorageUpload is not null) await OnStorageUpload();
+                StorageUploadHashes.Add(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
+                    await request.Content!.ReadAsByteArrayAsync(cancellationToken))));
                 StorageUploads.Add(url);
                 return JsonResponse("{}");
             }

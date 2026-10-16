@@ -223,8 +223,8 @@ public partial class NoteWindow : Window
                 throw new System.IO.InvalidDataException("图片消息缺少必要内容或超过 20 MB 限制。");
             }
 
-            var imported = await _attachmentService.ImportAsync(
-                _note.Id, fileName, mimeType, Convert.FromBase64String(base64));
+            var imported = await Task.Run(() => _attachmentService.ImportAsync(
+                _note.Id, fileName, mimeType, Convert.FromBase64String(base64)));
             var escapedPath = string.Join("/", imported.RelativePath.Split('/').Select(Uri.EscapeDataString));
             PostEditorMessage(new
             {
@@ -235,8 +235,8 @@ public partial class NoteWindow : Window
                     noteId = _note.Id,
                     id = imported.Id,
                     url = $"https://{AttachmentHostName}/{escapedPath}",
-                    imported.Width,
-                    imported.Height,
+                    width = imported.Width,
+                    height = imported.Height,
                 },
             });
         }

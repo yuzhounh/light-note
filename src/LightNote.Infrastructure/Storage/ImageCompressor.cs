@@ -3,18 +3,14 @@ using SkiaSharp;
 namespace LightNote.Infrastructure.Storage;
 
 /// <summary>
-/// 插入笔记的图片入库前压缩：手机截屏缩到 50% 宽度，其他图片长边最多 2560 像素；
-/// 照片重新编码为 JPEG，大的无透明 PNG 在更小时转为 WebP。无法处理或压缩后更大时保留原图。
+/// PNG/WebP 保留像素尺寸并使用无损编码；JPEG 照片长边最多 3200，编码质量 90。
+/// 小文件和无法处理的图片保留原文件；动图不重新编码。
 /// </summary>
 public static class ImageCompressor
 {
     private const int SkipBelowBytes = 200 * 1024;
-    private const int MaxLongEdge = 2560;
-    private const int PhoneScreenshotMaxWidth = 1500;
-    private const double PhoneScreenshotMinAspect = 1.9;
-    private const int JpegQuality = 82;
-    private const int WebpQuality = 85;
-    private const int PngToWebpThresholdBytes = 500 * 1024;
+    private const int MaxPhotoLongEdge = 3200;
+    private const int JpegQuality = 90;
 
     public static byte[] Compress(byte[] content)
     {
@@ -30,7 +26,8 @@ public static class ImageCompressor
 
     private static byte[]? CompressCore(byte[] content)
     {
-        if (content.Length < SkipBelowBytes)
+        var jpegHeader = content.Length >= 2 && content[0] == 0xff && content[1] == 0xd8;
+        if (content.Length < SkipBelowBytes && !jpegHeader)
         {
             return null;
         }
@@ -47,6 +44,8 @@ public static class ImageCompressor
         {
             return null;
         }
+        if (content.Length < SkipBelowBytes && Math.Max(codec.Info.Width, codec.Info.Height) <= MaxPhotoLongEdge)
+            return null;
 
         using var decoded = SKBitmap.Decode(codec);
         if (decoded is null)
@@ -54,12 +53,14 @@ public static class ImageCompressor
             return null;
         }
 
-        using var oriented = ApplyOrientation(decoded, codec.EncodedOrigin);
-        var scale = ComputeScale(oriented.Width, oriented.Height);
-        var hasAlpha = format != SKEncodedImageFormat.Jpeg && HasTransparency(oriented);
-
-        using var resized = scale < 1 ? Resize(oriented, scale) : null;
-        var source = resized ?? oriented;
+        using var oriented = codec.EncodedOrigin is SKEncodedOrigin.TopLeft or SKEncodedOrigin.Default
+            ? null : ApplyOrientation(decoded, codec.EncodedOrigin);
+        var upright = oriented ?? decoded;
+        var longEdge = Math.Max(upright.Width, upright.Height);
+        var scale = format == SKEncodedImageFormat.Jpeg && longEdge > MaxPhotoLongEdge
+            ? (double)MaxPhotoLongEdge / longEdge : 1;
+        using var resized = scale < 1 ? Resize(upright, scale) : null;
+        var source = resized ?? upright;
         using var image = SKImage.FromBitmap(source);
 
         byte[]? best = null;
@@ -69,65 +70,22 @@ public static class ImageCompressor
                 best = Encode(image, SKEncodedImageFormat.Jpeg, JpegQuality);
                 break;
             case SKEncodedImageFormat.Webp:
-                best = Encode(image, SKEncodedImageFormat.Webp, WebpQuality);
+                using (var pixmap = source.PeekPixels())
+                using (var encoded = pixmap.Encode(new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossless, 50)))
+                    best = encoded?.ToArray();
                 break;
             case SKEncodedImageFormat.Png:
                 best = Encode(image, SKEncodedImageFormat.Png, 100);
-                if (!hasAlpha && best.Length > PngToWebpThresholdBytes)
-                {
-                    var webp = Encode(image, SKEncodedImageFormat.Webp, WebpQuality);
-                    if (webp.Length < best.Length)
-                    {
-                        best = webp;
-                    }
-                }
-
                 break;
         }
 
-        return best is not null && best.Length < content.Length ? best : null;
-    }
-
-    private static double ComputeScale(int width, int height)
-    {
-        if (width <= 0 || height <= 0)
-        {
-            return 1;
-        }
-
-        var isPhoneScreenshot = height >= width * PhoneScreenshotMinAspect && width <= PhoneScreenshotMaxWidth;
-        if (isPhoneScreenshot)
-        {
-            return 0.5;
-        }
-
-        var longEdge = Math.Max(width, height);
-        return longEdge > MaxLongEdge ? (double)MaxLongEdge / longEdge : 1;
+        return best is not null && (scale < 1 || best.Length < content.Length) ? best : null;
     }
 
     private static byte[] Encode(SKImage image, SKEncodedImageFormat format, int quality)
     {
         using var encoded = image.Encode(format, quality);
         return encoded.ToArray();
-    }
-
-    private static bool HasTransparency(SKBitmap bitmap)
-    {
-        if (bitmap.AlphaType == SKAlphaType.Opaque)
-        {
-            return false;
-        }
-
-        var pixels = bitmap.Pixels;
-        foreach (var pixel in pixels)
-        {
-            if (pixel.Alpha < 255)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static SKBitmap Resize(SKBitmap source, double scale)

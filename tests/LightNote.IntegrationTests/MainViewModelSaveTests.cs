@@ -215,6 +215,38 @@ public sealed class MainViewModelSaveTests : IDisposable
         Assert.Equal("第二版", (await notes.GetAsync(note.Id))?.BodyText);
     }
 
+    [Fact]
+    public async Task NewTypingCancelsAnOlderDebouncedSaveWithoutReportingFailure()
+    {
+        var paths = new AppDataPaths(_testDirectory);
+        var connections = new SqliteConnectionFactory(paths);
+        var logger = new RecordingLogger();
+        await new SqliteDatabaseInitializer(connections, logger).InitializeAsync();
+        var notes = new SqliteNoteRepository(connections);
+        var note = CreateNote("连续编辑", DateTimeOffset.UtcNow);
+        await notes.UpsertAsync(note);
+        var repository = System.Reflection.DispatchProxy.Create<INoteRepository, BlockingSaveProxy>();
+        var proxy = (BlockingSaveProxy)repository;
+        proxy.Inner = notes;
+        var viewModel = new MainViewModel(repository, new SqliteNotebookRepository(connections), logger);
+        await viewModel.InitializeAsync();
+        proxy.BlockNextSave = true;
+        viewModel.ApplyEditorChange(note.Id, "{\"edit\":1}", "<p>第一版</p>", "第一版");
+        await proxy.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        viewModel.ApplyEditorChange(note.Id, "{\"edit\":2}", "<p>第二版</p>", "第二版");
+        proxy.Release.SetResult();
+        Assert.True(await viewModel.FlushAllAsync());
+        Assert.Equal("第二版", (await notes.GetAsync(note.Id))!.BodyText);
+        Assert.Empty(logger.Errors);
+    }
+
+    private sealed class RecordingLogger : IAppLogger
+    {
+        public List<string> Errors { get; } = [];
+        public void Info(string message) { }
+        public void Error(string message, Exception exception) => Errors.Add(message);
+    }
+
     public class BlockingSaveProxy : System.Reflection.DispatchProxy
     {
         public INoteRepository Inner { get; set; } = null!;

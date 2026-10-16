@@ -1448,15 +1448,19 @@ public sealed partial class MainViewModel(
             }
             snapshot = pending.Note;
             snapshotRevision = pending.Revision;
-            await noteRepository.UpsertAsync(snapshot, cancellationToken);
+            await Task.Run(() => noteRepository.UpsertAsync(snapshot, cancellationToken), cancellationToken);
             if (attachmentService is not null)
             {
                 try
                 {
-                    await attachmentService.ReconcileReferencesAsync(
+                    await Task.Run(() => attachmentService.ReconcileReferencesAsync(
                         snapshot.Id,
                         snapshot.BodyHtml,
-                        cancellationToken);
+                        cancellationToken), cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception exception)
                 {
@@ -1492,6 +1496,10 @@ public sealed partial class MainViewModel(
             }
 
             SortNotes();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // A newer draft or explicit flush superseded this debounced save.
         }
         catch (Exception exception)
         {

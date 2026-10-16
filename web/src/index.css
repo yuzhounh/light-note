@@ -354,11 +354,11 @@
 
 
 /* ---- 表格 ---- */
-.ProseMirror .tableWrapper { overflow-x: auto; margin: 14px 0; }
+.ProseMirror .tableWrapper { overflow-x: auto; max-width: 100%; margin: 14px 0; }
 .ProseMirror table {
   border-collapse: collapse;
   table-layout: fixed;
-  width: 100%;
+  max-width: none;
   margin: 0;
   overflow: hidden;
 }
@@ -377,6 +377,7 @@
 .dark .ProseMirror th { background: #27272a; }
 .ProseMirror td > p,
 .ProseMirror th > p { margin: 0; }
+.ProseMirror td, .ProseMirror th { overflow-wrap: anywhere; }
 .ProseMirror .selectedCell::after {
   content: "";
   position: absolute;
@@ -389,10 +390,10 @@
 .ProseMirror .column-resize-handle {
   position: absolute;
   top: 0;
-  right: -2px;
+  right: -1px;
   bottom: -2px;
   z-index: 3;
-  width: 4px;
+  width: 3px;
   background: #00b87a;
   pointer-events: none;
 }
@@ -428,6 +429,13 @@
 .table-bar button:hover { background: rgba(0, 0, 0, 0.06); }
 .dark .table-bar button:hover { background: rgba(255, 255, 255, 0.1); }
 .table-bar .table-bar-danger { color: #ef4444; }
+.table-width-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex-basis: 100%; padding: 4px; font-size: 12px; }
+.table-width-panel label { display: flex; align-items: center; gap: 5px; }
+.table-width-panel input { width: 80px; min-height: 30px; padding: 3px 6px; color: inherit; background: transparent; border: 1px solid #a1a1aa; border-radius: 5px; }
+.table-width-panel span { opacity: 0.7; }
+@media (pointer: coarse) {
+  .table-bar button, .table-width-panel input { min-height: 40px; }
+}
 
 /* APK typography and touch feedback; browser styling stays independent. */
 html.lightnote-android .note-title {

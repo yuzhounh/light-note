@@ -58,7 +58,7 @@ public partial class MainWindow : Window
     /// <summary>保存笔记后稍作等待（期间继续输入会重新计时）再上传，避免等满一分钟的定时同步。</summary>
     private readonly System.Windows.Threading.DispatcherTimer _postSaveSyncTimer = new()
     {
-        Interval = TimeSpan.FromSeconds(4),
+        Interval = TimeSpan.FromMilliseconds(350),
     };
     private DateTime _lastSyncStartedUtc = DateTime.MinValue;
     private readonly System.Windows.Threading.DispatcherTimer _layoutSaveTimer = new()
@@ -72,6 +72,12 @@ public partial class MainWindow : Window
     private bool _closingInProgress;
     private bool _notebookDialogOpen;
     private bool _syncInProgress;
+    private bool _syncAgain;
+    private bool _attachmentSyncInProgress;
+    private bool _attachmentSyncAgain;
+    private CancellationTokenSource _backgroundSyncCancellation = new();
+    private string _textSyncStatus = "文字待同步";
+    private string? _attachmentSyncStatus;
     private bool _windowLoaded;
     private AppSettings _settings;
 
@@ -163,6 +169,7 @@ public partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
+            _backgroundSyncCancellation.Cancel();
             _syncTimer.Stop();
             _postSaveSyncTimer.Stop();
             _layoutSaveTimer.Stop();
@@ -432,11 +439,11 @@ public partial class MainWindow : Window
                 throw new System.IO.InvalidDataException("图片消息缺少必要内容或超过 20 MB 限制。");
             }
 
-            var imported = await _attachmentService.ImportAsync(
+            var imported = await Task.Run(() => _attachmentService.ImportAsync(
                 noteId,
                 fileName,
                 mimeType,
-                Convert.FromBase64String(base64));
+                Convert.FromBase64String(base64)));
             var escapedPath = string.Join(
                 "/",
                 imported.RelativePath.Split('/').Select(Uri.EscapeDataString));
@@ -449,11 +456,12 @@ public partial class MainWindow : Window
                     noteId,
                     id = imported.Id,
                     url = $"https://{AttachmentHostName}/{escapedPath}",
-                    imported.Width,
-                    imported.Height,
+                    width = imported.Width,
+                    height = imported.Height,
                 },
             });
             _viewModel.EditorStatus = "图片已保存到本地";
+            _attachmentSyncAgain = true;
         }
         catch (Exception exception)
         {
@@ -2826,6 +2834,10 @@ public partial class MainWindow : Window
     {
         try
         {
+            _backgroundSyncCancellation.Cancel();
+            _backgroundSyncCancellation = new CancellationTokenSource();
+            _attachmentSyncStatus = null;
+            _textSyncStatus = "文字待同步";
             await _syncService.SignOutAsync();
             _syncTimer.Stop();
             _viewModel.SyncStatus = "登录同步";
@@ -2870,8 +2882,13 @@ public partial class MainWindow : Window
 
     private async Task RunSyncAsync(bool silent)
     {
-        if (_syncInProgress || _syncService.CurrentAccount is null)
+        if (_syncService.CurrentAccount is null)
         {
+            return;
+        }
+        if (_syncInProgress)
+        {
+            _syncAgain = true;
             return;
         }
 
@@ -2879,24 +2896,30 @@ public partial class MainWindow : Window
         _lastSyncStartedUtc = DateTime.UtcNow;
         try
         {
-            await CaptureEditorSnapshotAsync();
-            if (!await _viewModel.FlushAllAsync())
+            do
             {
-                throw new InvalidOperationException("仍有内容未能保存，已暂停同步。");
-            }
-
-            _viewModel.SyncStatus = "正在同步…";
-            var result = await _syncService.SyncAsync();
-            await _viewModel.RefreshAfterSyncAsync();
-            _viewModel.SyncStatus = result.Conflicts > 0
-                ? $"已同步 · {result.Conflicts} 个冲突副本"
-                : $"已同步 · {result.CompletedAt.ToLocalTime():HH:mm}";
-            ConfigureAccountPopup();
+                _syncAgain = false;
+                await CaptureEditorSnapshotAsync();
+                if (!await _viewModel.FlushAllAsync())
+                    throw new InvalidOperationException("仍有内容未能保存，已暂停同步。");
+                _textSyncStatus = "文字同步中…";
+                UpdateBackgroundSyncStatus();
+                var result = await _syncService.SyncTextAsync(_backgroundSyncCancellation.Token);
+                await _viewModel.RefreshAfterSyncAsync();
+                _textSyncStatus = result.Conflicts > 0
+                    ? $"文字已同步 · {result.Conflicts} 个冲突副本"
+                    : $"文字已同步 · {result.CompletedAt.ToLocalTime():HH:mm}";
+                UpdateBackgroundSyncStatus();
+                ConfigureAccountPopup();
+                _ = RunAttachmentSyncAsync();
+            } while (_syncAgain && !_backgroundSyncCancellation.IsCancellationRequested);
         }
+        catch (OperationCanceledException) { }
         catch (Exception exception)
         {
             _logger.Error("Firebase sync failed.", exception);
-            _viewModel.SyncStatus = "同步失败 · 将自动重试";
+            _textSyncStatus = "文字待同步 · 将自动重试";
+            UpdateBackgroundSyncStatus();
             if (!silent)
             {
                 MessageDialog.Show(this, $"同步失败：{exception.Message}", "LightNote",
@@ -2908,6 +2931,41 @@ public partial class MainWindow : Window
             _syncInProgress = false;
         }
     }
+
+    private async Task RunAttachmentSyncAsync()
+    {
+        if (_attachmentSyncInProgress || _syncService.CurrentAccount is null) return;
+        _attachmentSyncInProgress = true;
+        var accountId = _syncService.CurrentAccount.UserId;
+        try
+        {
+            do
+            {
+                _attachmentSyncAgain = false;
+                _attachmentSyncStatus = "图片同步中…";
+                UpdateBackgroundSyncStatus();
+                var result = await _syncService.SyncAttachmentsAsync(_backgroundSyncCancellation.Token);
+                if (_syncService.CurrentAccount?.UserId != accountId) return;
+                if (result.Downloaded > 0) await _viewModel.RefreshAfterSyncAsync();
+                _attachmentSyncStatus = result.PendingAttachments > 0 ? "图片待重试" : "图片已同步";
+                UpdateBackgroundSyncStatus();
+            } while (_attachmentSyncAgain && !_backgroundSyncCancellation.IsCancellationRequested);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception exception)
+        {
+            _logger.Error("Background attachment sync failed.", exception);
+            if (_syncService.CurrentAccount?.UserId == accountId)
+            {
+                _attachmentSyncStatus = "图片待重试";
+                UpdateBackgroundSyncStatus();
+            }
+        }
+        finally { _attachmentSyncInProgress = false; }
+    }
+
+    private void UpdateBackgroundSyncStatus() => _viewModel.SyncStatus =
+        _attachmentSyncStatus is null ? _textSyncStatus : $"{_textSyncStatus} · {_attachmentSyncStatus}";
 
     private void OnNoteListScrollChanged(object sender, ScrollChangedEventArgs e)
     {

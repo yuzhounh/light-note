@@ -66,13 +66,13 @@ public sealed class TitleEditingTests
                 Assert.Same(selected, vm.SelectedNote);
 
                 title.Text = "";
-                vm.FlushAllAsync().GetAwaiter().GetResult();
+                AwaitWithDispatcher(vm.FlushAllAsync());
                 vm.ChangeNoteSortAsync(byUpdated: false, descending: false).GetAwaiter().GetResult();
                 Drain();
                 Assert.Equal("", title.Text);
                 title.Text = "最终新标题";
                 title.Select(3, 0);
-                Assert.True(vm.FlushAllAsync().GetAwaiter().GetResult());
+                Assert.True(AwaitWithDispatcher(vm.FlushAllAsync()));
                 vm.RefreshAfterSyncAsync().GetAwaiter().GetResult();
                 Drain();
                 Assert.Equal("最终新标题", title.Text);
@@ -104,6 +104,11 @@ public sealed class TitleEditingTests
     }
 
     private static void Drain() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+    private static T AwaitWithDispatcher<T>(Task<T> task)
+    {
+        while (!task.IsCompleted) { Drain(); Thread.Sleep(1); }
+        return task.GetAwaiter().GetResult();
+    }
     private sealed class NullLogger : IAppLogger
     {
         public void Info(string message) { }
