@@ -471,10 +471,10 @@ html.lightnote-android.dark {
   --button-press-overlay: rgba(244, 63, 94, 0.18);
 }
 
-.lightnote-android .note-card-pressed {
+.note-card-pressed {
   background-color: #d3e9e0;
   transition-duration: 0s;
 }
-.lightnote-android.dark .note-card-pressed {
+.dark .note-card-pressed {
   background-color: #29473c;
 }
