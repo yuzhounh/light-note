@@ -69,10 +69,14 @@ public static class ClipboardSourceReader
             ? (uri.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? uri.Host[4..] : uri.Host)
             : url;
 
-    public static string FriendlyProcessName(string processName, string? fileDescription) =>
-        FriendlyNames.TryGetValue(processName, out var friendly)
+    public static string FriendlyProcessName(string processName, string? fileDescription)
+    {
+        var name = FriendlyNames.TryGetValue(processName, out var friendly)
             ? friendly
             : !string.IsNullOrWhiteSpace(fileDescription) ? fileDescription.Trim() : processName;
+        // Only application labels pass here; keep document suffixes and URL labels intact.
+        return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
+    }
 
     /// <summary>必须在 UI 线程调用。读不到来源时返回 null。</summary>
     public static ClipboardSource? TryRead()

@@ -24,8 +24,17 @@ internal static class NativeUiTestRunner
                 case "title-editing":
                     new TitleEditingTests().RefreshAndSavePreserveTheTitleTextAndCaret();
                     break;
+                case "image-paste":
+                    new ImagePasteResponsivenessTests().PasteScreenshotsWhileContinuingToType();
+                    break;
+                case "table-sizing":
+                    new TableSizingTests().VerifyTableSizing();
+                    break;
+                case "caret-scrolling":
+                    new CaretScrollingTests().VerifyCaretScrolling();
+                    break;
                 default:
-                    throw new ArgumentException("Specify message-dialog, sidebar, window-controls or title-editing.");
+                    throw new ArgumentException("Specify message-dialog, sidebar, window-controls, title-editing, image-paste, table-sizing or caret-scrolling.");
             }
             Console.WriteLine($"Native UI verification passed: {args[0]}");
             return 0;

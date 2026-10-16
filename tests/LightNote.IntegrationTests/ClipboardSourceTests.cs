@@ -30,6 +30,16 @@ public sealed class ClipboardSourceTests
     [InlineData("chrome", "Google Chrome", "Chrome")]
     [InlineData("SomeTool", "Some Tool Pro", "Some Tool Pro")]
     [InlineData("SomeTool", null, "SomeTool")]
+    [InlineData("SnippingTool", "SnippingTool.exe", "SnippingTool")]
+    [InlineData("SnippingTool", " SnippingTool.EXE ", "SnippingTool")]
+    [InlineData("SomeTool.exe", null, "SomeTool")]
+    [InlineData("SomeTool", "Paint.NET", "Paint.NET")]
+    [InlineData("SomeTool", "研究方案.docx", "研究方案.docx")]
+    [InlineData("SomeTool", "论文.pdf", "论文.pdf")]
+    [InlineData("SomeTool", "report.exe.docx", "report.exe.docx")]
+    [InlineData("SomeTool", "example.com", "example.com")]
+    [InlineData("SomeTool", "script.ps1", "script.ps1")]
+    [InlineData("SomeTool", "tool.exe helper", "tool.exe helper")]
     public void ProcessNamesAreMadeReadable(string process, string? description, string expected) =>
         Assert.Equal(expected, ClipboardSourceReader.FriendlyProcessName(process, description));
 }

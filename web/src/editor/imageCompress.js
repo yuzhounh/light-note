@@ -1,14 +1,11 @@
 // 插入图片前压缩，规则与桌面端一致：
-// 手机截屏缩到 50% 宽度，其他图片长边最多 2560 像素；照片转 JPEG，大的无透明 PNG 在更小时转 WebP。
-// 无法处理、动图或压缩后更大时保留原图。
+// PNG/WebP 截图保留原文件和像素尺寸；JPEG 照片长边最多 3200、质量 90。
+// 无法处理、动图或没有体积收益时保留原图；超大 JPEG 始终应用尺寸上限。
+import { initialImageSize } from '../../../editor/src/imageSizing.js'
 
 const SKIP_BELOW_BYTES = 200 * 1024
-const MAX_LONG_EDGE = 2560
-const PHONE_SCREENSHOT_MAX_WIDTH = 1500
-const PHONE_SCREENSHOT_MIN_ASPECT = 1.9
-const JPEG_QUALITY = 0.82
-const WEBP_QUALITY = 0.85
-const PNG_TO_WEBP_THRESHOLD_BYTES = 500 * 1024
+const MAX_LONG_EDGE = 3200
+const JPEG_QUALITY = 0.90
 
 function readAsDataUrl(blob) {
   return new Promise((resolve, reject) => {
@@ -20,9 +17,6 @@ function readAsDataUrl(blob) {
 }
 
 function computeScale(width, height) {
-  if (height >= width * PHONE_SCREENSHOT_MIN_ASPECT && width <= PHONE_SCREENSHOT_MAX_WIDTH) {
-    return 0.5
-  }
   const longEdge = Math.max(width, height)
   return longEdge > MAX_LONG_EDGE ? MAX_LONG_EDGE / longEdge : 1
 }
@@ -31,21 +25,13 @@ function canvasToBlob(canvas, type, quality) {
   return new Promise(resolve => canvas.toBlob(blob => resolve(blob && blob.type === type ? blob : null), type, quality))
 }
 
-function hasTransparency(ctx, width, height) {
-  const { data } = ctx.getImageData(0, 0, width, height)
-  for (let i = 3; i < data.length; i += 4) {
-    if (data[i] < 255) return true
-  }
-  return false
-}
-
 async function compressBlob(file) {
-  if (file.size < SKIP_BELOW_BYTES) return null
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return null
+  if (file.type !== 'image/jpeg') return null
 
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
   try {
     const scale = computeScale(bitmap.width, bitmap.height)
+    if (file.size < SKIP_BELOW_BYTES && scale === 1) return null
     const width = Math.max(1, Math.round(bitmap.width * scale))
     const height = Math.max(1, Math.round(bitmap.height * scale))
     const canvas = document.createElement('canvas')
@@ -54,24 +40,11 @@ async function compressBlob(file) {
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     ctx.imageSmoothingQuality = 'high'
 
-    let best = null
-    if (file.type === 'image/jpeg') {
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, width, height)
-      ctx.drawImage(bitmap, 0, 0, width, height)
-      best = await canvasToBlob(canvas, 'image/jpeg', JPEG_QUALITY)
-    } else if (file.type === 'image/webp') {
-      ctx.drawImage(bitmap, 0, 0, width, height)
-      best = await canvasToBlob(canvas, 'image/webp', WEBP_QUALITY)
-    } else {
-      ctx.drawImage(bitmap, 0, 0, width, height)
-      best = await canvasToBlob(canvas, 'image/png')
-      if (best && best.size > PNG_TO_WEBP_THRESHOLD_BYTES && !hasTransparency(ctx, width, height)) {
-        const webp = await canvasToBlob(canvas, 'image/webp', WEBP_QUALITY)
-        if (webp && webp.size < best.size) best = webp
-      }
-    }
-    return best && best.size < file.size ? best : null
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(bitmap, 0, 0, width, height)
+    const best = await canvasToBlob(canvas, 'image/jpeg', JPEG_QUALITY)
+    return best && (scale < 1 || best.size < file.size) ? best : null
   } finally {
     bitmap.close()
   }
@@ -85,4 +58,15 @@ export async function imageFileToDataUrl(file) {
   } catch {
     return readAsDataUrl(file)
   }
+}
+
+export async function imageFileToImageAttributes(file) {
+  const src = await imageFileToDataUrl(file)
+  const image = new window.Image()
+  const dimensions = await new Promise(resolve => {
+    image.onload = () => resolve([image.naturalWidth, image.naturalHeight])
+    image.onerror = () => resolve([0, 0])
+    image.src = src
+  })
+  return { src, ...initialImageSize(...dimensions, window.devicePixelRatio || 1) }
 }

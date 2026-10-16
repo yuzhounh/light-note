@@ -75,18 +75,19 @@ test('image preset and manual widths survive snapshots and reopening', async t =
   const editor = await app.load('<p>图片</p><img src="https://lightnote.attachments/test.png" data-attachment-id="test" width="100%">')
   editor.commands.setNodeSelection(editor.state.doc.child(0).nodeSize)
   await delay(30)
-  app.window.document.querySelector('[title="75% 宽度"]').click()
+  app.window.document.querySelector('[title="75% 默认宽度"]').click()
   await delay(250)
-  assert.equal(editor.getJSON().content.find(n => n.type === 'image').attrs.width, '75%')
+  assert.equal(editor.getJSON().content.find(n => n.type === 'image').attrs.width, '810px')
   const saved = app.messages.findLast(m => m.type === 'note.changed')?.payload
-  assert.match(saved?.html || '', /width="75%"/)
+  assert.match(saved?.html || '', /width="810px"/)
+  assert.match(saved.html, /data-image-base-width="1080"/)
   await app.load('<p>其他</p>', 'note-2')
   await app.load(saved.html)
-  assert.equal(editor.getJSON().content.find(n => n.type === 'image').attrs.width, '75%')
+  assert.equal(editor.getJSON().content.find(n => n.type === 'image').attrs.width, '810px')
   editor.commands.setNodeSelection(editor.state.doc.child(0).nodeSize)
   await delay(30)
-  app.window.document.querySelector('[title="50% 宽度"]').click()
-  assert.equal(editor.getJSON().content.find(n => n.type === 'image').attrs.width, '50%')
+  app.window.document.querySelector('[title="50% 默认宽度"]').click()
+  assert.equal(editor.getJSON().content.find(n => n.type === 'image').attrs.width, '540px')
   const wrapper = app.window.document.querySelector('.resizable-image-wrapper')
   Object.defineProperty(wrapper, 'offsetWidth', { value: 300 })
   Object.defineProperty(wrapper.parentElement, 'offsetWidth', { value: 900 })
@@ -99,6 +100,19 @@ test('image preset and manual widths survive snapshots and reopening', async t =
   await app.load('<p>其他</p>', 'note-2')
   await app.load(manual.html)
   assert.equal(editor.getJSON().content.find(n => n.type === 'image').attrs.width, '327px')
+})
+
+test('reopened old defaults use 1080 or 360 while manually chosen widths remain unchanged', async t => {
+  const app = await openEditor(t)
+  await app.load('<p>已有图片</p>' + [
+    '<img src="https://lightnote.attachments/wide.png" width="720px" data-image-base-width="720" data-image-width-preset="100%" data-image-pixel-width="2160" data-image-pixel-height="1080">',
+    '<img src="https://lightnote.attachments/phone.png" width="360px" data-image-base-width="360" data-image-width-preset="100%" data-image-pixel-width="1080" data-image-pixel-height="2400">',
+    '<img src="https://lightnote.attachments/adjusted.png" width="540px" data-image-base-width="720" data-image-width-preset="75%">',
+    '<img src="https://lightnote.attachments/dragged.png" width="327px">',
+    '<img src="https://lightnote.attachments/manual.png" width="720px" data-image-base-width="720" data-image-width-preset="100%" data-image-width-mode="manual">',
+  ].join(''))
+  const widths = [...app.window.document.querySelectorAll('.resizable-image-wrapper')].map(element => element.style.width)
+  assert.deepEqual(widths, ['1080px', '360px', '540px', '327px', '720px'])
 })
 
 test('table controls work with and without images in the note', async t => {
