@@ -1,5 +1,16 @@
 # LightNote 当前正式版本发布
 
+## V2.2.22（2026-10-16，发布中）
+
+整理 2.2.21 之后的网页卡片对齐、浮动菜单与手机删除入口规则，统一 Windows/Web/Android 版本号为 2.2.22；Android code 28，高于现有本地 code 27。保留笔记本数量标记和既有原生 Windows 界面，不加入新的数据迁移。
+
+- 当前生产功能源码与此前已验证的卡片、菜单版本相同；复用既有隔离浏览器单/双/三栏布局及右键、长按、关闭、防误触检查。本次重新执行的 34 项 Web 测试通过，生产构建、Android assembleRelease/lintRelease 通过。
+- Windows 自包含包、安装器、便携 ZIP、APK 和 SHA-256 清单将按本次正式源码提交生成，并核对包内容与远端摘要。Android 保持原签名，支持覆盖升级。
+- 部署仅面向 GitHub Pages、Cloudflare Pages light-note 和 Firebase Hosting lightnote-sync/light-note。Vercel/Netlify 原名属于第三方；不调用 Netlify，继续遵守暂停及每项目滚动 168 小时限制。
+- 发布后新增 V2.2.22 开发记录，并为原网页增量条目追加已汇总正式发布说明，保留原内容。具体源码、发布链接、CI、资源校验和同步回执在完成后更新。
+
+## 既有版本及客户端更新记录（历史）
+
 正式版本：2.2.20，已于 2026-10-16 11:29（Asia/Shanghai）发布。整理 2.2.19 之后已实现的图片清晰度与尺寸、表格列宽、后台保存同步、回车跟随、底部留白和软件来源名称清理；源码与发布范围见 docs/CHANGELOG.md 的 V2.2.20。
 
 ## 验证
@@ -40,3 +51,11 @@
 - 已核对 Firebase 正式网页主脚本 `index-DzSSFGFO.js` 与当前构建 SHA-256 一致，行内删除标记已移除。JSX 语法及详情删除入口保留检查通过。
 - `lightnote-dev-v2-2-20` 原有标题字段和正文首个 H1 完全重复。仅移除正文首个重复 H1，同步修正 HTML、JSON 和纯文本；标题、创建时间、笔记本归属及后续 11 个正文块保持。原内容存入历史版本；当前笔记 Version=2、Clean、outbox=0，文字同步 Uploaded=1、Downloaded=0、Conflicts=0。
 - 单篇修正及线上核对回执位于 `tmp/fix-note-title/`。这是既有笔记内容修正，没有修改编辑器的通用标题渲染规则；未卸载客户端、清除数据或再次覆盖安装 APK。
+
+## 本地客户端同步（2026-10-16，已完成）
+
+- 用户要求将最近几次网页布局和入口调整同步到本地桌面端及手机端，并覆盖安装 APK、保留数据。仍为 2.2.21 本地增量，Android versionCode 提升到 27；未执行网页部署、GitHub 发布或项目快照。
+- Windows 原生列表已经右对齐笔记本标签并使用上下文菜单，本次保留原生行为，重新构建嵌入编辑器和自包含程序，版本 `2.2.21+4dbe24e`。先触发保存、确认没有恢复草稿，再用 Restart Manager 正常关闭（不强制结束）；替换前后 109 篇笔记、3 个笔记本、27 条附件记录、附件文件清单及登录会话哈希一致。
+- 原入口 `artifacts/development/current/win-x64/LightNote.exe` 已更新并以 `--background` 恢复托盘后台状态，运行 PID 22816；原快捷方式、参数及数据目录保持。待更新构建源位于 `artifacts/development/pending/client-sync-20261016/win-x64/`。
+- REDMI K80 Pro（1999ffe8）已 `adb install -r` 覆盖升级至 2.2.21/code 27，实际旧包与新包证书一致，安装后 APK 读回哈希与构建相同；应用启动 Status=ok，运行 PID 14043。appId=10385、dataDir=/data/user/0/com.lightnote.app、首次安装时间 2026-10-07 18:33:08 均保持，未卸载或清除数据。
+- Android APK 内 69 个网页文件与当前构建逐项匹配；Windows 和 Android 构建、Android lint 与 v2 签名检查均通过。APK 位于 `artifacts/android/2.2.21/LightNote-2.2.21-code27.apk`，SHA-256：`73C726BE41BFB0FF577A78D26BC39D790F9419C328D0B02745941C9D9B3E8C32`。详细回执位于 `tmp/client-sync-20261016/`。
