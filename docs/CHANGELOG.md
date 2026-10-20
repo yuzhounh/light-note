@@ -9,6 +9,8 @@
 * Windows 笔记本列表使用稳定身份，数量刷新后保持选择及相应笔记列表。
 * Windows、Web 与 Android 版本统一为 2.2.23，Android 构建号 30。Windows 提供完整自包含安装包和便携版，Android 沿用应用 ID 与原签名；升级继续使用现有笔记、附件、设置和登录数据。
 
+[v2.2.23 正式版](https://github.com/yuzhounh/light-note/releases/tag/v2.2.23) 已于 2026-10-20 13:53（Asia/Shanghai）公开并设为 latest，标签对应源码 fc448b3。Windows 安装包、便携版、Android APK 与 SHA-256 清单四项远端资产均核对一致；Windows CI 和 Pages 成功。详情见[发布记录](release_status.md)。
+
 ### V2.2.22 (2026-10-16)
 
 * 单栏、双栏、三栏网页版的笔记卡片第四行统一为日期时间左对齐、笔记本名称标签右对齐；保留标签样式和日期宽度，长名称省略，单笔记本视图隐藏重复名称。Android 同步相同行为。
