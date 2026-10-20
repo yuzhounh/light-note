@@ -1,5 +1,15 @@
 # LightNote 当前正式版本发布
 
+## 2.2.23 日常增量：链接、笔记本切换与手机同步（2026-10-20）
+
+- 正式 GitHub v2.2.23 标签及资产保持原样。后续增量源码为 `3ac297de59e032a322574a9396d3142147875a29`，Windows 日常构建为 `2.2.23+bfe3f9058fe78ca572abbc38ef0bc35e917c422e`；不将日常增量误记为新的正式 Release。
+- Markdown 导入解析安全链接并保持代码片段原样；修正切换笔记本后桌面详情仍保留旧笔记的问题。4 篇开发记录的 10 处旧链接已修正并同步，云端两条代表记录复读确认无原样 Markdown 链接。导入相关 11 项、笔记本选择相关 2 项检查通过；Web 既有 40 项及后续同步 23 项检查通过。
+- Windows 完整程序于 18:26 在没有运行进程时安装到原 `artifacts/development/current/win-x64`；629 个程序文件、62 个编辑器资源验证通过，数据库、附件、设置、登录及恢复数据校验保持。既有桌面快捷方式和 `scripts/run-dev.ps1` 继续使用原日常入口；用户随后确认桌面链接问题已解决。本次没有再次重启或替换 Windows。
+- 手机与手机网页的同步状态位于主界面 LightNote 右侧；移除汉堡菜单中的同步信息。主列表顶部下拉触发同步，编辑区不触发；同步异常可点击查看原因。完整同步必须取得服务器记录，缓存结果不能显示“已同步”；Android 使用长轮询兼容连接。保留原有笔记本手动排序及 `sortOrder` 同步，没有强制字母排序。
+- Android 已覆盖安装 2.2.23/code 35，APK：`artifacts/android/2.2.23/LightNote-2.2.23-code35.apk`，SHA-256 `9619e2f45072e5abe72c6e1840089bca3f555acd4ac4d25baea4d75b0d4f1ceb`。构建、lint 和同签名检查通过，设备实际包哈希一致；appId=10385、数据目录及首次安装时间保持，账号仍登录，未卸载或清除数据。
+- **手机链接问题仍未完成验收**：设备仍显示旧 V2.2.22 正文，缺少新 V2.2.23 记录；实际同步返回 `Failed to get documents from server`。长轮询调整后仍有相同错误，不能将 APK 安装成功或旧缓存读取视为问题已解决。待区分手机网络访问 Firebase 与应用内连接失败；不重写笔记、不退出账号或清除缓存来掩盖问题。
+- GitHub Pages 工作流 `39412162739`、Cloudflare Pages 部署 `a76e6f53` 和 Firebase Hosting 已发布增量。三个原网页入口的首页、主 JS/CSS、PWA 均与各自根路径或子路径构建核对一致；这不代表手机云同步已通过。继续跳过第三方 Vercel/Netlify。安装、云端复读及线上核对见 `tmp/link-navigation-update/`、`tmp/sync-header-update/`。
+
 ## V2.2.23：表格宽度快捷操作（2026-10-20，Windows / Web / Android 已更新）
 
 [GitHub v2.2.23 正式版](https://github.com/yuzhounh/light-note/releases/tag/v2.2.23) 已于 2026-10-20 13:53（Asia/Shanghai）公开并设为 latest，非预发布；标签指向完整源码 `fc448b3f9500c58f107d0892772f625a2fdb8e15`。[Windows CI](https://github.com/yuzhounh/light-note/actions/runs/39376874730) 与 [Pages](https://github.com/yuzhounh/light-note/actions/runs/39376874742) 成功。Core 1 项、Integration 99 项、编辑器 41 项及更新后的原生表格检查通过；CI 同时完成既有七组原生宿主检查。安装 EXE、便携 ZIP、Android code 30 APK 和 SHA256SUMS-2.2.23.txt 均已上传，GitHub 计算的四个资产 SHA-256 及大小与本地一致；便携 ZIP 内 629 个文件与正式发布目录逐项匹配，不含笔记数据库、设置或登录数据。交付位于 `artifacts/installers/`，Windows 发布目录为 `artifacts/releases/2.2.23/win-x64/`，核验回执见 `tmp/release-2.2.23/`。
