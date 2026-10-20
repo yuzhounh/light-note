@@ -282,6 +282,19 @@ export function Sidebar({
             </button>
           </div>
 
+          {currentUser && (
+            <button type="button" onClick={onSync}
+              className="flex items-center gap-2 min-h-[44px] px-2 text-left rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 cursor-pointer">
+              <RefreshCw size={16} className={`shrink-0 ${syncStatus?.status === 'syncing' ? 'animate-spin' : ''}`} />
+              <span className="text-xs break-words min-w-0">
+                {syncStatus?.status === 'syncing' ? '正在同步…'
+                  : syncStatus?.status === 'error' ? `同步异常：${syncStatus.error || '点击重试'}`
+                  : syncStatus?.lastSyncedAt ? `已同步 (${new Date(syncStatus.lastSyncedAt).toLocaleTimeString()}) · 点击同步`
+                  : '立即同步'}
+              </span>
+            </button>
+          )}
+
           {/* Row 2: 账号/设置 */}
           {currentUser ? (
             <div className="flex items-center justify-between gap-2 min-h-[48px] px-1 border-t border-zinc-100 dark:border-zinc-800/80 pt-1">
