@@ -8,7 +8,7 @@ import { TableMap } from '@tiptap/pm/tables'
 import { closeHistory } from '@tiptap/pm/history'
 import StarterKit from '@tiptap/starter-kit'
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table'
-import { createSizedTable, createTableSizing, tableContext } from './tableSizing.js'
+import { createSizedTable, createTableSizing } from './tableSizing.js'
 import { MarkdownGate } from './markdownGate.js'
 import { insertSourceLine } from './pasteSource.js'
 import Image from '@tiptap/extension-image'
@@ -17,6 +17,7 @@ import katex from 'katex'
 import { ATTACHMENT_HOST, createPasteProps, isLikelyMath } from './clipboard.js'
 import { EditingKeys, currentTextStyle, selectionForMarginClick, scrollCaretIntoBodyView } from './editorBehavior.js'
 import { applyNoteContent, clearDocument } from './noteDocument.js'
+import { createCodeBlockSelection } from './codeBlockSelection.js'
 import { imageLayout, imageSizingAttributes, initialImageSize, presetImageSize } from './imageSizing.js'
 import './style.css'
 
@@ -720,13 +721,11 @@ function EditorApp() {
   const recordPasteSourceRef = useRef(false)
   const pendingSourceRef = useRef(null)
   const [tableBar, setTableBar] = useState(null)
-  const [columnPanel, setColumnPanel] = useState(false)
-  const [columnWidth, setColumnWidth] = useState('')
-  const columnStateRef = useRef('')
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ link: false, underline: false, codeBlock: { enableTabIndentation: true, tabSize: 4 } }),
+      createCodeBlockSelection(Extension),
       MarkdownGate.configure({ isEnabled: () => markdownAutoFormatRef.current }),
       SizedTable, TableRow, TableHeader, TableCell, TableSizing,
       Underline,
@@ -830,7 +829,6 @@ function EditorApp() {
     const update = () => {
       if (!editor.isEditable || !editor.isActive('table')) {
         setTableBar(prev => (prev ? null : prev))
-        setColumnPanel(false)
         return
       }
       const node = editor.view.domAtPos(editor.state.selection.from).node
@@ -840,16 +838,8 @@ function EditorApp() {
         return
       }
       const rect = element.getBoundingClientRect()
-      const context = tableContext(editor.state, TableMap)
-      if (!context) return
       const height = document.querySelector('.table-bar')?.offsetHeight || 36
-      setTableBar({ left: Math.max(rect.left, 8), top: Math.max(rect.top - height - 6, 8),
-        col: context.col, total: context.widths.reduce((sum, width) => sum + width, 0) })
-      const signature = `${context.pos}/${context.col}/${context.widths[context.col]}`
-      if (columnStateRef.current !== signature) {
-        columnStateRef.current = signature
-        setColumnWidth(String(context.widths[context.col]))
-      }
+      setTableBar({ left: Math.max(rect.left, 8), top: Math.max(rect.top - height - 6, 8) })
     }
     editor.on('selectionUpdate', update)
     editor.on('update', update)
@@ -864,7 +854,7 @@ function EditorApp() {
       window.removeEventListener('scroll', update, true)
       window.removeEventListener('resize', update)
     }
-  }, [editor, columnPanel])
+  }, [editor])
 
   const tableActions = [
     ['上方加行', 'addRowBefore'], ['下方加行', 'addRowAfter'], ['删除行', 'deleteRow'],
@@ -986,7 +976,12 @@ function EditorApp() {
         orderedList: () => editor.chain().focus().toggleOrderedList().run(),
         blockquote: () => editor.chain().focus().toggleBlockquote().run(),
         codeBlock: () => editor.chain().focus().toggleCodeBlock().run(),
-        insertTable: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+        insertTable: () => {
+          if (Number.isInteger(value?.rows) && value.rows >= 1 && value.rows <= 100 &&
+              Number.isInteger(value?.cols) && value.cols >= 1 && value.cols <= 30) {
+            editor.chain().focus().insertTable({ rows: value.rows, cols: value.cols, withHeaderRow: true }).run()
+          }
+        },
         inlineMath: () => {
           const { state } = editor
           const { from, to } = state.selection
@@ -1018,6 +1013,7 @@ function EditorApp() {
           const pad = n => String(n).padStart(2, '0')
           const timestamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
           editor.chain().focus().insertContent(timestamp).run()
+          editor.commands.splitBlock()
           editor.commands.splitBlock()
         },
         focus: () => {
@@ -1204,16 +1200,11 @@ function EditorApp() {
         <div
           className="table-bar"
           style={{ left: tableBar.left, top: tableBar.top }}
-          onMouseDown={event => { if (!event.target.closest('input')) event.preventDefault() }}
+          onMouseDown={event => event.preventDefault()}
         >
-          <button type="button" onClick={() => {
-            if (!columnPanel) {
-              const context = tableContext(editor.state, TableMap)
-              if (context) setColumnWidth(String(context.widths[context.col]))
-            }
-            setColumnPanel(value => !value)
-          }} aria-expanded={columnPanel}>列宽</button>
           <button type="button" onClick={() => editor.chain().focus().equalizeTableColumns().run()}>平均分配</button>
+          <button type="button" onClick={() => editor.chain().focus().resetTableWidth().run()}>重置表宽</button>
+          <button type="button" onClick={() => editor.chain().focus().standardizeTableColumns().run()}>统一列宽</button>
           {tableActions.map(([label, command]) => (
             <button
               key={command}
@@ -1226,23 +1217,6 @@ function EditorApp() {
               {label}
             </button>
           ))}
-          {columnPanel && (
-            <div className="table-width-panel">
-              <label>第 {tableBar.col + 1} 列
-                <input type="number" min="80" step="1" aria-label="当前列宽" value={columnWidth}
-                  onChange={event => setColumnWidth(event.target.value)}
-                  onKeyDown={event => {
-                    event.stopPropagation()
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      editor.chain().focus().setTableColumnWidth(Number(columnWidth)).run()
-                    } else if (event.key === 'Escape') setColumnPanel(false)
-                  }} /> px
-              </label>
-              <button type="button" onClick={() => editor.chain().focus().setTableColumnWidth(Number(columnWidth)).run()}>应用列宽</button>
-              <span>总宽 {tableBar.total}px · 拖动分隔线调整</span>
-            </div>
-          )}
         </div>
       )}
       {mathModal && (
