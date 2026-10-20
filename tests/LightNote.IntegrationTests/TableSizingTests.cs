@@ -110,20 +110,24 @@ public sealed class TableSizingTests
                 })()
                 """));
             await Task.Delay(30);
-            await web.CoreWebView2.ExecuteScriptAsync("[...document.querySelectorAll('.table-bar button')].find(b => b.textContent === '列宽').click()");
-            await Task.Delay(30);
             Assert.Equal("true", await CheckedScriptAsync(web, """
                 (() => {
-                  const input = document.querySelector('.table-width-panel input');
-                  if (!input) throw new Error('No numeric width control');
-                  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '135');
-                  input.dispatchEvent(new Event('input', { bubbles: true }));
+                  const buttons = [...document.querySelectorAll('.table-bar button')];
+                  if (document.querySelector('.table-width-panel') || buttons.some(b => b.textContent === '列宽')) throw new Error('Numeric width control remains');
+                  const reset = buttons.find(b => b.textContent === '重置表宽');
+                  const uniform = buttons.find(b => b.textContent === '统一列宽');
+                  if (!reset || !uniform || reset.hasAttribute('title') || uniform.hasAttribute('title')) throw new Error('Width actions missing or have tooltips');
+                  document.querySelector('.tiptap').editor.commands.equalizeTableColumns();
+                  uniform.click();
                   return true;
                 })()
                 """));
             await Task.Delay(30);
-            await web.CoreWebView2.ExecuteScriptAsync("[...document.querySelectorAll('.table-width-panel button')].find(b => b.textContent === '应用列宽').click()");
+            Assert.Equal("true", await web.CoreWebView2.ExecuteScriptAsync("JSON.stringify(tableProbeWidths()) === '[225,225,225]' && document.querySelector('.tiptap').editor.getJSON().content[0].attrs.tableWidth === 675"));
+            await web.CoreWebView2.ExecuteScriptAsync("[...document.querySelectorAll('.table-bar button')].find(b => b.textContent === '重置表宽').click()");
             await Task.Delay(30);
+            Assert.Equal("true", await web.CoreWebView2.ExecuteScriptAsync("JSON.stringify(tableProbeWidths()) === '[300,300,300]' && document.querySelector('.tiptap').editor.getJSON().content[0].attrs.tableWidth === 900"));
+            await web.CoreWebView2.ExecuteScriptAsync("document.querySelector('.tiptap').editor.commands.setTableColumnWidth(135)");
             Assert.Equal("true", await web.CoreWebView2.ExecuteScriptAsync("tableProbeWidths()[0] === 135"));
             Assert.Equal("true", await CheckedScriptAsync(web, """
                 (() => {
@@ -203,7 +207,7 @@ public sealed class TableSizingTests
                 """));
             Console.WriteLine("Initial layout: " + await web.CoreWebView2.ExecuteScriptAsync("tableProbeInitialMetrics"));
             Console.WriteLine(JsonSerializer.Serialize(new { autoSizing = true, defaultWidth = 900, customWidth = 720, outerDrag = true, precedingColumnsPreserved = true, highlightPixels = 3, old1080Migration = true, image1080Preserved = true,
-                numericControl = true, adjacentDrag = true, undoRedo = true, narrowScroll = true,
+                numericControlRemoved = true, resetTableWidth = true, quarterWidthColumns = true, tooltipsAbsent = true, adjacentDrag = true, undoRedo = true, narrowScroll = true,
                 savedAndReopened = true, localData = directory }));
         }
         finally

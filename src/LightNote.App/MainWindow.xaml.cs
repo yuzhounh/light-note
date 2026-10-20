@@ -513,6 +513,15 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (command == "insertTable")
+        {
+            TableInsertPopup.Show((Button)sender, (rows, cols) =>
+            {
+                PostEditorMessage(new { type = "editor.command", payload = new { command, value = new { rows, cols } } });
+                EditorWebView.Focus();
+            });
+            return;
+        }
         PostEditorMessage(new { type = "editor.command", payload = new { command } });
         EditorWebView.Focus();
     }
