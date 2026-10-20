@@ -42,6 +42,9 @@ function SyncLabel({ state }) {
   const text = state?.status === 'syncing' ? '正在同步'
     : state?.status === 'synced' ? '已同步'
     : state?.status === 'error' ? '同步异常' : null
+  if (state?.status === 'error') return <button type="button" role="status" aria-live="polite"
+    onClick={() => window.alert(`同步异常\n${state.error || '请检查网络后下拉重试'}`)}
+    className="text-[11px] font-normal whitespace-nowrap text-rose-500 cursor-pointer">{text}</button>
   return text ? <span role="status" aria-live="polite" aria-label={state.status === 'error' ? `同步异常：${state.error || '请下拉重试'}` : text}
     className={`text-[11px] font-normal whitespace-nowrap ${state.status === 'error' ? 'text-rose-500' : 'text-zinc-400 dark:text-zinc-500'}`}>{text}</span> : null
 }
