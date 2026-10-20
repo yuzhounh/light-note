@@ -254,6 +254,24 @@ export function createTableSizing({ Extension, Plugin, PluginKey, TextSelection,
           if (dispatch) writeTableWidths(closeHistory(tr), context.pos, widths, TableMap)
           return true
         },
+        resetTableWidth: () => ({ state, tr, dispatch }) => {
+          const context = tableContext(state, TableMap)
+          if (!context) return false
+          if (dispatch) {
+            writeTableWidths(closeHistory(tr), context.pos, scaleWidths(context.widths, DEFAULT_TABLE_WIDTH), TableMap)
+            const node = tr.doc.nodeAt(context.pos)
+            tr.setNodeMarkup(context.pos, undefined, { ...node.attrs, tableWidthMode: 'default' })
+          }
+          return true
+        },
+        standardizeTableColumns: () => ({ state, tr, dispatch }) => {
+          const context = tableContext(state, TableMap)
+          if (!context) return false
+          const total = context.widths.reduce((sum, width) => sum + width, 0)
+          const width = Math.max(1, Math.round(total / 4))
+          if (dispatch) writeTableWidths(closeHistory(tr), context.pos, context.widths.map(() => width), TableMap)
+          return true
+        },
       }
     },
     addProseMirrorPlugins() {
