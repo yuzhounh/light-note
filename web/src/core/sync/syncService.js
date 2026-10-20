@@ -2,7 +2,7 @@ import {
   getFirestore, 
   collection, 
   doc, 
-  getDocs, 
+  getDocsFromServer as getDocs,
   setDoc, 
   onSnapshot, 
 } from 'firebase/firestore'
@@ -197,6 +197,9 @@ export const syncService = {
       const remoteNotes = []
       const notesSnap = await this._firebase.getDocs(this._firebase.collection(firestore, 'users', uid, 'notes'))
       this._assertCurrent(session)
+      if (nbSnap.metadata?.fromCache || notesSnap.metadata?.fromCache) {
+        throw new Error('尚未从云端取得最新记录，请检查网络后下拉重试')
+      }
       notesSnap.forEach(d => remoteNotes.push({ id: d.id, ...d.data() }))
 
       // 3. Pull remote attachments
