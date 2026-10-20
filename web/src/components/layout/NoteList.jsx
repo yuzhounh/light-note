@@ -38,6 +38,14 @@ function OptionRow({ checked, onClick, children }) {
   )
 }
 
+function SyncLabel({ state }) {
+  const text = state?.status === 'syncing' ? '正在同步'
+    : state?.status === 'synced' ? '已同步'
+    : state?.status === 'error' ? '同步异常' : null
+  return text ? <span role="status" aria-live="polite" aria-label={state.status === 'error' ? `同步异常：${state.error || '请下拉重试'}` : text}
+    className={`text-[11px] font-normal whitespace-nowrap ${state.status === 'error' ? 'text-rose-500' : 'text-zinc-400 dark:text-zinc-500'}`}>{text}</span> : null
+}
+
 export function NoteList({
   notes,
   activeNoteId,
@@ -51,6 +59,8 @@ export function NoteList({
   onOpenSidebar,
   onSoftDelete,
   onOpenHistory,
+  syncStatus,
+  onSync,
   sort = { by: 'created', descending: true },
   onSortChange,
   density = 'comfortable',
@@ -62,6 +72,8 @@ export function NoteList({
   const [isOptionsOpen, setIsOptionsOpen] = useState(false)
   const optionsRef = useRef(null)
   const scrollRef = useRef(null)
+  const pullRef = useRef(null)
+  const pullSyncingRef = useRef(false)
   const cardStyle = DENSITY_STYLES[density] || DENSITY_STYLES.comfortable
 
   useEffect(() => {
@@ -209,6 +221,36 @@ export function NoteList({
     }
   }
 
+  function startPull(e) {
+    pullRef.current = null
+    if (!isViewActive || !isTouchDevice || !onSync || pullSyncingRef.current || syncStatus?.status === 'syncing' ||
+        e.touches.length !== 1 || (scrollRef.current?.scrollTop ?? 1) > 0 ||
+        e.target.closest?.('button,input,textarea,[contenteditable="true"]')) return
+    pullRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+
+  function movePull(e) {
+    const start = pullRef.current
+    if (!start) return
+    if (e.touches.length !== 1 || (scrollRef.current?.scrollTop ?? 1) > 0) { pullRef.current = null; return }
+    const dx = Math.abs(e.touches[0].clientX - start.x)
+    const dy = e.touches[0].clientY - start.y
+    if (dy < -10 || (dx > 12 && dx > Math.abs(dy))) pullRef.current = null
+    if (dy > 10) handleTouchEnd()
+  }
+
+  function finishPull(e) {
+    const start = pullRef.current
+    pullRef.current = null
+    if (!start || !isViewActive || activeActionNote || pullSyncingRef.current ||
+        syncStatus?.status === 'syncing' || (scrollRef.current?.scrollTop ?? 1) > 0 ||
+        (e.changedTouches[0]?.clientY ?? start.y) - start.y < 64) return
+    handleTouchEnd()
+    pullSyncingRef.current = true
+    Promise.resolve().then(() => onSync()).catch(error => console.warn('Pull sync failed:', error))
+      .finally(() => { pullSyncingRef.current = false })
+  }
+
   function formatFullDate(isoString) {
     if (!isoString) return ''
     const d = new Date(isoString)
@@ -245,15 +287,20 @@ export function NoteList({
   return (
     <div className="note-list flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 select-none">
       <ScrollContainer {...(isCompactHeader ? {
-        className: 'note-list-native-scroll flex-1 min-h-0 overflow-y-auto',
+        className: 'note-list-native-scroll flex-1 min-h-0 overflow-y-auto overscroll-y-contain',
         onScroll: handleScroll,
         ref: scrollRef,
+        onTouchStart: startPull,
+        onTouchMove: movePull,
+        onTouchEnd: finishPull,
+        onTouchCancel: () => { pullRef.current = null },
       } : {})}>
       {isCompactHeader && (
         <div className="note-list-brand flex items-center justify-between px-4 h-13 border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center gap-2.5 min-w-0">
             <img src="/favicon.svg" alt="LightNote" className="w-7 h-7 rounded-lg shadow-xs shrink-0" />
             <span className="font-bold text-base text-zinc-900 dark:text-zinc-100 tracking-tight">LightNote</span>
+            <SyncLabel state={syncStatus} />
           </div>
           <button
             onClick={onOpenSidebar}
@@ -271,6 +318,7 @@ export function NoteList({
           <div className="flex items-center gap-2.5">
             <img src="/favicon.svg" alt="LightNote" className="w-7 h-7 rounded-lg shadow-xs shrink-0" />
             <span className="font-bold text-base text-zinc-900 dark:text-zinc-100 tracking-tight">LightNote</span>
+            <SyncLabel state={syncStatus} />
             {searchQuery && (
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-medium">
                 搜索中
@@ -398,7 +446,11 @@ export function NoteList({
       <div 
         ref={isCompactHeader ? undefined : scrollRef}
         onScroll={isCompactHeader ? undefined : handleScroll}
-        className={`note-list-scroll ${isCompactHeader ? '' : 'flex-1 min-h-0 overflow-y-auto'} px-2 py-1 space-y-0.5`}
+        onTouchStart={isCompactHeader ? undefined : startPull}
+        onTouchMove={isCompactHeader ? undefined : movePull}
+        onTouchEnd={isCompactHeader ? undefined : finishPull}
+        onTouchCancel={isCompactHeader ? undefined : () => { pullRef.current = null }}
+        className={`note-list-scroll ${isCompactHeader ? '' : 'flex-1 min-h-0 overflow-y-auto overscroll-y-contain'} px-2 py-1 space-y-0.5`}
       >
         {notes.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-zinc-400 text-sm text-center p-6 space-y-2 select-none">

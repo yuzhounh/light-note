@@ -302,6 +302,15 @@ async function createDraft(id, title) {
   await save(id, title)
 }
 
+test('cached reads cannot report a successful full sync or replace local notes', async t => {
+  fakeCloud(t, async () => ({ ...cloudSnapshot([]), metadata: { fromCache: true } }))
+  await db.notes.put({ id: 'kept', title: 'local content', updated_at: '2026-10-20T00:00:00Z' })
+  syncService.currentUser = { uid: 'A' }
+  await assert.rejects(syncService.syncNow(), /尚未从云端取得最新记录/)
+  assert.equal(syncService.getSyncState().status, 'error')
+  assert.equal((await db.notes.get('kept')).title, 'local content')
+})
+
 test('logout invalidates a delayed full pull and preserves local drafts', async t => {
   const read = deferred()
   fakeCloud(t, () => read.promise)
