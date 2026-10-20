@@ -1,5 +1,7 @@
 # LightNote Original Workspace
 
+- Default Windows EXE upgrade behavior: background download of a complete verified package; silent installation only after true process exit; next launch uses the new version. No update popups or forced restarts. Preserve `.lightnote` data, attachments, settings and sync state. Use the hub's `AGENTS.md` section “Default Windows EXE Update Behavior” and `review/exe_update_policy.md`; this rule does not mean the updater is already implemented here.
+
 - This is the only active LightNote workspace: `D:\Archives\20260919 Note`.
 - The management hub is `D:\Archives\20260924 Multi-Repo Maintenance`. Read its `AGENTS.md` for shared rules and `PROJECT_WORKSPACE_MAPPING.md` for the current project index.
 - Edit, test, build, and run Git commands here. Keep project-specific review records and deliverables here; do not create a second project copy in the hub.
