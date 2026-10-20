@@ -38,6 +38,7 @@ public sealed partial class MainViewModel(
     private bool _showTrashNavigation;
     private bool _showUnfiledNavigation;
     private int _reloadGeneration;
+    private NotebookListItem? _loadedNotesNotebook;
     private int _tagLoadGeneration;
     private int? _notesTotalCount;
     private CancellationTokenSource? _searchCancellation;
@@ -1183,7 +1184,7 @@ public sealed partial class MainViewModel(
         var notebookCounts = (await notebooksTask).ToDictionary(item => item.Id, item => item.NoteCount);
         var loadedItems = page.Take(NotePageSize).ToArray();
         var hasMore = page.Count > NotePageSize;
-        if (generation != _reloadGeneration)
+        if (generation != _reloadGeneration || SelectedNotebook != notebook)
         {
             return;
         }
@@ -1193,7 +1194,8 @@ public sealed partial class MainViewModel(
             item.NoteCount = notebookCounts.GetValueOrDefault(item.Id!);
         }
 
-        var selectedId = preferredNoteId ?? SelectedNote?.Model.Id;
+        var selectedId = preferredNoteId ?? (_loadedNotesNotebook == notebook ? SelectedNote?.Model.Id : null);
+        _loadedNotesNotebook = notebook;
         var existingItems = Notes.ToDictionary(item => item.Model.Id);
         var refreshedItems = new List<NoteListItem>(loadedItems.Length);
         foreach (var incoming in loadedItems)
