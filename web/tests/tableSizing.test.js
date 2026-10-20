@@ -42,6 +42,32 @@ test('web v2 preserves desktop-sized columns through HTML, editing and undo', as
   assert.deepEqual(tableContext(editor.state, TableMap).widths, [360, 360, 360])
 })
 
+test('table width actions preserve content, undo history and saved widths', async t => {
+  const editor = open(t, '<table data-table-width="1200" data-table-width-mode="fixed"><tr><th colwidth="200">A</th><th colwidth="400">B</th><th colwidth="300">C</th><th colwidth="300">D</th></tr></table>')
+  await new Promise(resolve => setTimeout(resolve, 0))
+  const text = editor.getText()
+  assert.equal(editor.commands.resetTableWidth(), true)
+  assert.deepEqual(tableContext(editor.state, TableMap).widths, [150, 300, 225, 225])
+  assert.equal(editor.getJSON().content[0].attrs.tableWidthMode, 'default')
+  editor.commands.standardizeTableColumns()
+  assert.deepEqual(tableContext(editor.state, TableMap).widths, [225, 225, 225, 225])
+  assert.equal(editor.getText(), text)
+  editor.commands.undo()
+  assert.deepEqual(tableContext(editor.state, TableMap).widths, [150, 300, 225, 225])
+  editor.commands.redo()
+  const reopened = open(t, editor.getHTML())
+  assert.deepEqual(tableContext(reopened.state, TableMap).widths, [225, 225, 225, 225])
+  assert.equal(reopened.getText(), text)
+})
+
+test('quarter-width columns use the original table total for non-four-column tables', t => {
+  const editor = open(t, '<table data-table-width="900" data-table-width-mode="fixed"><tr><td colspan="2" colwidth="300,600">合并单元格</td></tr></table>')
+  assert.equal(editor.commands.standardizeTableColumns(), true)
+  assert.deepEqual(tableContext(editor.state, TableMap).widths, [225, 225])
+  assert.deepEqual(editor.getJSON().content[0].content[0].content[0].attrs.colwidth, [225, 225])
+  assert.equal(editor.getJSON().content[0].attrs.tableWidth, 450)
+})
+
 test('web auto-sizing records sensible unequal widths and never follows viewport changes', async t => {
   const editor = open(t, '<table><tr><th>服务器</th><th>运行阶段</th><th>并行数</th></tr><tr><td>A</td><td>需要较长描述的运行阶段及后续工作</td><td>Jobs 38</td></tr></table>')
   await new Promise(resolve => setTimeout(resolve, 0))

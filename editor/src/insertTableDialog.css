@@ -1,0 +1,50 @@
+.insert-table-dialog {
+  box-sizing: border-box;
+  position: fixed;
+  z-index: 1000;
+  margin: 0;
+  width: min(230px, calc(100vw - 16px));
+  padding: 12px;
+  border: 1px solid var(--border-color, #e4e4e7);
+  border-radius: 8px;
+  background: var(--bg-color, #fff);
+  color: var(--text-color, #18181b);
+  box-shadow: 0 4px 14px #0001;
+  font: 13px/1.5 "Microsoft YaHei", sans-serif;
+}
+.insert-table-dialog h2 { display: none; }
+.insert-table-fields { display: grid; gap: 8px; margin-bottom: 10px; }
+.insert-table-fields label { display: grid; grid-template-columns: 30px 80px 1fr; gap: 8px; align-items: center; }
+.insert-table-fields span { font-size: 11px; opacity: .7; white-space: nowrap; }
+.insert-table-fields input {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--math-modal-input-border, #d4d4d8);
+  border-radius: 6px;
+  background: var(--math-modal-input-bg, #fff);
+  color: inherit;
+  font: inherit;
+}
+.insert-table-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.insert-table-actions button {
+  min-height: 40px;
+  padding: 6px 18px;
+  border: 1px solid var(--math-modal-input-border, #d4d4d8);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.insert-table-actions button[type="submit"] { background: #009467; border-color: #009467; color: #fff; }
+.dark .insert-table-dialog, [data-theme="dark"] .insert-table-dialog {
+  --bg-color: #202328;
+  --text-color: #f2f4f7;
+  --border-color: #3f3f46;
+  --math-modal-input-border: #3f3f46;
+  --math-modal-input-bg: #18181b;
+  color-scheme: dark;
+}
