@@ -1,5 +1,12 @@
 # LightNote 当前正式版本发布
 
+## V2.2.24：链接、笔记本切换与手机同步状态（2026-10-20）
+
+- 统一 Windows、Web 与 Android 版本为 2.2.24，Android versionCode 36；汇总 2.2.23 正式版之后的 Markdown 链接修复、笔记本切换修复及手机同步状态改进，范围见 CHANGELOG。
+- 验证：Core 1 项、Integration 100 项、桌面编辑器 41 项、Web 41 项测试通过；Windows 自包含发布与 Inno Setup 安装包生成成功；Android assembleRelease/lintRelease 通过，APK v2 签名有效。
+- 交付位于 `artifacts/installers/`（安装 EXE、便携 ZIP、APK、SHA256SUMS-2.2.24.txt），Windows 发布目录为 `artifacts/releases/2.2.24/win-x64/`，APK 副本为 `artifacts/android/2.2.24/LightNote-2.2.24-code36.apk`；构建日志和说明在 `tmp/release-2.2.24/`。
+- 本次未替换日常 Windows 程序，也未安装手机 APK。
+
 ## 2.2.23 日常增量：链接、笔记本切换与手机同步（2026-10-20）
 
 - 正式 GitHub v2.2.23 标签及资产保持原样。后续增量源码为 `3ac297de59e032a322574a9396d3142147875a29`，Windows 日常构建为 `2.2.23+bfe3f9058fe78ca572abbc38ef0bc35e917c422e`；不将日常增量误记为新的正式 Release。
@@ -7,8 +14,8 @@
 - Windows 完整程序于 18:26 在没有运行进程时安装到原 `artifacts/development/current/win-x64`；629 个程序文件、62 个编辑器资源验证通过，数据库、附件、设置、登录及恢复数据校验保持。既有桌面快捷方式和 `scripts/run-dev.ps1` 继续使用原日常入口；用户随后确认桌面链接问题已解决。本次没有再次重启或替换 Windows。
 - 手机与手机网页的同步状态位于主界面 LightNote 右侧；移除汉堡菜单中的同步信息。主列表顶部下拉触发同步，编辑区不触发；同步异常可点击查看原因。完整同步必须取得服务器记录，缓存结果不能显示“已同步”；Android 使用长轮询兼容连接。保留原有笔记本手动排序及 `sortOrder` 同步，没有强制字母排序。
 - Android 已覆盖安装 2.2.23/code 35，APK：`artifacts/android/2.2.23/LightNote-2.2.23-code35.apk`，SHA-256 `9619e2f45072e5abe72c6e1840089bca3f555acd4ac4d25baea4d75b0d4f1ceb`。构建、lint 和同签名检查通过，设备实际包哈希一致；appId=10385、数据目录及首次安装时间保持，账号仍登录，未卸载或清除数据。
-- **手机链接问题仍未完成验收**：设备仍显示旧 V2.2.22 正文，缺少新 V2.2.23 记录；实际同步返回 `Failed to get documents from server`。长轮询调整后仍有相同错误，不能将 APK 安装成功或旧缓存读取视为问题已解决。待区分手机网络访问 Firebase 与应用内连接失败；不重写笔记、不退出账号或清除缓存来掩盖问题。
-- GitHub Pages 工作流 `39412162739`、Cloudflare Pages 部署 `a76e6f53` 和 Firebase Hosting 已发布增量。三个原网页入口的首页、主 JS/CSS、PWA 均与各自根路径或子路径构建核对一致；这不代表手机云同步已通过。继续跳过第三方 Vercel/Netlify。安装、云端复读及线上核对见 `tmp/link-navigation-update/`、`tmp/sync-header-update/`。
+- **手机链接问题已确认解决（19:24 复核）**：用户确认手机可同步；实机顶部显示“已同步”，列表已出现 V2.2.23，相关开发记录更新为 17:55。打开原截图中的 V2.2.22 条目，实见蓝色、带下划线的“GitHub 正式发布页”，不再显示原样 Markdown 链接。此前 `Failed to get documents from server` 和 Chrome `ERR_TIMED_OUT` 仅是当时的失败记录，不能推断手机持续无法同步，也未据此确定 DNS、节点或线路原因。本次未更改手机代理、账号或笔记内容，未清除缓存/应用数据，临时日志采集已停止。
+- GitHub Pages 工作流 `39412162739`、Cloudflare Pages 部署 `a76e6f53` 和 Firebase Hosting 已发布增量。三个原网页入口的首页、主 JS/CSS、PWA 均与各自根路径或子路径构建核对一致；手机同步及原问题链接另经上述实机核对确认。继续跳过第三方 Vercel/Netlify。安装、云端复读及线上核对见 `tmp/link-navigation-update/`、`tmp/sync-header-update/`。本次状态更正仅修改文档，不另行构建或安装。
 
 ## V2.2.23：表格宽度快捷操作（2026-10-20，Windows / Web / Android 已更新）
 
