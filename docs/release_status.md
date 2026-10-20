@@ -2,14 +2,14 @@
 
 ## V2.2.23：表格宽度快捷操作（2026-10-20，Windows / Web / Android 已更新）
 
-GitHub 正式发布准备中：当前完整 Windows 源码的 Core 1 项、Integration 99 项、编辑器 41 项测试及更新后的原生表格检查通过；Android 复用已构建、签名并安装核验的 code 30 APK。安装器、便携版及四项交付的哈希清单将在正式发布前核验。
+[GitHub v2.2.23 正式版](https://github.com/yuzhounh/light-note/releases/tag/v2.2.23) 已于 2026-10-20 13:53（Asia/Shanghai）公开并设为 latest，非预发布；标签指向完整源码 `fc448b3f9500c58f107d0892772f625a2fdb8e15`。[Windows CI](https://github.com/yuzhounh/light-note/actions/runs/39376874730) 与 [Pages](https://github.com/yuzhounh/light-note/actions/runs/39376874742) 成功。Core 1 项、Integration 99 项、编辑器 41 项及更新后的原生表格检查通过；CI 同时完成既有七组原生宿主检查。安装 EXE、便携 ZIP、Android code 30 APK 和 SHA256SUMS-2.2.23.txt 均已上传，GitHub 计算的四个资产 SHA-256 及大小与本地一致；便携 ZIP 内 629 个文件与正式发布目录逐项匹配，不含笔记数据库、设置或登录数据。交付位于 `artifacts/installers/`，Windows 发布目录为 `artifacts/releases/2.2.23/win-x64/`，核验回执见 `tmp/release-2.2.23/`。
 
 - 将本次表格更新升级为 2.2.23，Android 构建号提升到 30；共享项目版本及 Web package/lock 元数据同步对齐。功能源码沿用下节已经通过 36 项 Web 测试的实现，不新增数据迁移或修改同步配置。
 - 提交 `4ed198890857538991496b37c10bd045cf11dd49` 已推送 main，包含 `[skip netlify]`。[GitHub Pages](https://github.com/yuzhounh/light-note/actions/runs/39374966025) 成功；Cloudflare Pages 部署 `05c2886b`、Firebase Hosting `lightnote-sync/light-note` 完成。三个原入口的首页、主 JS/CSS、2.2.23 版本标记及 PWA 清单/缓存均与相应构建一致。
 - Android assembleRelease/lintRelease 通过，APK v2 签名有效且与原安装证书相同，69 个内嵌网页文件与本版根路径构建一致。REDMI K80 Pro（1999ffe8）已通过 `adb install -r` 从 2.2.22/code 29 覆盖升级为 2.2.23/code 30，启动 Status=ok；已安装 APK 哈希与交付包一致，原 appId、数据目录和首次安装时间保持，未卸载或清除笔记、设置。
 - APK：`artifacts/android/2.2.23/LightNote-2.2.23.apk`，SHA-256：`e23e74cca3a1e4357f099175a0be3ab9c9b212e4199c88a1125913fc68c6f9a9`。构建与线上、设备核对回执位于 `tmp/version-2.2.23/`。
 - LightNote 开发记录已新增“V2.2.23：表格宽度快捷操作”（lightnote-dev-v2-2-23），并在原 V2.2.22 条目末尾追加已更新说明，原正文保留。文字同步 Uploaded=2、Downloaded=0、Conflicts=0；新条目 Version=1、旧条目 Version=18，均为 Clean、pendingOutbox=0。回执见 `tmp/version-2.2.23/dev-record/receipt.json`。
-- Windows 日常程序于 2026-10-20 13:35（Asia/Shanghai）升级为 2.2.23，文件版本 2.2.23.0；完整自包含构建通过，629 个安装文件和 62 个编辑器资源校验一致。确认没有运行进程后替换原 `artifacts/development/current/win-x64`，笔记数据库、附件、设置、登录信息和恢复草稿在替换前后校验不变，原快捷入口保持，下次正常启动使用新版。回执见 `tmp/version-2.2.23/windows-update/status.json`。未创建安装器或 GitHub Release，其他未提交修改保留。Vercel、Netlify 同名站点属于第三方，不部署；Netlify 暂停及滚动 168 小时规则继续有效。
+- Windows 日常程序于 2026-10-20 13:35（Asia/Shanghai）升级为 2.2.23，文件版本 2.2.23.0；完整自包含构建通过，629 个安装文件和 62 个编辑器资源校验一致。确认没有运行进程后替换原 `artifacts/development/current/win-x64`，笔记数据库、附件、设置、登录信息和恢复草稿在替换前后校验不变，原快捷入口保持，下次正常启动使用新版。回执见 `tmp/version-2.2.23/windows-update/status.json`。此次正式打包发布未再次替换或重启日常客户端，保留现有笔记和设置；无关本地修改保留。Vercel、Netlify 同名站点属于第三方，不部署；Netlify 暂停及滚动 168 小时规则继续有效。
 
 ## 表格宽度操作：Web / Android 增量（2026-10-20，已完成）
 
