@@ -1,5 +1,6 @@
 import { 
   getFirestore, 
+  initializeFirestore,
   collection, 
   doc, 
   getDocsFromServer as getDocs,
@@ -24,7 +25,11 @@ let storageInstance = null
 function getServices() {
   if (!firestoreInstance) {
     const app = initFirebase()
-    firestoreInstance = getFirestore(app)
+    // Android WebView connections can be buffered by the phone's proxy.
+    // Close each response after data arrives instead of holding a stream open.
+    firestoreInstance = Capacitor.getPlatform() === 'android'
+      ? initializeFirestore(app, { experimentalForceLongPolling: true })
+      : getFirestore(app)
     storageInstance = getStorage(app)
   }
   return { firestore: firestoreInstance, storage: storageInstance }
