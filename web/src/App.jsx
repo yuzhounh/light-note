@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { liveQuery } from 'dexie'
 import { NotesRepository } from './core/db/notesRepository'
+import { createNoteListLoader } from './core/db/noteListLoader'
 import { seedInitialData } from './core/db/database'
 import { syncService, subscribeSyncState, getSyncState } from './core/sync/syncService'
 import { noteDrafts } from './core/sync/noteDrafts'
@@ -86,6 +87,13 @@ export function App() {
 
   const viewRef = useRef(null)
   viewRef.current = { currentNotebookId, currentView, searchQuery, isMobile, noteSort }
+  const noteListLoaderRef = useRef(null)
+  if (!noteListLoaderRef.current) {
+    noteListLoaderRef.current = createNoteListLoader({
+      repository: NotesRepository, drafts: noteDrafts, getView: () => viewRef.current,
+      setNotes, setActiveNote,
+    })
+  }
 
   // Initialize theme class on document element
   useEffect(() => {
@@ -181,47 +189,13 @@ export function App() {
   }, [currentNotebookId, currentView, searchQuery, noteSort])
 
   async function refreshData() {
-    const draftGeneration = noteDrafts.generation
-    const view = viewRef.current
     const nbs = await NotesRepository.getAllNotebooks()
     setNotebooks(nbs)
-    const list = await NotesRepository.getNotes({
-      notebookId: view.currentNotebookId,
-      view: view.currentView,
-      searchQuery: view.searchQuery,
-      sortBy: view.noteSort.by,
-      descending: view.noteSort.descending,
-    })
-    if (draftGeneration !== noteDrafts.generation) return refreshData()
-    setNotes(prev => draftGeneration === noteDrafts.generation
-      ? list.map(note => noteDrafts.get(note.id) || note) : prev)
-    setActiveNote(prev => {
-      if (draftGeneration !== noteDrafts.generation) return prev
-      if (!prev) return (!view.isMobile && list.length > 0) ? list[0] : null
-      const draft = noteDrafts.get(prev.id)
-      if (draft) return draft
-      const updated = list.find(n => n.id === prev.id)
-      return updated || ((!view.isMobile && list.length > 0) ? list[0] : null)
-    })
+    await loadNotes()
   }
 
   async function loadNotes() {
-    const draftGeneration = noteDrafts.generation
-    const list = await NotesRepository.getNotes({
-      notebookId: currentNotebookId,
-      view: currentView,
-      searchQuery,
-      sortBy: noteSort.by,
-      descending: noteSort.descending,
-    })
-    if (draftGeneration !== noteDrafts.generation) return loadNotes()
-    setNotes(prev => draftGeneration === noteDrafts.generation
-      ? list.map(note => noteDrafts.get(note.id) || note) : prev)
-    
-    // Auto-select first note if desktop and no note active
-    if (!isMobile && list.length > 0 && !activeNote) {
-      setActiveNote(prev => prev || noteDrafts.get(list[0].id) || list[0])
-    }
+    await noteListLoaderRef.current()
   }
 
   // Handle Note Selection

@@ -35,11 +35,13 @@ public sealed class NotebookSelectionTests : IDisposable
         Assert.Equal(NotebookKind.All, vm.SelectedNotebook!.Kind);
         Assert.Equal(6, vm.Notes.Count);
 
+        vm.SelectedNote = vm.Notes.Where(n => n.Model.NotebookId == "b").Skip(1).First();
         vm.SelectedNotebook = vm.Notebooks.Single(n => n.Id == "b");
         await Task.Delay(1500);
         Assert.Equal("b", vm.SelectedNotebook!.Id);
         Assert.Equal(3, vm.Notes.Count);
         Assert.All(vm.Notes, n => Assert.Equal("b", n.Model.NotebookId));
+        Assert.Same(vm.Notes.First(), vm.SelectedNote);
     }
 
     private sealed class NullLogger : IAppLogger

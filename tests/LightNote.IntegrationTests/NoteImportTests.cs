@@ -84,6 +84,40 @@ public sealed class NoteImportTests : IDisposable
     }
 
     [Fact]
+    public async Task MarkdownLinksUseLabelsAndHrefsInHtmlJsonAndTextWhileCodeStaysLiteral()
+    {
+        var (repository, service, _, _) = await CreateServicesAsync();
+        var sourcePath = Path.Combine(_testDirectory, "links.md");
+        await File.WriteAllTextAsync(sourcePath, """
+            [GitHub Pages](https://example.test/Page_(one)?a=1&b=2) and [email](mailto:test@example.test).
+
+            `[literal](https://example.test/code)`
+
+            [unsafe](javascript:alert(1))
+
+            ```
+            [fenced](https://example.test/fenced)
+            ```
+            """);
+        var result = await service.ImportAsync(new NoteImportRequest { SourcePaths = [sourcePath] });
+        var note = (await repository.GetAsync(result.ImportedNoteIds.Single()))!;
+        Assert.Contains("<a href=\"https://example.test/Page_(one)?a=1&amp;b=2\">GitHub Pages</a>", note.BodyHtml);
+        Assert.Contains("<a href=\"mailto:test@example.test\">email</a>", note.BodyHtml);
+        Assert.Contains("<code>[literal](https://example.test/code)</code>", note.BodyHtml);
+        Assert.DoesNotContain("href=\"javascript:", note.BodyHtml);
+        Assert.Contains("GitHub Pages and email.", note.BodyText);
+        Assert.Contains("`[literal](https://example.test/code)`", note.BodyText);
+        Assert.Contains("[fenced](https://example.test/fenced)", note.BodyText);
+        using var doc = JsonDocument.Parse(note.BodyJson);
+        var links = doc.RootElement.GetProperty("content")[0].GetProperty("content").EnumerateArray()
+            .Where(node => node.TryGetProperty("marks", out _))
+            .SelectMany(node => node.GetProperty("marks").EnumerateArray())
+            .Where(mark => mark.GetProperty("type").GetString() == "link")
+            .Select(mark => mark.GetProperty("attrs").GetProperty("href").GetString()).ToArray();
+        Assert.Equal(new[] { "https://example.test/Page_(one)?a=1&b=2", "mailto:test@example.test" }, links);
+    }
+
+    [Fact]
     public async Task HtmlImportRemovesExecutableMarkupAndReportsImageWarning()
     {
         var (repository, service, _, _) = await CreateServicesAsync();

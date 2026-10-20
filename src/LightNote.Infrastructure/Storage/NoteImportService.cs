@@ -34,8 +34,9 @@ public sealed class NoteImportService(
         "!\\[(?<alt>[^]]*)]\\((?:<(?<anglePath>[^>]+)>|(?<path>[^)\\s]+))(?:\\s+[\"'][^\"']*[\"'])?\\)",
         RegexOptions.Compiled);
     private static readonly Regex InlinePattern = new(
-        "(?<code>`[^`\\r\\n]+`)|(?<bold>\\*\\*[^*\\r\\n]+\\*\\*)|(?<italic>\\*[^*\\r\\n]+\\*)",
-        RegexOptions.Compiled);
+        "(?<code>`[^`\\r\\n]+`)|" + MarkdownInlineLinks.Expression +
+        "|(?<bold>\\*\\*[^*\\r\\n]+\\*\\*)|(?<italic>\\*[^*\\r\\n]+\\*)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex UnsafeHtmlPattern = new(
         "<(script|style|iframe|object|embed)\\b[^>]*>.*?</\\1\\s*>",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
@@ -923,9 +924,12 @@ public sealed class NoteImportService(
                 };
                 if (segment.Mark is not null)
                 {
+                    var mark = new Dictionary<string, object?> { ["type"] = segment.Mark };
+                    if (segment.Href is not null)
+                        mark["attrs"] = new Dictionary<string, object?> { ["href"] = segment.Href };
                     node["marks"] = new[]
                     {
-                        new Dictionary<string, object?> { ["type"] = segment.Mark },
+                        mark,
                     };
                 }
                 if (segment.Text.Length > 0)
@@ -1000,6 +1004,7 @@ public sealed class NoteImportService(
                 "bold" => $"<strong>{encoded}</strong>",
                 "italic" => $"<em>{encoded}</em>",
                 "code" => $"<code>{encoded}</code>",
+                "link" => $"<a href=\"{WebUtility.HtmlEncode(segment.Href)}\">{encoded}</a>",
                 _ => encoded,
             };
         }))));
@@ -1019,6 +1024,10 @@ public sealed class NoteImportService(
             if (match.Groups["code"].Success)
             {
                 segments.Add(new InlineSegment(match.Value[1..^1], "code"));
+            }
+            else if (match.Groups["link"].Success)
+            {
+                segments.Add(new InlineSegment(match.Groups["label"].Value, "link", match.Groups["href"].Value));
             }
             else if (match.Groups["bold"].Success)
             {
@@ -1046,9 +1055,19 @@ public sealed class NoteImportService(
         Environment.NewLine,
         blocks.Select(block => block.Kind == BlockKind.Image
             ? string.IsNullOrWhiteSpace(block.Text) ? "[图片]" : $"[图片：{block.Text}]"
+            : block.Kind == BlockKind.Code ? block.Text
             : block.Items is { Count: > 0 }
-            ? string.Join(Environment.NewLine, block.Items)
-            : block.Text));
+            ? string.Join(Environment.NewLine, block.Items.Select(PlainInlineLinks))
+            : PlainInlineLinks(block.Text)));
+
+    private static string PlainInlineLinks(string text) => string.Concat(ParseInline(text).Select(segment =>
+        segment.Mark == "link" ? segment.Text : segment.Mark switch
+        {
+            "code" => $"`{segment.Text}`",
+            "bold" => $"**{segment.Text}**",
+            "italic" => $"*{segment.Text}*",
+            _ => segment.Text,
+        }));
 
     private static string NormalizeLineEndings(string value) =>
         value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
@@ -1086,5 +1105,5 @@ public sealed class NoteImportService(
         byte[] Content,
         string Alt);
 
-    private sealed record InlineSegment(string Text, string? Mark = null);
+    private sealed record InlineSegment(string Text, string? Mark = null, string? Href = null);
 }
