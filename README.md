@@ -17,7 +17,7 @@
   <a href="https://light-note.web.app/">在线体验</a> · <a href="https://github.com/yuzhounh/light-note/releases/latest">发布版本</a> · <a href="#开发">快速开始</a> · <a href="LICENSE">开源协议</a>
 </p>
 
-LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，支持毫秒级 SQLite FTS5 全文搜索、多级分组、KaTeX 数学公式、多版本历史记录、系统托盘常驻与可选的云端同步。当前版本为 **2.2.22**，Windows、Web 与 Android 版本号统一；[发布版本](https://github.com/yuzhounh/light-note/releases/tag/v2.2.22) 和 [更新日志](docs/CHANGELOG.md) 说明各平台的变更与验收范围。本版统一网页卡片的日期／笔记本对齐、右键和长按浮动菜单，并保留各端笔记本数量标记。升级时保留原有数据库、附件和应用数据。
+LightNote 是一个专为 Windows 打造的轻量、本地优先笔记工具，支持毫秒级 SQLite FTS5 全文搜索、多级分组、KaTeX 数学公式、多版本历史记录、系统托盘常驻与可选的云端同步。当前版本为 **2.2.23**，Windows、Web 与 Android 版本号统一；[发布版本](https://github.com/yuzhounh/light-note/releases/tag/v2.2.23) 和 [更新日志](docs/CHANGELOG.md) 说明各平台的变更与验收范围。本版增加“重置表宽”和“统一列宽”，简化表格工具栏，并汇总此前已完成的表格插入、代码块和 Windows 编辑体验改进。升级时保留原有数据库、附件和应用数据。
 
 ## 在线访问
 
@@ -149,7 +149,11 @@ dotnet test LightNote.slnx
 
 发布目录为 `artifacts\releases\2.0.0\win-x64`，安装包为 `artifacts\installers\LightNote-2.0.0-win-x64-setup.exe`。脚本会先重建编辑器并运行全部测试；安装、升级和卸载只操作程序目录，用户数据仍保存在 `%UserProfile%\.lightnote`。
 
-构建产物规范见 [docs/build-artifacts.md](docs/build-artifacts.md)，详细路线见 [docs/implementation-plan.md](docs/implementation-plan.md)。
+构建产物规范见 [docs/build-artifacts.md](docs/build-artifacts.md)，详细路线见 [docs/implementation-plan.md](docs/implementation-plan.md)。面向用户的版本变化见 [更新日志](docs/CHANGELOG.md)，各平台发布与验收记录见 [发布状态](docs/release_status.md)。
+
+## 设计文档
+
+- [Android 列表与交互设计](docs/android-design.md)：数据方案、顶栏、卡片、菜单和返回栈；原始审查与交付依据保留在该文档链接的历史记录中。
 
 ## 相关项目
 

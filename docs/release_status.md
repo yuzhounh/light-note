@@ -1,12 +1,32 @@
 # LightNote 当前正式版本发布
 
+## V2.2.23：表格宽度快捷操作（2026-10-20，Windows / Web / Android 已更新）
+
+GitHub 正式发布准备中：当前完整 Windows 源码的 Core 1 项、Integration 99 项、编辑器 41 项测试及更新后的原生表格检查通过；Android 复用已构建、签名并安装核验的 code 30 APK。安装器、便携版及四项交付的哈希清单将在正式发布前核验。
+
+- 将本次表格更新升级为 2.2.23，Android 构建号提升到 30；共享项目版本及 Web package/lock 元数据同步对齐。功能源码沿用下节已经通过 36 项 Web 测试的实现，不新增数据迁移或修改同步配置。
+- 提交 `4ed198890857538991496b37c10bd045cf11dd49` 已推送 main，包含 `[skip netlify]`。[GitHub Pages](https://github.com/yuzhounh/light-note/actions/runs/39374966025) 成功；Cloudflare Pages 部署 `05c2886b`、Firebase Hosting `lightnote-sync/light-note` 完成。三个原入口的首页、主 JS/CSS、2.2.23 版本标记及 PWA 清单/缓存均与相应构建一致。
+- Android assembleRelease/lintRelease 通过，APK v2 签名有效且与原安装证书相同，69 个内嵌网页文件与本版根路径构建一致。REDMI K80 Pro（1999ffe8）已通过 `adb install -r` 从 2.2.22/code 29 覆盖升级为 2.2.23/code 30，启动 Status=ok；已安装 APK 哈希与交付包一致，原 appId、数据目录和首次安装时间保持，未卸载或清除笔记、设置。
+- APK：`artifacts/android/2.2.23/LightNote-2.2.23.apk`，SHA-256：`e23e74cca3a1e4357f099175a0be3ab9c9b212e4199c88a1125913fc68c6f9a9`。构建与线上、设备核对回执位于 `tmp/version-2.2.23/`。
+- LightNote 开发记录已新增“V2.2.23：表格宽度快捷操作”（lightnote-dev-v2-2-23），并在原 V2.2.22 条目末尾追加已更新说明，原正文保留。文字同步 Uploaded=2、Downloaded=0、Conflicts=0；新条目 Version=1、旧条目 Version=18，均为 Clean、pendingOutbox=0。回执见 `tmp/version-2.2.23/dev-record/receipt.json`。
+- Windows 日常程序于 2026-10-20 13:35（Asia/Shanghai）升级为 2.2.23，文件版本 2.2.23.0；完整自包含构建通过，629 个安装文件和 62 个编辑器资源校验一致。确认没有运行进程后替换原 `artifacts/development/current/win-x64`，笔记数据库、附件、设置、登录信息和恢复草稿在替换前后校验不变，原快捷入口保持，下次正常启动使用新版。回执见 `tmp/version-2.2.23/windows-update/status.json`。未创建安装器或 GitHub Release，其他未提交修改保留。Vercel、Netlify 同名站点属于第三方，不部署；Netlify 暂停及滚动 168 小时规则继续有效。
+
+## 表格宽度操作：Web / Android 增量（2026-10-20，已完成）
+
+- 表格工具栏增加“重置表宽”和“统一列宽”：前者恢复 900px 总宽并保留列宽比例，后者将各列设为操作前总宽的 1/4。移除数值列宽输入入口及悬停提示，保留拖动调整、“平均分配”和原有表格操作。沿用此前已在本地完成的共享编辑器辅助代码。
+- Web 36 项测试通过，包含新增操作的撤销、保存重开、内容保持和非四列表格行为。复用已通过的根路径构建，另构建 `/light-note/` 子路径包用于 GitHub Pages 比对；Android assembleRelease/lintRelease 通过，69 个内嵌网页文件与根路径构建一致。
+- 源码提交 `dcd4e99bfba23e4a4c24129a1e18d61fd0da237f` 已推送 main，含 `[skip netlify]`。[GitHub Pages 工作流](https://github.com/yuzhounh/light-note/actions/runs/39374180494) 成功；Cloudflare Pages 部署 `51f353bc`、Firebase Hosting `lightnote-sync/light-note` 发布完成。三个原入口的首页、主 JS/CSS、表格按钮及 PWA 清单/缓存均与各自构建一致；未修改域名、数据库结构、账号或存储配置。
+- REDMI K80 Pro（1999ffe8）已通过 `adb install -r` 覆盖升级 2.2.22/code 28 → 2.2.22/code 29。新旧 APK 签名证书一致、v2 签名有效；安装后读回 APK 与构建 SHA-256 一致，启动 Status=ok。原 appId=10385、数据目录和首次安装时间保持，未卸载或清除笔记、设置数据；未执行私人笔记逐条比对。
+- APK：`artifacts/android/2.2.22/LightNote-2.2.22-code29.apk`，SHA-256：`6191fcff7b3daf34acead5365336146e487797305d821375e6d43e32af2a97b1`。构建、网页和设备核对回执位于 `tmp/table-width-web-android-20261020/`。本次未另建正式版本或 GitHub Release，未重复更新 Windows；其他本地未提交修改保留。
+- Vercel、Netlify 同名站点属于第三方，不调用；同时继续遵守 Netlify 暂停至 2026-10-21 15:00（Asia/Shanghai）及滚动 168 小时规则。
+
 ## V2.2.22（2026-10-16，已正式发布）
 
 整理 2.2.21 之后的网页卡片对齐、浮动菜单与手机删除入口规则，统一 Windows/Web/Android 版本号为 2.2.22；Android code 28，高于现有本地 code 27。保留笔记本数量标记和既有原生 Windows 界面，不加入新的数据迁移。
 
 - 当前生产功能源码与此前已验证的卡片、菜单版本相同；复用既有隔离浏览器单/双/三栏布局及右键、长按、关闭、防误触检查。本次重新执行的 34 项 Web 测试通过，生产构建、Android assembleRelease/lintRelease 通过。
 - [v2.2.22 正式版](https://github.com/yuzhounh/light-note/releases/tag/v2.2.22) 已于 2026-10-16 14:58（Asia/Shanghai）公开并设为 latest，标签指向 27d8f4654c9c8e94ba20d5db7edaf113a59a5211。Windows 安装 EXE、便携 ZIP、Android APK 和 SHA256SUMS-2.2.22.txt 均上传完成，四个远端资产的大小及 SHA-256 与本地一致。
-- Windows Release 自包含包构建成功，便携包内 629 个文件与发布目录一致；APK 为 2.2.22/code 28，v2 签名有效、与 code 27 证书相同，内嵌 69 个网页文件与构建一致。保留既有 SkiaSharp 过时 API 警告。本轮未覆盖安装手机，现有 2.2.21/code 27 保留，新 APK 支持覆盖升级。
+- Windows Release 自包含包构建成功，便携包内 629 个文件与发布目录一致；APK 为 2.2.22/code 28，v2 签名有效、与 code 27 证书相同，内嵌 69 个网页文件与构建一致。保留既有 SkiaSharp 过时 API 警告。2026-10-16 15:49 已按用户要求通过 `adb install -r` 将 REDMI K80 Pro（1999ffe8）从 2.2.21/code 27 覆盖升级到 2.2.22/code 28，应用启动成功；实际安装 APK 哈希匹配正式包，appId、数据目录和首次安装时间保持，未卸载或清除数据。回执位于 `tmp/device-upgrade-2.2.22/receipt.json`。
 - [Windows CI](https://github.com/yuzhounh/light-note/actions/runs/38863239157) 和 [GitHub Pages](https://github.com/yuzhounh/light-note/actions/runs/38863239218) 成功。Cloudflare Pages 79fcf99f、Firebase Hosting lightnote-sync/light-note 完成，三个入口的首页、主 JS/CSS、PWA 清单及 service worker 均与 2.2.22 构建核对一致，旧底部面板已移除。
 - 本地当前 Windows 程序已通过 Restart Manager 正常退出后更新，629 个文件与正式目录一致，版本 2.2.22+27d8f46，恢复原后台托盘状态。升级前后 110 篇笔记、3 个笔记本、27 条附件记录、附件文件清单及登录会话哈希一致；原快捷入口和数据目录保留。
 - 部署仅面向 GitHub Pages、Cloudflare Pages light-note 和 Firebase Hosting lightnote-sync/light-note。Vercel/Netlify 原名属于第三方；不调用 Netlify，继续遵守暂停及每项目滚动 168 小时限制。

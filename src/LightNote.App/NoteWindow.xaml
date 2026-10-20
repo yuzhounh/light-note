@@ -131,7 +131,7 @@
             </ScrollViewer>
         </Border>
 
-        <Border Grid.Row="2" Padding="24,14" BorderBrush="{DynamicResource BorderBrush}"
+        <Border Grid.Row="2" Padding="25,14" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <StackPanel>
                 <TextBox x:Name="TitleBox" FontSize="22" FontWeight="SemiBold" BorderThickness="0"
@@ -143,7 +143,7 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="3" Margin="18,10,5,18" BorderThickness="0" Background="Transparent">
+        <Border Grid.Row="3" Margin="0,10,0,18" BorderThickness="0" Background="Transparent">
             <Grid x:Name="EditorWebViewHost">
                 <wv2:WebView2 x:Name="EditorWebView" />
             </Grid>

@@ -2065,6 +2065,12 @@ public sealed record NotebookListItem(
 
     public bool ShowNoteCount => Kind == NotebookKind.User;
 
+    // NoteCount and PropertyChanged change over time; keep identity stable so the ListBox selection stays valid.
+    public bool Equals(NotebookListItem? other)
+        => other is not null && Kind == other.Kind && Id == other.Id && GroupId == other.GroupId;
+
+    public override int GetHashCode() => HashCode.Combine(Kind, Id, GroupId);
+
     public string DisplayName => Name;
 
     public double Indent => Kind switch

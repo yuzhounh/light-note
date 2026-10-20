@@ -981,7 +981,7 @@
                         </DockPanel>
                     </ScrollViewer>
                 </Border>
-                <Border Grid.Row="1" Padding="24,14" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                <Border Grid.Row="1" Padding="25,14" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
                     <StackPanel IsEnabled="{Binding IsEditorEnabled}">
                         <TextBox x:Name="TitleBox"
                                  Text="{Binding EditableTitle, UpdateSourceTrigger=PropertyChanged}"
@@ -1002,7 +1002,7 @@
                         </TextBlock>
                     </StackPanel>
                 </Border>
-                <Border Grid.Row="2" Margin="18,10,5,18" BorderThickness="0" Background="Transparent">
+                <Border Grid.Row="2" Margin="0,10,0,18" BorderThickness="0" Background="Transparent">
                     <Grid x:Name="EditorWebViewHost">
                         <wv2:WebView2 x:Name="EditorWebView" />
                     </Grid>
