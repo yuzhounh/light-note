@@ -17,8 +17,10 @@ import { LatexModal } from '../components/modals/LatexModal'
 import { syncService, subscribeSyncState } from '../core/sync/syncService'
 import { imageFileToImageAttributes } from './imageCompress'
 import { imageLayout, imageSizingAttributes, presetImageSize } from '../../../editor/src/imageSizing.js'
-import { createSizedTable, createTableSizing, tableContext } from '../../../editor/src/tableSizing.js'
-import { useBackDismiss } from '../hooks/useBackDismiss'
+import { createSizedTable, createTableSizing } from '../../../editor/src/tableSizing.js'
+import { openInsertTableDialog } from '../../../editor/src/insertTableDialog.js'
+import { createCodeBlockSelection } from '../../../editor/src/codeBlockSelection.js'
+import { useBackDismiss, registerBackDismiss } from '../hooks/useBackDismiss'
 
 // “Markdown 自动排版”开关（设置 → 外观）：关闭时在输入规则之前接管文字输入，按原样插入，
 // 因此 `1. `、`# `、`**粗体**`、`$公式$` 等规则都不会触发；工具栏与快捷键不受影响。
@@ -511,6 +513,7 @@ export const LightEditor = forwardRef(function LightEditor(
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
+      createCodeBlockSelection(Extension),
       MarkdownGate,
       SizedTable,
       TableRow,
@@ -666,15 +669,11 @@ export const LightEditor = forwardRef(function LightEditor(
 
   // 光标位于表格内时，在表格上方显示行、列操作条
   const [tableBar, setTableBar] = useState(null)
-  const [columnPanel, setColumnPanel] = useState(false)
-  const [columnWidth, setColumnWidth] = useState('')
-  const columnStateRef = useRef('')
   useEffect(() => {
     if (!editor) return undefined
     const update = () => {
       if (!editor.isEditable || !editor.isActive('table')) {
         setTableBar(prev => (prev ? null : prev))
-        setColumnPanel(false)
         return
       }
       const node = editor.view.domAtPos(editor.state.selection.from).node
@@ -684,16 +683,8 @@ export const LightEditor = forwardRef(function LightEditor(
         return
       }
       const rect = element.getBoundingClientRect()
-      const context = tableContext(editor.state, TableMap)
-      if (!context) return
       const height = document.querySelector('.table-bar')?.offsetHeight || 36
-      setTableBar({ left: Math.max(rect.left, 8), top: Math.max(rect.top - height - 6, 8),
-        col: context.col, total: context.widths.reduce((sum, width) => sum + width, 0) })
-      const signature = `${context.pos}/${context.col}/${context.widths[context.col]}`
-      if (columnStateRef.current !== signature) {
-        columnStateRef.current = signature
-        setColumnWidth(String(context.widths[context.col]))
-      }
+      setTableBar({ left: Math.max(rect.left, 8), top: Math.max(rect.top - height - 6, 8) })
     }
     editor.on('selectionUpdate', update)
     editor.on('update', update)
@@ -708,7 +699,7 @@ export const LightEditor = forwardRef(function LightEditor(
       window.removeEventListener('scroll', update, true)
       window.removeEventListener('resize', update)
     }
-  }, [editor, columnPanel])
+  }, [editor])
 
   if (!editor) return null
 
@@ -799,6 +790,7 @@ export const LightEditor = forwardRef(function LightEditor(
     const pad = n => String(n).padStart(2, '0')
     const timestamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
     editor.chain().focus().insertContent(timestamp).run()
+    editor.commands.splitBlock()
     editor.commands.splitBlock()
   }
 
@@ -997,7 +989,7 @@ export const LightEditor = forwardRef(function LightEditor(
 
         {/* Table */}
         <button
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          onClick={event => openInsertTableDialog(editor, close => registerBackDismiss(close, 100), event.currentTarget)}
           className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-xs shrink-0 whitespace-nowrap transition cursor-pointer ${
             editor.isActive('table')
               ? 'bg-zinc-200/90 dark:bg-zinc-500 dark:hover:bg-zinc-500 text-zinc-900 dark:text-white shadow-xs'
@@ -1091,16 +1083,11 @@ export const LightEditor = forwardRef(function LightEditor(
           <div
             className="table-bar"
             style={{ left: tableBar.left, top: tableBar.top }}
-            onMouseDown={event => { if (!event.target.closest('input')) event.preventDefault() }}
+            onMouseDown={event => event.preventDefault()}
           >
-            <button type="button" onClick={() => {
-              if (!columnPanel) {
-                const context = tableContext(editor.state, TableMap)
-                if (context) setColumnWidth(String(context.widths[context.col]))
-              }
-              setColumnPanel(value => !value)
-            }} aria-expanded={columnPanel}>列宽</button>
             <button type="button" onClick={() => editor.chain().focus().equalizeTableColumns().run()}>平均分配</button>
+            <button type="button" onClick={() => editor.chain().focus().resetTableWidth().run()}>重置表宽</button>
+            <button type="button" onClick={() => editor.chain().focus().standardizeTableColumns().run()}>统一列宽</button>
             {TABLE_ACTIONS.map(([label, command]) => (
               <button
                 key={command}
@@ -1111,23 +1098,6 @@ export const LightEditor = forwardRef(function LightEditor(
                 {label}
               </button>
             ))}
-            {columnPanel && (
-              <div className="table-width-panel">
-                <label>第 {tableBar.col + 1} 列
-                  <input type="number" min="80" step="1" aria-label="当前列宽" value={columnWidth}
-                    onChange={event => setColumnWidth(event.target.value)}
-                    onKeyDown={event => {
-                      event.stopPropagation()
-                      if (event.key === 'Enter') {
-                        event.preventDefault()
-                        editor.chain().focus().setTableColumnWidth(Number(columnWidth)).run()
-                      } else if (event.key === 'Escape') setColumnPanel(false)
-                    }} /> px
-                </label>
-                <button type="button" onClick={() => editor.chain().focus().setTableColumnWidth(Number(columnWidth)).run()}>应用列宽</button>
-                <span>总宽 {tableBar.total}px · 拖动分隔线调整</span>
-              </div>
-            )}
           </div>
         )}
       </div>
