@@ -363,6 +363,8 @@ export function App() {
             <div className={`${isTablet ? 'w-80' : 'w-[360px]'} shrink-0 h-full`}>
               <NoteList
                 notes={notes}
+                syncStatus={syncStatus}
+                onSync={handleManualSync}
                 activeNoteId={activeNote?.id}
                 onSelectNote={handleSelectNote}
                 onCreateNote={handleCreateNote}
@@ -442,6 +444,8 @@ export function App() {
               <div className={mobileView === 'list' ? 'relative w-full h-full flex flex-col' : 'absolute inset-0 invisible pointer-events-none flex flex-col'}>
                 <NoteList
                   notes={notes}
+                  syncStatus={syncStatus}
+                  onSync={handleManualSync}
                   isViewActive={mobileView === 'list'}
                   activeNoteId={activeNote?.id}
                   onSelectNote={handleSelectNote}
