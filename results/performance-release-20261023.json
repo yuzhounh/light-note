@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-23T08:41:02.5824839+08:00",
+  "version": "2.3.0",
+  "nativeBuildSource": "1092b2796d4d1793880de2e9a3cfa22e41706a99",
+  "webAndroidSource": "5445d6684686fe3bb5b83180919344ebd1b6756c",
+  "nativeInputsIdenticalAtFinalSource": true,
+  "sourcePushed": true,
+  "publicReleaseUnchanged": "v2.2.24",
+  "tests": {
+    "realFirestoreEmulator": true,
+    "CIintegration": 103,
+    "web": 50,
+    "nativeCache": 4,
+    "CIcore": 5,
+    "nativeThumbnail": 4
+  },
+  "webEntryGzip": {
+    "editorDeferred": true,
+    "afterKB": 320.81,
+    "beforeKB": 536.51
+  },
+  "productionBrowser": {
+    "notes": 113,
+    "manualIncrementalSync": "synced at 08:38:32",
+    "consoleErrorsOrWarnings": 0,
+    "existingAccountRestored": true,
+    "cloudNotesEdited": false,
+    "temporaryTabsClosed": true
+  },
+  "localBrowser": {
+    "editorLoaded": true,
+    "screenshot": "results/lightnote-mobile-local-2.3.0.png",
+    "viewportReset": true,
+    "desktopDetails": true,
+    "mobileWidth": 390,
+    "titleAndBodySaved": true,
+    "reloadRetainedContent": true
+  },
+  "receipts": [
+    "results/windows-daily-2.3.0.json",
+    "results/android-daily-2.3.0.json",
+    "results/web-daily-2.3.0.json",
+    "results/sync-emulator-verification.json"
+  ],
+  "remaining": [
+    "native Android UI pending device unlock"
+  ],
+  "localTestServerAndEmulatorStopped": true
+}

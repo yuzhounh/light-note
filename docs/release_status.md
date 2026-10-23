@@ -1,10 +1,14 @@
 # LightNote 当前正式版本发布
 
-## 当前日常目标：2.3.0（2026-10-23）
+## 当前日常版本：2.3.0（2026-10-23）
 
 - 累积手机界面调整、邮件粘贴和本次同步/缩略图优化，按 minor 发布日常版本；不创建公开 GitHub Release。Windows 与网页 2.3.0，Android code 38。
 - 已验证：Web 50 项测试；原生缓存 4 项、缩略图 4 项针对性测试。Firebase 12.19.0 真实 SDK 在隔离 demo 项目模拟器通过：452 条笔记首次 200/200/52 分页，持久断点重开只读 1 条边界记录，包含旧记录、三类实时监听及同时间戳的较小 ID。回执 `results/sync-emulator-verification.json`；未访问生产数据。
-- 构建、安装及三处自有网页发布正在执行。保留 Windows `development/current` 渠道及既有 `.lightnote` 数据。Vercel/Netlify 原名归第三方，禁止部署。
+- Windows 完整 Debug 构建已安装至原 `artifacts/development/current/win-x64`，164 个程序文件逐项一致，安装时应用已退出，未强制退出或自动重启；43 个数据库、附件、恢复及账号/设置文件的综合哈希与快捷方式保持。完整日常 ZIP 位于 `artifacts/development/2.3.0/LightNote-2.3.0-win-x64-daily.zip`。程序集来源 `1092b2796d4d1793880de2e9a3cfa22e41706a99`；后续 `5445d66` 仅更改网页懒加载和日志，原生构建输入相同，复用成功构建。
+- Web 与 APK 来源 `5445d6684686fe3bb5b83180919344ebd1b6756c` 已推送。入口 JS gzip 536.51→320.81 KB（约减少40%），编辑器分块打开笔记时解析，PWA 保留完整离线缓存；隔离 390px 手机列表/编辑/保存/重开及桌面详情通过。Chrome 生产页恢复原账户、113 条笔记和编辑器，手动增量同步返回“已同步”，无 console warning/error；未修改云端笔记或偏好。
+- GitHub Pages `39878690424`、Windows CI `39878690431` 成功；CI Core 5 项、Integration 103 项通过。Cloudflare `7eb6a2de` 与 Firebase `lightnote-sync/light-note` 已上线。每站 10 项首页/主 JS/CSS/延迟编辑器/PWA/图标资源与对应构建逐字节一致；Pages 复用其 CI 包并核对 `/light-note/` 范围。Vercel/Netlify 原名归第三方，未调用。
+- Android assembleRelease/lintRelease 成功（0 error、20 warning），v2 签名与原 code 37 一致。REDMI K80 Pro `1999ffe8` 覆盖安装实读 2.3.0/code 38，设备 APK 哈希与 `artifacts/android/2.3.0/LightNote-2.3.0-code38.apk` 相同（`9EEC90B5…05E8517`）；appId 10385、数据目录和首次安装时间保持。手机仍锁屏，原生 UI 验收未完成；不能用共享网页验证替代。
+- 回执：`results/windows-daily-2.3.0.json`、`results/android-daily-2.3.0.json`、`results/web-daily-2.3.0.json` 和 `results/performance-release-20261023.json`。浏览器临时页已关闭、视口已恢复、控制运行时已重置；测试服务器和 Firestore 模拟器均已停止。此前各次正式与日常记录如下，均为历史状态。
 
 ## Windows 日常增量：邮件粘贴保留超链接（2026-10-23）
 

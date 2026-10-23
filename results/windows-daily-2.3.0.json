@@ -1,0 +1,23 @@
+{
+  "installedAt": "2026-10-23T08:29:59.7572218+08:00",
+  "source": "1092b2796d4d1793880de2e9a3cfa22e41706a99",
+  "productVersion": "2.3.0+1092b2796d4d1793880de2e9a3cfa22e41706a99",
+  "configuration": "Debug",
+  "channel": "development/current",
+  "packageDirectory": "D:\\Archives\\20260919 Note\\artifacts\\development\\2.3.0\\win-x64",
+  "installedDirectory": "D:\\Archives\\20260919 Note\\artifacts\\development\\current\\win-x64",
+  "programFilesVerified": 164,
+  "completePackage": true,
+  "previousUnreferencedFilesRetained": true,
+  "protectedData": {
+    "files": 43,
+    "sha256": "69A67C701900FD13774C035763EE86705FFAFA72C78638AA018FF3F4D54276C4"
+  },
+  "shortcutUnchanged": true,
+  "appExitedBeforeInstall": true,
+  "forcedExit": false,
+  "dllSha256": "F9CDD8D930ED6E78AC11A18E26FC744E4C81362F47E269F25FF4CD7192BEF0B3",
+  "package": "D:\\Archives\\20260919 Note\\artifacts\\development\\2.3.0\\LightNote-2.3.0-win-x64-daily.zip",
+  "packageSha256": "42A115551B43CFB3388E6D2062AA8C091D2390961C7B39AB624E859C67E314A0",
+  "launched": false
+}

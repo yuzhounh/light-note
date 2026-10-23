@@ -1,0 +1,23 @@
+{
+  "version": "2.3.0",
+  "versionCode": 38,
+  "source": "5445d6684686fe3bb5b83180919344ebd1b6756c",
+  "device": "1999ffe8",
+  "package": "com.lightnote.app",
+  "packageFile": "artifacts/android/2.3.0/LightNote-2.3.0-code38.apk",
+  "sha256": "9EEC90B51C5F48F53DB398A04A4A66B1E552887824052E303BB372DC505E8517",
+  "deviceApkSha256Matches": true,
+  "v2SignatureVerified": true,
+  "sameCertificateAsCode37": true,
+  "certificateSha256": "85cdf5d43e349441519a6e647372d48fa3db8cd85be3ad35a26c87754b135bba",
+  "appId": 10385,
+  "dataDirectory": "/data/user/0/com.lightnote.app",
+  "firstInstallTime": "2026-10-07 18:33:08",
+  "lastUpdateTime": "2026-10-23 08:33:39",
+  "preservedIdentityAndFirstInstallTime": true,
+  "installedWith": "adb install -r",
+  "build": "assembleRelease lintRelease passed",
+  "lintWarnings": 20,
+  "nativeUI": "pending device unlock",
+  "browserSharedSource": "isolated 390px list/editor/save/reload and desktop details passed"
+}

@@ -1,0 +1,184 @@
+{
+  "source": "5445d6684686fe3bb5b83180919344ebd1b6756c",
+  "verifiedAt": "2026-10-23T08:37:29.6690025+08:00",
+  "cloudflareDeployment": "7eb6a2de",
+  "pagesBuild": 39878690424,
+  "windowsCI": 39878690431,
+  "sites": [
+    {
+      "platform": "Cloudflare",
+      "base": "https://light-note.pages.dev/",
+      "pwaScope": "/",
+      "assets": [
+        {
+          "path": "index.html",
+          "bytes": 1231,
+          "sha256": "B1D19537EF361AC4A3DFA277FA9D0D25DC2F341BEF5A3045E0822C4C508CF5B5"
+        },
+        {
+          "path": "manifest.webmanifest",
+          "bytes": 418,
+          "sha256": "9FB431AD2FEF738036E4D63D488C0E7C83701452A0BF9FFB47E73DD9F22744D5"
+        },
+        {
+          "path": "sw.js",
+          "bytes": 5270,
+          "sha256": "279C51FED7AA348E355F907E3AC2F82BFB51A2AC371F97B11A8E2B4555BA4982"
+        },
+        {
+          "path": "workbox-9c191d2f.js",
+          "bytes": 15112,
+          "sha256": "04B086F1B2F4215EE4B659A7BC9C76162894ABDB43FA876247BC7C0BD6FD1C37"
+        },
+        {
+          "path": "favicon.svg",
+          "bytes": 1528,
+          "sha256": "AAF6AFF52D647A27EAADD95CF48E22D4082F9CBD8747F82AE4129FCB1D7FD30A"
+        },
+        {
+          "path": "icon-512.png",
+          "bytes": 37055,
+          "sha256": "28FAE452C00E48333C571E3285E5B46D9C46DF1B61BFE9295A9F03464D01D1C4"
+        },
+        {
+          "path": "assets/index-CX51nZ4Q.js",
+          "bytes": 1182531,
+          "sha256": "13288EBA0AAEB1DB0364065E38136434EB135AD574BED37118F031CF1EFE276A"
+        },
+        {
+          "path": "assets/index-CX4kXtvP.css",
+          "bytes": 91586,
+          "sha256": "BE050FD739BD8CF23F1B248B33BC1BBA5E81DB99197A48FCD9734FBBF301CEB6"
+        },
+        {
+          "path": "assets/LightEditor-BgRD9VSM.css",
+          "bytes": 1433,
+          "sha256": "75E62E483C53E1BAD7CE0793A24A2A5462A167A2E9C6EFA05728730FB3037DEF"
+        },
+        {
+          "path": "assets/LightEditor-IkM5yIaz.js",
+          "bytes": 696282,
+          "sha256": "A476DB0113EACDE3A7A0BE9301D544E1C6A2B3A1DFA6F32C993BE1CCCC8D5599"
+        }
+      ]
+    },
+    {
+      "platform": "Firebase",
+      "base": "https://light-note.web.app/",
+      "pwaScope": "/",
+      "assets": [
+        {
+          "path": "index.html",
+          "bytes": 1231,
+          "sha256": "B1D19537EF361AC4A3DFA277FA9D0D25DC2F341BEF5A3045E0822C4C508CF5B5"
+        },
+        {
+          "path": "manifest.webmanifest",
+          "bytes": 418,
+          "sha256": "9FB431AD2FEF738036E4D63D488C0E7C83701452A0BF9FFB47E73DD9F22744D5"
+        },
+        {
+          "path": "sw.js",
+          "bytes": 5270,
+          "sha256": "279C51FED7AA348E355F907E3AC2F82BFB51A2AC371F97B11A8E2B4555BA4982"
+        },
+        {
+          "path": "workbox-9c191d2f.js",
+          "bytes": 15112,
+          "sha256": "04B086F1B2F4215EE4B659A7BC9C76162894ABDB43FA876247BC7C0BD6FD1C37"
+        },
+        {
+          "path": "favicon.svg",
+          "bytes": 1528,
+          "sha256": "AAF6AFF52D647A27EAADD95CF48E22D4082F9CBD8747F82AE4129FCB1D7FD30A"
+        },
+        {
+          "path": "icon-512.png",
+          "bytes": 37055,
+          "sha256": "28FAE452C00E48333C571E3285E5B46D9C46DF1B61BFE9295A9F03464D01D1C4"
+        },
+        {
+          "path": "assets/index-CX51nZ4Q.js",
+          "bytes": 1182531,
+          "sha256": "13288EBA0AAEB1DB0364065E38136434EB135AD574BED37118F031CF1EFE276A"
+        },
+        {
+          "path": "assets/index-CX4kXtvP.css",
+          "bytes": 91586,
+          "sha256": "BE050FD739BD8CF23F1B248B33BC1BBA5E81DB99197A48FCD9734FBBF301CEB6"
+        },
+        {
+          "path": "assets/LightEditor-BgRD9VSM.css",
+          "bytes": 1433,
+          "sha256": "75E62E483C53E1BAD7CE0793A24A2A5462A167A2E9C6EFA05728730FB3037DEF"
+        },
+        {
+          "path": "assets/LightEditor-IkM5yIaz.js",
+          "bytes": 696282,
+          "sha256": "A476DB0113EACDE3A7A0BE9301D544E1C6A2B3A1DFA6F32C993BE1CCCC8D5599"
+        }
+      ]
+    },
+    {
+      "platform": "GitHub Pages",
+      "base": "https://yuzhounh.github.io/light-note/",
+      "pwaScope": "/light-note/",
+      "assets": [
+        {
+          "path": "index.html",
+          "bytes": 1251,
+          "sha256": "8707B315A99C4DF39B9C7832B0BBE684B1EEB628918B2924E98C3525DAA10355"
+        },
+        {
+          "path": "manifest.webmanifest",
+          "bytes": 462,
+          "sha256": "EC3D7BA9F34F81C871A3F608CF9232760F4CF53E458D135B51B62EC129BAA1B5"
+        },
+        {
+          "path": "sw.js",
+          "bytes": 5205,
+          "sha256": "26EA4A60D6EE65A2C9B45A55FF066C6CFAA9B6439C1DC38F9BF912949D08CD1D"
+        },
+        {
+          "path": "workbox-9c191d2f.js",
+          "bytes": 15112,
+          "sha256": "04B086F1B2F4215EE4B659A7BC9C76162894ABDB43FA876247BC7C0BD6FD1C37"
+        },
+        {
+          "path": "favicon.svg",
+          "bytes": 1528,
+          "sha256": "AAF6AFF52D647A27EAADD95CF48E22D4082F9CBD8747F82AE4129FCB1D7FD30A"
+        },
+        {
+          "path": "icon-512.png",
+          "bytes": 37055,
+          "sha256": "28FAE452C00E48333C571E3285E5B46D9C46DF1B61BFE9295A9F03464D01D1C4"
+        },
+        {
+          "path": "assets/index-v_f7UTQe.js",
+          "bytes": 1182586,
+          "sha256": "36E0D72685151F517AE5574F0429AE762FC23D7635479EC21C2766F40158A837"
+        },
+        {
+          "path": "assets/index-O7pG3QbV.css",
+          "bytes": 92235,
+          "sha256": "727AFFCD4ADC8AF3972169140640A42B9040FC44FEBEEDE185DBC9AC1EED68E9"
+        },
+        {
+          "path": "assets/LightEditor-BgRD9VSM.css",
+          "bytes": 1433,
+          "sha256": "75E62E483C53E1BAD7CE0793A24A2A5462A167A2E9C6EFA05728730FB3037DEF"
+        },
+        {
+          "path": "assets/LightEditor-DgLDrNai.js",
+          "bytes": 696282,
+          "sha256": "5590296245A85200D2497019EF4F4A3BBB3AA0154D441BD81DAAF8E2F71BDF48"
+        }
+      ]
+    }
+  ],
+  "thirdPartyPlatformsSkipped": [
+    "Vercel",
+    "Netlify"
+  ]
+}
