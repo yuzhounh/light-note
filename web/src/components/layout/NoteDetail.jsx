@@ -1,7 +1,7 @@
-import React, { useRef } from 'react'
+import React, { lazy, Suspense, useRef } from 'react'
 import { ArrowLeft, Trash2, History } from 'lucide-react'
 import { countWords, formatInfoTime } from '../../core/noteInfo'
-import { LightEditor } from '../../editor/LightEditor'
+const LightEditor = lazy(() => import('../../editor/LightEditor').then(module => ({ default: module.LightEditor })))
 
 export function NoteDetail({
   note,
@@ -76,6 +76,7 @@ export function NoteDetail({
 
       {/* Editor component with toolbar at top, title below toolbar, and content */}
       <div className="flex-1 overflow-hidden">
+        <Suspense fallback={<div className="p-4 text-sm text-zinc-500" role="status">正在加载编辑器…</div>}>
         <LightEditor
           key={note.id}
           ref={editorRef}
@@ -87,6 +88,7 @@ export function NoteDetail({
           autoFocus={autoFocus}
           onFocused={onFocused}
         />
+        </Suspense>
       </div>
 
       {/* 桌面端底部信息栏：字数、创建与编辑时间，以及历史版本入口 */}
