@@ -795,9 +795,9 @@ export const LightEditor = forwardRef(function LightEditor(
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden">
+    <div className="editor-root flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden">
       {/* 1:1 Parity Desktop Toolbar with Responsive Mobile/Tablet Optimization */}
-      <div className="relative border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
+      <div className="editor-root relative border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
         <div className="editor-toolbar flex items-center gap-1 sm:gap-1.5 px-3 sm:px-6 py-1.5 sm:py-2 text-xs select-none overflow-x-auto whitespace-nowrap no-scrollbar">
 
           {/* Font Family Dropdown (Desktop Only) */}

@@ -1,0 +1,22 @@
+{
+  "projectId": "demo-lightnote-perf",
+  "emulatorOnly": true,
+  "sdk": "firebase 12.19.0",
+  "firstNotesPullDocuments": [
+    1,
+    200,
+    200,
+    52,
+    1
+  ],
+  "reopenedNotesPullDocuments": [
+    1
+  ],
+  "pagedPullLimit": 200,
+  "notes": 454,
+  "legacyIncluded": true,
+  "realtimeNotesNotebooksAttachments": true,
+  "sameTimestampLowerIdIncluded": true,
+  "productionAccess": false,
+  "completedAt": "2026-10-23T00:26:54.617Z"
+}

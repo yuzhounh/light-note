@@ -247,6 +247,10 @@ export const NotesRepository = {
     await this._updateNote(id, { is_deleted: 1, deleted_at: now })
   },
 
+  async moveNote(id, notebookId) {
+    await this._updateNote(id, { notebook_id: notebookId || null })
+  },
+
   async restoreNote(id) {
     await this._updateNote(id, { is_deleted: 0, deleted_at: null })
   },

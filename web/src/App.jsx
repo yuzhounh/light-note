@@ -10,10 +10,11 @@ import { useBackButton } from './hooks/useBackButton'
 import { Sidebar } from './components/layout/Sidebar'
 import { NoteList } from './components/layout/NoteList'
 import { NoteDetail } from './components/layout/NoteDetail'
+import { PhoneNoteList } from './components/phone/PhoneNoteList'
+import { PhoneMenu } from './components/phone/PhoneMenu'
 import { HistoryModal } from './components/modals/HistoryModal'
 import { SettingsModal } from './components/modals/SettingsModal'
 import { loginWithGoogle, logoutFirebase, subscribeAuth } from './core/auth/firebaseAuth'
-import { Plus } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 
 const keepMobileListMounted = Capacitor.getPlatform() === 'android'
@@ -129,12 +130,17 @@ export function App() {
       setSyncStatus(status)
     })
     const unsubscribeDrafts = noteDrafts.subscribe(setSaveStatus)
+    const resumeOnlineSync = () => {
+      if (syncService.currentUser) syncService.syncNow().catch(err => console.warn('Online sync retry failed:', err))
+    }
+    window.addEventListener('online', resumeOnlineSync)
 
     return () => {
       notebookCountsSubscription.unsubscribe()
       unsubscribeAuth()
       unsubscribeSync()
       unsubscribeDrafts()
+      window.removeEventListener('online', resumeOnlineSync)
       noteDrafts.flushAll().catch(err => console.warn('Final save failed:', err))
       syncService.stopRealtimeSync()
     }
@@ -290,6 +296,58 @@ export function App() {
     if (restored) setActiveNote(restored)
   }
 
+  // 手机选择模式的批量操作
+  async function handleTrashNotes(ids) {
+    for (const id of ids) {
+      await noteDrafts.flush(id)
+      await NotesRepository.softDeleteNote(id)
+    }
+    await loadNotes()
+    if (activeNote && ids.includes(activeNote.id)) setActiveNote(null)
+  }
+
+  async function handleRestoreNotes(ids) {
+    for (const id of ids) await NotesRepository.restoreNote(id)
+    await loadNotes()
+  }
+
+  async function handlePurgeNotes(ids) {
+    for (const id of ids) await NotesRepository.permanentDeleteNote(id)
+    await loadNotes()
+    if (activeNote && ids.includes(activeNote.id)) setActiveNote(null)
+  }
+
+  async function handleMoveNotes(ids, notebookId) {
+    for (const id of ids) {
+      await noteDrafts.flush(id)
+      await NotesRepository.moveNote(id, notebookId)
+    }
+    await loadNotes()
+  }
+
+  async function handleEmptyTrash() {
+    await NotesRepository.emptyTrash()
+    await loadNotes()
+  }
+
+  async function handleRenameNotebook(id, name) {
+    await NotesRepository.updateNotebook(id, { name })
+    setNotebooks(await NotesRepository.getAllNotebooks())
+  }
+
+  // 上移 / 下移：与相邻笔记本交换顺序，并把 sort_order 规整为连续编号
+  async function handleMoveNotebook(id, direction) {
+    const list = [...notebooks]
+    const from = list.findIndex(nb => nb.id === id)
+    const to = from + direction
+    if (from < 0 || to < 0 || to >= list.length) return
+    ;[list[from], list[to]] = [list[to], list[from]]
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].sort_order !== i + 1) await NotesRepository.updateNotebook(list[i].id, { sort_order: i + 1 })
+    }
+    setNotebooks(await NotesRepository.getAllNotebooks())
+  }
+
   // Create Notebook
   async function handleCreateNotebook(name) {
     const nb = await NotesRepository.createNotebook(name)
@@ -329,7 +387,7 @@ export function App() {
   const currentNotebookName = notebooks.find(n => n.id === currentNotebookId)?.name
 
   return (
-    <div className="lightnote-app flex h-full w-full overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
+    <div className={`lightnote-app flex h-full w-full overflow-hidden font-sans ${isMobile ? 'phone-ui' : 'bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100'}`}>
       {/* Main Multi-Column or Mobile Layout */}
       <div className="flex-1 min-w-0 min-h-0 flex overflow-hidden">
         {/* --- DESKTOP / TABLET (3-column / 2-column) --- */}
@@ -404,8 +462,35 @@ export function App() {
         {/* Phone navigation stack; shared phone/tablet drawer */}
         {(isMobile || isTablet) && (
           <div className={isMobile ? 'relative w-full h-full flex flex-col overflow-hidden' : 'contents'}>
-            {/* Drawer Sidebar Overlay */}
-            {isSidebarOpen && (
+            {/* 手机：全屏菜单（视图 + 设置） */}
+            {isMobile && isSidebarOpen && (
+              <PhoneMenu
+                notebooks={notebooks}
+                notebookCounts={notebookCounts}
+                currentNotebookId={currentNotebookId}
+                currentView={currentView}
+                onSelectNotebook={id => { setCurrentNotebookId(id); setCurrentView('all'); setSearchQuery('') }}
+                onSelectView={view => { setCurrentView(view); setCurrentNotebookId(null); setSearchQuery('') }}
+                onCreateNotebook={handleCreateNotebook}
+                onRenameNotebook={handleRenameNotebook}
+                onMoveNotebook={handleMoveNotebook}
+                onDeleteNotebook={handleDeleteNotebook}
+                sort={noteSort}
+                onSortChange={value => { setNoteSort(value); writeStoredJson('lightnote.noteSort', value) }}
+                density={noteDensity}
+                onDensityChange={value => { setNoteDensity(value); writeStoredJson('lightnote.noteDensity', value) }}
+                theme={theme}
+                onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+                currentUser={currentUser}
+                onLoginGoogle={handleGoogleLogin}
+                onLogout={handleLogout}
+                onDataImported={refreshData}
+                onClose={() => setIsSidebarOpen(false)}
+              />
+            )}
+
+            {/* 平板抽屉 */}
+            {!isMobile && isSidebarOpen && (
               <div className="fixed inset-0 z-50 flex justify-end animate-in fade-in duration-200">
                 <div 
                   className="fixed inset-0 bg-black/45 backdrop-blur-xs"
@@ -442,40 +527,29 @@ export function App() {
             {/* Mobile Screen: List View */}
             {isMobile && (mobileView === 'list' || keepMobileListMounted) && (
               <div className={mobileView === 'list' ? 'relative w-full h-full flex flex-col' : 'absolute inset-0 invisible pointer-events-none flex flex-col'}>
-                <NoteList
+                <PhoneNoteList
                   notes={notes}
-                  syncStatus={syncStatus}
-                  onSync={handleManualSync}
-                  isViewActive={mobileView === 'list'}
-                  activeNoteId={activeNote?.id}
-                  onSelectNote={handleSelectNote}
-                  onCreateNote={handleCreateNote}
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  sort={noteSort}
-                  onSortChange={value => { setNoteSort(value); writeStoredJson('lightnote.noteSort', value) }}
-                  density={noteDensity}
-                  onDensityChange={value => { setNoteDensity(value); writeStoredJson('lightnote.noteDensity', value) }}
-                  currentNotebookName={currentNotebookName}
                   notebooks={notebooks}
                   currentNotebookId={currentNotebookId}
-                  onOpenSidebar={() => setIsSidebarOpen(true)}
-                  onSoftDelete={handleSoftDelete}
+                  currentNotebookName={currentNotebookName}
+                  currentView={currentView}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onSelectNote={handleSelectNote}
+                  onCreateNote={handleCreateNote}
+                  onOpenMenu={() => setIsSidebarOpen(true)}
+                  syncStatus={syncStatus}
+                  onSync={handleManualSync}
+                  sort={noteSort}
+                  density={noteDensity}
+                  isViewActive={mobileView === 'list'}
                   onOpenHistory={handleOpenHistory}
-                  isMobile={true}
-                  isTablet={false}
+                  onMoveNotes={handleMoveNotes}
+                  onTrashNotes={handleTrashNotes}
+                  onRestoreNotes={handleRestoreNotes}
+                  onPurgeNotes={handlePurgeNotes}
+                  onEmptyTrash={handleEmptyTrash}
                 />
-
-                {/* Floating Action Button (FAB) for mobile new note */}
-                {currentView !== 'trash' && (
-                  <button
-                    onClick={handleCreateNote}
-                    className="mobile-new-note fixed right-5 bottom-6 w-11 h-11 rounded-full bg-[#00b87a] text-white shadow-md hover:shadow-lg flex items-center justify-center active:scale-90 transition z-40 cursor-pointer"
-                    title="新建笔记"
-                  >
-                    <Plus size={22} strokeWidth={2.5} />
-                  </button>
-                )}
               </div>
             )}
 

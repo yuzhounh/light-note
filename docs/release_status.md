@@ -1,5 +1,19 @@
 # LightNote 当前正式版本发布
 
+## 当前日常目标：2.3.0（2026-10-23）
+
+- 累积手机界面调整、邮件粘贴和本次同步/缩略图优化，按 minor 发布日常版本；不创建公开 GitHub Release。Windows 与网页 2.3.0，Android code 38。
+- 已验证：Web 50 项测试；原生缓存 4 项、缩略图 4 项针对性测试。Firebase 12.19.0 真实 SDK 在隔离 demo 项目模拟器通过：452 条笔记首次 200/200/52 分页，持久断点重开只读 1 条边界记录，包含旧记录、三类实时监听及同时间戳的较小 ID。回执 `results/sync-emulator-verification.json`；未访问生产数据。
+- 构建、安装及三处自有网页发布正在执行。保留 Windows `development/current` 渠道及既有 `.lightnote` 数据。Vercel/Netlify 原名归第三方，禁止部署。
+
+## Windows 日常增量：邮件粘贴保留超链接（2026-10-23）
+
+- 日常版本沿用 `2.2.25+1cbf65daedb5dce7e53856d2c82ae61748d4e0c6`，包含未提交改动；富文本粘贴优先使用原 HTML，避免编号列表触发纯文本 Markdown 转换而丢失超链接。原有搜索结果笔记本名称等改动保留。
+- 复用本次成功的编辑器构建；完整 Windows Debug 构建成功（0 错误，1 项既有 SkiaSharp 过时 API 警告）。2026-10-23 01:50（Asia/Shanghai）在程序已退出时将完整包的 164 个文件覆盖到原 `artifacts/development/current/win-x64`，逐项 SHA-256 一致。旧的未引用 JS 资源保留；当前 index 引用 `index-B1TlQUBY.js`。
+- 主 DLL SHA-256：`856C7581FF84C733CCAE5EA4E22576E2DB93BC9EEFC4D808C3AD0EC7FA9E321F`；新编辑器 JS SHA-256：`B89421BA2A18EF8E2A947B920BC0C94AFF8BB5E3CB5CB0A2C5CF5C11EC5BF0CF`。
+- 按用户要求启动日常程序，PID 84312；01:51 日志确认窗口启动成功及 WebView2 编辑器桥接就绪，01:52 进程响应正常。安装只覆盖程序包，保留原 `.lightnote` 数据目录、设置、账号数据及桌面快捷方式；未修改笔记内容。回执：`tmp/mail-paste-update/status.json`。
+- 本次仅更新 Windows 日常版，未提交、推送、公开发布或更新其他平台。
+
 ## V2.2.24：链接、笔记本切换与手机同步状态（2026-10-20）
 
 - 统一 Windows、Web 与 Android 版本为 2.2.24，Android versionCode 36；汇总 2.2.23 正式版之后的 Markdown 链接修复、笔记本切换修复及手机同步状态改进，范围见 CHANGELOG。

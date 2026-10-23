@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
@@ -12,6 +11,7 @@ using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LightNote.Core.Abstractions;
+using LightNote.Core;
 using LightNote.Core.Models;
 using LightNote.Infrastructure.Storage;
 
@@ -1297,12 +1297,11 @@ public sealed partial class MainViewModel(
                 _pendingSaves.TryGetValue(hit.Note.Id, out var pending)
                     ? pending.Note
                     : hit.Note).ToList();
-            var showBadge = rawNotes.Select(n => n.NotebookId ?? "").Distinct().Count() > 1;
             return hits.Select((hit, i) =>
             {
                 var note = rawNotes[i];
                 var nbName = GetNotebookName(note.NotebookId);
-                return new NoteListItem(note, hit.Snippet, query, nbName, showBadge, _paths?.AttachmentsDirectory, _paths?.ThumbnailCacheDirectory);
+                return new NoteListItem(note, hit.Snippet, query, nbName, showNotebookBadge: true, _paths?.AttachmentsDirectory, _paths?.ThumbnailCacheDirectory);
             }).ToArray();
         }
 
@@ -1630,7 +1629,9 @@ public sealed class NoteListItem : ObservableObject
     // 缩略图尺寸变化时递增，使旧尺寸的磁盘缓存失效。
     private const string ThumbnailCacheVersion = "v2|";
 
-    private static readonly ConcurrentDictionary<string, ImageSource?> ThumbnailCache = new(StringComparer.OrdinalIgnoreCase);
+    // One shared client: creating an HttpClient per remote thumbnail wastes sockets and handler setup.
+    private static readonly System.Net.Http.HttpClient ThumbnailHttpClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+    private static readonly BoundedAsyncCache<ImageSource> ThumbnailCache = new(128, 3);
 
     public static string? DefaultAttachmentsDirectory { get; set; }
     public static string? DefaultThumbnailCacheDirectory { get; set; }
@@ -1639,6 +1640,7 @@ public sealed class NoteListItem : ObservableObject
     private readonly string? _attachmentsDirectory;
     private readonly string? _thumbnailCacheDirectory;
     private ImageSource? _thumbnailSource;
+    private int _thumbnailRevision;
 
     public NoteListItem(
         Note note,
@@ -1701,6 +1703,7 @@ public sealed class NoteListItem : ObservableObject
 
     private void RefreshThumbnail()
     {
+        var revision = Interlocked.Increment(ref _thumbnailRevision);
         var attachDir = _attachmentsDirectory ?? DefaultAttachmentsDirectory;
         var cacheDir = _thumbnailCacheDirectory ?? DefaultThumbnailCacheDirectory;
 
@@ -1722,37 +1725,36 @@ public sealed class NoteListItem : ObservableObject
         {
             try
             {
-                var img = GenerateThumbnailFromSource(src, attachDir, cacheDir, cacheKey);
-                ThumbnailCache[cacheKey] = img;
+                var img = ThumbnailCache.GetOrCreateAsync(cacheKey,
+                    () => GenerateThumbnailFromSourceAsync(src, attachDir, cacheDir, cacheKey)).GetAwaiter().GetResult();
                 ThumbnailSource = img;
             }
             catch
             {
-                ThumbnailCache[cacheKey] = null;
                 ThumbnailSource = null;
             }
             return;
         }
 
-        Task.Run(() =>
+        _ = ApplyThumbnailAsync(src, attachDir, cacheDir, cacheKey, revision);
+    }
+
+    private async Task ApplyThumbnailAsync(string src, string? attachDir, string? cacheDir, string cacheKey, int revision)
+    {
+        try
         {
-            try
+            var img = await ThumbnailCache.GetOrCreateAsync(cacheKey,
+                () => GenerateThumbnailFromSourceAsync(src, attachDir, cacheDir, cacheKey)).ConfigureAwait(false);
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher is not null && !dispatcher.HasShutdownStarted)
             {
-                var img = GenerateThumbnailFromSource(src, attachDir, cacheDir, cacheKey);
-                ThumbnailCache[cacheKey] = img;
-                if (img is not null)
+                await dispatcher.InvokeAsync(() =>
                 {
-                    Application.Current?.Dispatcher?.InvokeAsync(() =>
-                    {
-                        ThumbnailSource = img;
-                    });
-                }
+                    if (revision == Volatile.Read(ref _thumbnailRevision)) ThumbnailSource = img;
+                });
             }
-            catch
-            {
-                ThumbnailCache[cacheKey] = null;
-            }
-        });
+        }
+        catch { /* A closed dispatcher must not turn a thumbnail into a window error. */ }
     }
 
     private static (ImageSource? Image, bool NeedBackground, string? Src, string? CacheKey) ResolveThumbnailFast(
@@ -1792,7 +1794,9 @@ public sealed class NoteListItem : ObservableObject
                 }
             }
 
-            var cacheKey = ComputeHash(ThumbnailCacheVersion + src);
+            var sourceScope = src.StartsWith("https://lightnote.attachments/", StringComparison.OrdinalIgnoreCase)
+                ? attachmentsDirectory + "|" : "";
+            var cacheKey = ComputeHash(ThumbnailCacheVersion + sourceScope + cacheDirectory + "|" + src);
 
             // 1. In-memory cache hit
             if (ThumbnailCache.TryGetValue(cacheKey, out var cached))
@@ -1804,43 +1808,36 @@ public sealed class NoteListItem : ObservableObject
                 continue;
             }
 
-            // 2. On-disk cache hit
-            if (!string.IsNullOrEmpty(cacheDirectory))
-            {
-                var diskPath = Path.Combine(cacheDirectory, $"{cacheKey}.png");
-                if (File.Exists(diskPath))
-                {
-                    try
-                    {
-                        var bitmap = new BitmapImage();
-                        bitmap.BeginInit();
-                        bitmap.UriSource = new Uri(diskPath, UriKind.Absolute);
-                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                        bitmap.EndInit();
-                        bitmap.Freeze();
-                        ThumbnailCache[cacheKey] = bitmap;
-                        return (bitmap, false, null, null);
-                    }
-                    catch
-                    {
-                        try { File.Delete(diskPath); } catch { }
-                    }
-                }
-            }
-
             return (null, true, src, cacheKey);
         }
 
         return (null, false, null, null);
     }
 
-    private static BitmapSource? GenerateThumbnailFromSource(
+    private static async Task<ImageSource?> GenerateThumbnailFromSourceAsync(
         string src,
         string? attachmentsDirectory,
         string? cacheDirectory,
         string cacheKey)
     {
         string? cachePath = cacheDirectory is not null ? Path.Combine(cacheDirectory, $"{cacheKey}.png") : null;
+        if (cachePath is not null && File.Exists(cachePath))
+        {
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.UriSource = new Uri(cachePath, UriKind.Absolute);
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
+                    return (ImageSource)bitmap;
+                }).ConfigureAwait(false);
+            }
+            catch { try { File.Delete(cachePath); } catch { } }
+        }
 
         if (src.StartsWith("https://lightnote.attachments/", StringComparison.OrdinalIgnoreCase))
         {
@@ -1850,27 +1847,28 @@ public sealed class NoteListItem : ObservableObject
             }
 
             var relativePath = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/')).Replace('/', Path.DirectorySeparatorChar);
-            var fullPath = Path.Combine(attachmentsDirectory, relativePath);
+            var root = Path.GetFullPath(attachmentsDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var fullPath = Path.GetFullPath(Path.Combine(root + Path.DirectorySeparatorChar, relativePath));
+            if (!fullPath.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return null;
             if (!File.Exists(fullPath))
             {
                 return null;
             }
 
-            return GenerateCroppedThumbnail(fullPath, null, cachePath);
+            return await Task.Run(() => GenerateCroppedThumbnail(fullPath, null, cachePath)).ConfigureAwait(false);
         }
 
         if (src.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
         {
             var commaIndex = src.IndexOf(',');
             if (commaIndex < 0) return null;
-            var base64 = src[(commaIndex + 1)..];
-            var bytes = Convert.FromBase64String(base64);
-            return GenerateCroppedThumbnail(null, bytes, cachePath);
+            return await Task.Run(() => GenerateCroppedThumbnail(null,
+                Convert.FromBase64String(src[(commaIndex + 1)..]), cachePath)).ConfigureAwait(false);
         }
 
         if (File.Exists(src))
         {
-            return GenerateCroppedThumbnail(src, null, cachePath);
+            return await Task.Run(() => GenerateCroppedThumbnail(src, null, cachePath)).ConfigureAwait(false);
         }
 
         if (src.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
@@ -1878,9 +1876,8 @@ public sealed class NoteListItem : ObservableObject
         {
             try
             {
-                using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                var bytes = client.GetByteArrayAsync(src).GetAwaiter().GetResult();
-                return GenerateCroppedThumbnail(null, bytes, cachePath);
+                var bytes = await ThumbnailHttpClient.GetByteArrayAsync(src).ConfigureAwait(false);
+                return await Task.Run(() => GenerateCroppedThumbnail(null, bytes, cachePath)).ConfigureAwait(false);
             }
             catch
             {
@@ -1895,28 +1892,27 @@ public sealed class NoteListItem : ObservableObject
     {
         try
         {
-            BitmapDecoder decoder;
-            if (sourceBytes is not null)
-            {
-                var stream = new MemoryStream(sourceBytes);
-                decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
-            }
-            else if (!string.IsNullOrEmpty(sourceFilePath) && File.Exists(sourceFilePath))
-            {
-                using var fileStream = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                decoder = BitmapDecoder.Create(fileStream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
-            }
-            else
-            {
-                return null;
-            }
+            using Stream stream = sourceBytes is not null ? new MemoryStream(sourceBytes)
+                : new FileStream(sourceFilePath!, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.None);
 
             if (decoder.Frames.Count == 0)
             {
                 return null;
             }
 
-            var frame = decoder.Frames[0];
+            var header = decoder.Frames[0];
+            var sourceWidth = header.PixelWidth;
+            var sourceHeight = header.PixelHeight;
+            stream.Position = 0;
+            var frame = new BitmapImage();
+            frame.BeginInit();
+            frame.CacheOption = BitmapCacheOption.OnLoad;
+            frame.StreamSource = stream;
+            if (sourceWidth <= sourceHeight) frame.DecodePixelWidth = Math.Min(192, sourceWidth);
+            else frame.DecodePixelHeight = Math.Min(192, sourceHeight);
+            frame.EndInit();
+            frame.Freeze();
             int origW = frame.PixelWidth;
             int origH = frame.PixelHeight;
             if (origW <= 0 || origH <= 0)
@@ -1930,7 +1926,7 @@ public sealed class NoteListItem : ObservableObject
 
             var cropped = new CroppedBitmap(frame, new Int32Rect(cropX, cropY, squareSize, squareSize));
 
-            // Target size: 120px for crisp high-DPI 60x60 container
+            // Keep the existing 192px center square, including its DPI.
             const int targetSize = 192;
             double scale = (double)targetSize / squareSize;
 
@@ -1944,6 +1940,13 @@ public sealed class NoteListItem : ObservableObject
                 finalBitmap = cropped;
             }
 
+            // Materialize the small bitmap; a TransformedBitmap alone can retain its full source chain.
+            var converted = new FormatConvertedBitmap(finalBitmap, PixelFormats.Pbgra32, null, 0);
+            var stride = converted.PixelWidth * 4;
+            var pixels = new byte[stride * converted.PixelHeight];
+            converted.CopyPixels(pixels, stride, 0);
+            finalBitmap = BitmapSource.Create(converted.PixelWidth, converted.PixelHeight,
+                finalBitmap.DpiX, finalBitmap.DpiY, PixelFormats.Pbgra32, null, pixels, stride);
             finalBitmap.Freeze();
 
             if (!string.IsNullOrEmpty(cachePath))

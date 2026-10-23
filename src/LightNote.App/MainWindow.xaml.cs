@@ -51,6 +51,7 @@ public partial class MainWindow : Window
     private readonly AppSettingsService _settingsService;
     private readonly ThemeService _themeService;
     private readonly SemaphoreSlim _editorTransitionGate = new(1, 1);
+    private static readonly HttpClient AvatarHttpClient = new() { Timeout = TimeSpan.FromSeconds(15) };
     private readonly System.Windows.Threading.DispatcherTimer _syncTimer = new()
     {
         Interval = TimeSpan.FromMinutes(1),
@@ -953,8 +954,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-            var bytes = await client.GetByteArrayAsync(photoUri);
+            var bytes = await AvatarHttpClient.GetByteArrayAsync(photoUri);
             if (bytes.Length > 0)
             {
                 if (File.Exists(cachePath))
@@ -2914,7 +2914,9 @@ public partial class MainWindow : Window
                 _textSyncStatus = "文字同步中…";
                 UpdateBackgroundSyncStatus();
                 var result = await _syncService.SyncTextAsync(_backgroundSyncCancellation.Token);
-                await _viewModel.RefreshAfterSyncAsync();
+                // The one-minute background sync usually changes nothing locally; skip the full list reload then.
+                if (result.Downloaded > 0 || result.Conflicts > 0)
+                    await _viewModel.RefreshAfterSyncAsync();
                 _textSyncStatus = result.Conflicts > 0
                     ? $"文字已同步 · {result.Conflicts} 个冲突副本"
                     : $"文字已同步 · {result.CompletedAt.ToLocalTime():HH:mm}";
