@@ -32,26 +32,28 @@ export function NoteDetail({
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-white dark:bg-zinc-900 overflow-hidden">
-      {/* Mobile-only Back Header */}
+    <div className={`flex flex-col h-full w-full overflow-hidden ${isMobile ? 'bg-surface' : 'bg-white dark:bg-zinc-900'}`}>
+      {/* 手机顶栏：返回 + 历史版本 + 移入回收站（48dp 图标按钮，蓝色强调） */}
       {isMobile && (
-        <div className="flex items-center justify-between px-3 h-12 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
+        <div className="flex items-center justify-between pl-1 pr-1 h-[60px] border-b border-line bg-surface shrink-0">
           <button
             onClick={onBackMobile}
-            className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+            aria-label="返回列表"
+            title="返回列表"
+            className="phone-pressable w-12 h-12 p-3 rounded-full flex items-center justify-center text-ink cursor-pointer"
           >
-            <ArrowLeft size={16} />
-            <span>返回列表</span>
+            <ArrowLeft size={24} strokeWidth={1.8} />
           </button>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center">
             {onOpenHistory && (
               <button
                 onClick={() => onOpenHistory(note)}
-                className="p-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                className="phone-pressable w-12 h-12 p-3 rounded-full flex items-center justify-center text-ink cursor-pointer"
+                aria-label="历史版本"
                 title="历史版本"
               >
-                <History size={17} />
+                <History size={24} strokeWidth={1.8} />
               </button>
             )}
             {onSoftDelete && (
@@ -61,10 +63,11 @@ export function NoteDetail({
                     onSoftDelete(note.id)
                   }
                 }}
-                className="p-1.5 text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                className="phone-pressable w-12 h-12 p-3 rounded-full flex items-center justify-center text-ink cursor-pointer"
+                aria-label="移入回收站"
                 title="移入回收站"
               >
-                <Trash2 size={17} />
+                <Trash2 size={24} strokeWidth={1.8} />
               </button>
             )}
           </div>

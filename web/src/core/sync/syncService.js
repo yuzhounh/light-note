@@ -6,6 +6,7 @@ import {
   getDocsFromServer as getDocs,
   setDoc, 
   onSnapshot, 
+  query, where, orderBy, startAfter, limit, documentId, getDocFromServer,
 } from 'firebase/firestore'
 import { getStorage, ref, getDownloadURL } from 'firebase/storage'
 import { initFirebase } from '../auth/firebaseAuth.js'
@@ -16,6 +17,8 @@ import { noteDrafts } from './noteDrafts.js'
 import { ATTACHMENT_URL_PREFIX, findAttachmentCloudPath, normalizeAttachmentPath } from './attachmentPaths.js'
 import { Capacitor } from '@capacitor/core'
 import { cachedImageUrl, releaseImageUrls } from './imageCache.js'
+import { cursorKey, deferredKey, deferredPrefix, deltaQuery, documentCursor, newestCursor,
+  prepareDownloadOwner, assertDownloadEpoch, pullCollection } from './syncCursor.js'
 
 const usesPersistentImageCache = Capacitor.getPlatform() === 'android'
 
@@ -91,8 +94,12 @@ export const syncService = {
   _syncSession: null,
   _pushPromise: null,
   _pushSession: null,
+  _snapshotEpoch: 0,
+  _pullRetryTimeout: null,
+  _pullFailures: 0,
+  _listenCursors: new Map(),
   _getServices: getServices,
-  _firebase: { collection, getDocs, onSnapshot },
+  _firebase: { collection, getDocs, onSnapshot, query, where, orderBy, startAfter, limit, documentId, doc, getDoc: getDocFromServer },
 
   onDataChange: null,
 
@@ -105,6 +112,8 @@ export const syncService = {
     if (prevUid !== nextUid) {
       this._generation++
       this.stopRealtimeSync()
+      this._listenCursors.clear()
+      this._pullFailures = 0
       attachmentUrlCache.clear()
       releaseImageUrls()
       syncState.status = 'idle'
@@ -115,7 +124,6 @@ export const syncService = {
         this.syncNow(user, this.onDataChange).catch(err => {
           console.warn('Initial sync error:', err)
         })
-        this.startRealtimeSync(user, this.onDataChange)
       } else {
         syncState.status = 'idle'
         syncState.error = null
@@ -134,12 +142,16 @@ export const syncService = {
   _sameSession(left, right) {
     return left?.uid === right.uid && left?.generation === right.generation
   },
-  async _applyRemote(session, apply) {
-    return db.transaction('rw', db.notes, db.notebooks, db.attachments, db.sync_outbox, async () => {
+  async _applyRemote(session, apply, snapshotEpoch = null) {
+    const assert = () => {
       this._assertCurrent(session)
+      if (snapshotEpoch !== null && snapshotEpoch !== this._snapshotEpoch) throw new SyncCancelledError()
+    }
+    return db.transaction('rw', db.notes, db.notebooks, db.attachments, db.sync_outbox, db.settings, async () => {
+      assert()
       const result = await apply()
       // Roll back the whole local transaction if the account changed during a merge.
-      this._assertCurrent(session)
+      assert()
       return result
     })
   },
@@ -148,6 +160,7 @@ export const syncService = {
     if (!this.currentUser) return
     if (this._pushTimeout) clearTimeout(this._pushTimeout)
     this._pushTimeout = setTimeout(() => {
+      if (this._isSyncing) { this.notifyOutboxChanged(delay); return }
       this.pushOutbox(this.currentUser).catch(err => {
         console.warn('Auto-push outbox failed:', err)
       })
@@ -167,6 +180,8 @@ export const syncService = {
       if (!this._isCurrent(session)) return
       return this.syncNow(user, onDataChange)
     }
+    clearTimeout(this._pullRetryTimeout)
+    this._pullRetryTimeout = null
     const job = this._pullAndPush(user, session, onDataChange)
     this._syncPromise = job
     this._syncSession = session
@@ -179,95 +194,125 @@ export const syncService = {
     }
   },
 
+  async _mergeEntity(session, kind, record, type = 'modified', clearDeferred = false) {
+    let blocked = false, changed = false
+    if (kind === 'notes') changed = await mergeRemoteNote(record, type, () => { blocked = true })
+    else if (kind === 'notebooks') changed = await mergeRemoteNotebook(record, type, () => { blocked = true })
+    else if (kind === 'attachments' && type !== 'removed') {
+      const previous = await db.attachments.get(record.sha256 || '')
+      const fields = {
+        id: record.id, sha256: record.sha256 || '', filename: record.filename || '',
+        cloud_path: record.cloudPath || '', relative_path: normalizeAttachmentPath(record.relativePath),
+        byte_size: record.size || 0, mime_type: record.mimeType || 'image/png',
+        created_at: toIsoString(record.createdAt, previous?.created_at || new Date().toISOString()),
+        updated_at: toIsoString(record.updatedAt, previous?.updated_at || null),
+        deleted_at: toIsoString(record.deletedAt, null)
+      }
+      if (!previous || Object.keys(fields).some(key => previous[key] !== fields[key])) {
+        await db.attachments.put({ ...previous, ...fields }); changed = true
+      }
+    }
+    const key = deferredKey(session.uid, kind, record.id)
+    if (blocked) await db.settings.put({ key, value: { kind, id: record.id } })
+    else if (clearDeferred) await db.settings.delete(key)
+    return changed
+  },
+
+  async _pullCollection(user, session, kind, epoch, callback) {
+    const { firestore } = this._getServices()
+    const reference = this._firebase.collection(firestore, 'users', user.uid, kind)
+    return pullCollection({ api: this._firebase, reference, uid: user.uid, kind, epoch,
+      assertCurrent: () => this._assertCurrent(session),
+      commitPage: async (records, key, state, fullIds) => {
+        const changed = await this._applyRemote(session, async () => {
+          await assertDownloadEpoch(epoch)
+          let changed = false
+          for (const record of records) changed = await this._mergeEntity(session, kind, record) || changed
+          if (kind === 'notes' && fullIds !== null) await this._cleanDemoNotes(fullIds)
+          await db.settings.put({ key, value: state })
+          return changed
+        })
+        if ((changed || fullIds !== null) && this._isCurrent(session)) callback?.()
+      }
+    })
+  },
+
+  async _retryDeferred(user, session, epoch) {
+    const entries = await db.settings.where('key').startsWith(deferredPrefix(user.uid)).toArray()
+    const { firestore } = this._getServices()
+    for (const entry of entries) {
+      this._assertCurrent(session)
+      const { kind, id } = entry.value
+      if (!['notes', 'notebooks', 'attachments'].includes(kind)) throw new Error('同步记录类型无效')
+      if (kind === 'notes' && noteDrafts.has(id)) continue
+      const entityType = kind === 'notes' ? 'note' : 'notebook'
+      if (await db.sync_outbox.where('entity_type').equals(entityType).and(item => item.entity_id === id).count()) continue
+      // Re-fetch the current document after upload acknowledgement; an old deferred payload
+      // must not replace a newer local upload or a later server revision.
+      const snapshot = await this._firebase.getDoc(this._firebase.doc(firestore, 'users', user.uid, kind, id))
+      this._assertCurrent(session)
+      if (snapshot.metadata?.fromCache || snapshot.metadata?.hasPendingWrites) throw new Error('尚未从云端取得最新记录，请检查网络后下拉重试')
+      await this._applyRemote(session, async () => {
+        await assertDownloadEpoch(epoch)
+        if (!snapshot.exists()) await db.settings.delete(entry.key) // physical removal remains non-destructive locally
+        else await this._mergeEntity(session, kind, { ...snapshot.data(), id: snapshot.id }, 'modified', true)
+      })
+    }
+  },
+
+  _schedulePullRetry(session, error, callback) {
+    const code = String(error?.code || '').split('/').at(-1)
+    if (!this._isCurrent(session) || this._pullRetryTimeout ||
+      ['permission-denied', 'unauthenticated', 'failed-precondition', 'invalid-argument'].includes(code) ||
+      (typeof navigator !== 'undefined' && navigator.onLine === false)) return
+    const delay = Math.min(60000, 5000 * 2 ** Math.min(this._pullFailures++, 4))
+    this._pullRetryTimeout = setTimeout(() => {
+      this._pullRetryTimeout = null
+      if (this._isCurrent(session)) this.syncNow(this.currentUser, callback).catch(error => console.warn('Sync retry failed:', error))
+    }, delay)
+  },
+
   async _pullAndPush(user, session, onDataChange) {
     this._isSyncing = true
-    syncState.status = 'syncing'
-    syncState.error = null
+    this.stopRealtimeSync({ preservePush: true, preserveRetry: true })
+    syncState.status = 'syncing'; syncState.error = null
     notifyListeners()
-
+    let failure = null, attachmentFailure = null
+    const callback = onDataChange || this.onDataChange
     try {
-      const { firestore } = this._getServices()
-      const uid = user.uid
-
-      // 1. Pull remote notebooks
-      const nbColRef = this._firebase.collection(firestore, 'users', uid, 'notebooks')
-      const nbSnap = await this._firebase.getDocs(nbColRef)
+      if (this._pushPromise && this._sameSession(this._pushSession, session)) await this._pushPromise.catch(() => {})
       this._assertCurrent(session)
-      const remoteNotebooks = []
-      nbSnap.forEach(d => {
-        remoteNotebooks.push({ id: d.id, ...d.data() })
-      })
-
-      // 2. Pull remote notes
-      const remoteNotes = []
-      const notesSnap = await this._firebase.getDocs(this._firebase.collection(firestore, 'users', uid, 'notes'))
+      const epoch = await prepareDownloadOwner(user.uid, () => this._assertCurrent(session))
+      const notebooks = await this._pullCollection(user, session, 'notebooks', epoch, callback)
+      const notes = await this._pullCollection(user, session, 'notes', epoch, callback)
+      try { await this._pullCollection(user, session, 'attachments', epoch, callback) }
+      catch (error) { this._assertCurrent(session); attachmentFailure = error; console.warn('Sync attachments skipped:', error) }
       this._assertCurrent(session)
-      if (nbSnap.metadata?.fromCache || notesSnap.metadata?.fromCache) {
-        throw new Error('尚未从云端取得最新记录，请检查网络后下拉重试')
-      }
-      notesSnap.forEach(d => remoteNotes.push({ id: d.id, ...d.data() }))
-
-      // 3. Pull remote attachments
-      const remoteAttachments = []
-      try {
-        const attColRef = this._firebase.collection(firestore, 'users', uid, 'attachments')
-        const attSnap = await this._firebase.getDocs(attColRef)
-        this._assertCurrent(session)
-        attSnap.forEach(d => {
-          remoteAttachments.push({ id: d.id, ...d.data() })
-        })
-      } catch (e) {
-        this._assertCurrent(session)
-        console.warn('Sync attachments skipped:', e)
-      }
-
-      await this._applyRemote(session, async () => {
-        for (const att of remoteAttachments) {
-          await db.attachments.put({
-            id: att.id, sha256: att.sha256 || '', filename: att.filename || '',
-            cloud_path: att.cloudPath || '', relative_path: normalizeAttachmentPath(att.relativePath),
-            byte_size: att.size || 0, mime_type: att.mimeType || 'image/png',
-            created_at: toIsoString(att.createdAt)
-          })
-        }
-        if (remoteNotes.length > 0 || remoteNotebooks.length > 0) {
-          await this._cleanDemoNotes(remoteNotes.map(n => n.id))
-        }
-        for (const rNb of remoteNotebooks) await mergeRemoteNotebook(rNb)
-        for (const rNote of remoteNotes) await mergeRemoteNote(rNote)
-      })
-
-      this._assertCurrent(session)
+      await assertDownloadEpoch(epoch)
       await this.pushOutbox(user)
+      await this._retryDeferred(user, session, epoch)
+      await assertDownloadEpoch(epoch)
+      const count = await db.sync_outbox.count()
       this._assertCurrent(session)
-
-      // Update outbox count
-      const remainingOutbox = await db.sync_outbox.count()
-      this._assertCurrent(session)
-      syncState.outboxCount = remainingOutbox
-      syncState.status = 'synced'
-      syncState.lastSyncedAt = new Date().toISOString()
-      syncState.error = null
+      syncState.outboxCount = count
+      syncState.status = 'synced'; syncState.lastSyncedAt = new Date().toISOString(); syncState.error = null
+      if (!attachmentFailure) this._pullFailures = 0
+      notifyListeners(); callback?.()
+      return { remoteNotebooksCount: notebooks.documents, remoteNotesCount: notes.documents }
+    } catch (error) {
+      if (error instanceof SyncCancelledError || !this._isCurrent(session)) return
+      failure = error
+      syncState.status = 'error'; syncState.error = error.message || '同步失败'
       notifyListeners()
-
-      const cb = onDataChange || this.onDataChange
-      if (cb) {
-        cb()
-      }
-
-      return {
-        remoteNotebooksCount: remoteNotebooks.length,
-        remoteNotesCount: remoteNotes.length
-      }
-    } catch (err) {
-      if (err instanceof SyncCancelledError || !this._isCurrent(session)) return
-      console.error('Sync failed:', err)
-      syncState.status = 'error'
-      syncState.error = err.message || '同步失败'
-      notifyListeners()
-      throw err
+      throw error
     } finally {
       this._isSyncing = false
+      if (this._isCurrent(session)) {
+        try {
+          const ready = await this.startRealtimeSync(user, callback)
+          if (failure || !ready) this._schedulePullRetry(session, failure || attachmentFailure, callback)
+        } catch (error) { this._schedulePullRetry(session, error, callback) }
+      }
     }
   },
 
@@ -289,9 +334,11 @@ export const syncService = {
         await pushPendingChanges((entityType, id, record) => this._uploadRecord(user, entityType, id, record),
           () => this._assertCurrent(session))
         this._assertCurrent(session)
-        syncState.status = 'synced'
-        syncState.error = null
-        syncState.lastSyncedAt = new Date().toISOString()
+        if (!this._isSyncing) {
+          syncState.status = 'synced'
+          syncState.error = null
+          syncState.lastSyncedAt = new Date().toISOString()
+        }
       } catch (err) {
         if (err instanceof SyncCancelledError || !this._isCurrent(session)) return
         syncState.status = 'error'
@@ -328,59 +375,69 @@ export const syncService = {
   /**
    * Listen for real-time Firestore updates and keep local Dexie in sync
    */
-  startRealtimeSync(user = this.currentUser, onDataChange = null) {
-    if (!user || !user.uid) return
-    this.stopRealtimeSync()
-
-    const session = this._session(user)
-    if (!this._isCurrent(session)) return
+  async startRealtimeSync(user = this.currentUser, onDataChange = null) {
+    if (!user?.uid) return false
+    this.stopRealtimeSync({ preservePush: true, preserveRetry: true })
+    const session = this._session(user), epoch = this._snapshotEpoch
+    if (!this._isCurrent(session)) return false
     const { firestore } = this._getServices()
-    const uid = user.uid
-
-    const processSnapshot = async (snapshot, merge) => {
-      if (!this._isCurrent(session)) return
-      try {
-        const changed = await this._applyRemote(session, async () => {
-          let changed = false
-          for (const change of snapshot.docChanges()) {
-            this._assertCurrent(session)
-            changed = await merge({ id: change.doc.id, ...change.doc.data() }, change.type) || changed
-          }
-          return changed
-        })
-        const callback = onDataChange || this.onDataChange
-        if (this._isCurrent(session) && changed && callback) callback()
-      } catch (error) {
-        if (!(error instanceof SyncCancelledError) && this._isCurrent(session)) {
-          syncState.status = 'error'
-          syncState.error = error.message || '同步失败'
-          notifyListeners()
-        }
-      }
+    const unsubscribers = []
+    this._unsubscribeSnapshots = () => { for (const unsubscribe of unsubscribers.splice(0)) unsubscribe() }
+    let ready = true
+    for (const kind of ['notebooks', 'notes', 'attachments']) {
+      const state = (await db.settings.get(cursorKey(user.uid, kind)))?.value
+      if (!this._isCurrent(session) || epoch !== this._snapshotEpoch) { for (const unsubscribe of unsubscribers.splice(0)) unsubscribe(); return false }
+      if (state?.phase === 'incremental') this._listenCursors.set(kind, state.cursor)
+      else ready = false
+      const cursor = state?.phase === 'incremental' ? state.cursor : this._listenCursors.get(kind)
+      if (!cursor) continue // first bootstrap owns the initial load, avoiding a second full listener read
+      const reference = this._firebase.collection(firestore, 'users', user.uid, kind)
+      unsubscribers.push(this._firebase.onSnapshot(deltaQuery(this._firebase, reference, cursor),
+        { includeMetadataChanges: true },
+        snapshot => this._processSnapshot(session, epoch, kind, snapshot, onDataChange),
+        error => { if (this._isCurrent(session) && epoch === this._snapshotEpoch) console.warn(`Realtime ${kind} listener warning:`, error) }))
     }
-    const unsubNotes = this._firebase.onSnapshot(this._firebase.collection(firestore, 'users', uid, 'notes'), snapshot => processSnapshot(snapshot, mergeRemoteNote), err => {
-      if (!this._isCurrent(session)) return
-      console.warn('Realtime notes listener warning:', err)
-    })
+    return ready
+  },
 
-    const unsubNotebooks = this._firebase.onSnapshot(this._firebase.collection(firestore, 'users', uid, 'notebooks'), snapshot => processSnapshot(snapshot, mergeRemoteNotebook), err => {
-      if (!this._isCurrent(session)) return
-      console.warn('Realtime notebooks listener warning:', err)
-    })
-
-    this._unsubscribeSnapshots = () => {
-      unsubNotes()
-      unsubNotebooks()
+  async _processSnapshot(session, epoch, kind, snapshot, onDataChange) {
+    if (!this._isCurrent(session) || epoch !== this._snapshotEpoch) return
+    try {
+      let committedCursor = null
+      const changed = await this._applyRemote(session, async () => {
+        let changed = false
+        const changes = snapshot.docChanges()
+        for (const change of changes) changed = await this._mergeEntity(session, kind,
+          { ...change.doc.data(), id: change.doc.id }, change.type) || changed
+        if (!snapshot.metadata?.fromCache && !snapshot.metadata?.hasPendingWrites) {
+          const key = cursorKey(session.uid, kind), checkpoint = await db.settings.get(key)
+          if (checkpoint?.value.phase === 'incremental') {
+            let cursor = checkpoint.value.cursor
+            const documents = snapshot.docs || changes.filter(change => change.type !== 'removed').map(change => change.doc)
+            for (const document of documents) cursor = newestCursor(cursor, documentCursor({ ...document.data(), id: document.id }))
+            if (cursor !== checkpoint.value.cursor || checkpoint.value.delta) {
+              await db.settings.put({ key, value: { ...checkpoint.value, cursor, delta: null } })
+            }
+            committedCursor = cursor
+          }
+        }
+        return changed
+      }, epoch)
+      if (committedCursor && this._isCurrent(session) && epoch === this._snapshotEpoch) this._listenCursors.set(kind, committedCursor)
+      const callback = onDataChange || this.onDataChange
+      if (changed && this._isCurrent(session) && epoch === this._snapshotEpoch) callback?.()
+    } catch (error) {
+      if (!(error instanceof SyncCancelledError) && this._isCurrent(session) && epoch === this._snapshotEpoch) {
+        syncState.status = 'error'; syncState.error = error.message || '同步失败'; notifyListeners()
+      }
     }
   },
 
-  stopRealtimeSync() {
-    clearTimeout(this._pushTimeout)
-    this._pushTimeout = null
-    if (this._unsubscribeSnapshots) {
-      this._unsubscribeSnapshots()
-      this._unsubscribeSnapshots = null
-    }
+  stopRealtimeSync({ preservePush = false, preserveRetry = false } = {}) {
+    this._snapshotEpoch++
+    if (!preservePush) { clearTimeout(this._pushTimeout); this._pushTimeout = null }
+    if (!preserveRetry) { clearTimeout(this._pullRetryTimeout); this._pullRetryTimeout = null }
+    if (this._unsubscribeSnapshots) { this._unsubscribeSnapshots(); this._unsubscribeSnapshots = null }
   },
 
   /**

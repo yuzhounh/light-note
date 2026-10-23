@@ -37,6 +37,7 @@ export const db = new LightNoteDatabase()
  * Purge any mock/demo notes that were seeded in previous versions
  */
 export async function purgeLegacyDemoNotes() {
+  let removed = false
   const demoTitles = new Set([
     '具身智能',
     'AI 模型发布日报 | 9月24日',
@@ -55,6 +56,7 @@ export async function purgeLegacyDemoNotes() {
       if (!pending.has(n.id) && !noteDrafts.has(n.id) &&
         (n.is_demo === 1 || (demoTitles.has(n.title) && n.created_at?.includes('2026-09-25T10:02')))) {
         await db.notes.delete(n.id)
+        removed = true
       }
     }
 
@@ -64,8 +66,13 @@ export async function purgeLegacyDemoNotes() {
         const remaining = await db.notes.where('notebook_id').equals(nb.id).count()
         if (remaining === 0) {
           await db.notebooks.delete(nb.id)
+          removed = true
         }
       }
+    }
+    if (removed) {
+      const { invalidateDownloadState } = await import('../sync/syncCursor.js')
+      await invalidateDownloadState()
     }
   } catch (e) {
     console.warn('Failed to purge demo notes:', e)

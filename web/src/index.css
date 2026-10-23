@@ -3,6 +3,18 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* 手机界面设计规范色板（Light Mail 样板）：浅色 / 深色各一组，组件只引用语义名 */
+@theme inline {
+  --color-brand: var(--c-brand);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-tint: var(--c-tint);
+  --color-line: var(--c-line);
+  --color-panel: var(--c-panel);
+  --color-field: var(--c-field);
+  --color-surface: var(--c-surface);
+}
+
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -478,3 +490,57 @@ html.lightnote-android.dark {
 .dark .note-card-pressed {
   background-color: #29473c;
 }
+
+
+/* ---- 手机界面（lightnote-app.phone-ui）---- */
+:root {
+  --c-brand: #416DC3;
+  --c-ink: #213047;
+  --c-muted: #67768C;
+  --c-tint: #EAF1FC;
+  --c-line: #E4EAF2;
+  --c-panel: #F8FAFD;
+  --c-field: #F2F5FA;
+  --c-surface: #FFFFFF;
+  --c-page: linear-gradient(135deg, #ECF3FF 0%, #F3F2FA 52%, #FAF6F0 100%);
+}
+
+.dark {
+  --c-brand: #6F98E6;
+  --c-ink: #E8EDF6;
+  --c-muted: #94A3BB;
+  --c-tint: #1F2E4D;
+  --c-line: #263248;
+  --c-panel: #141B2B;
+  --c-field: #1B2438;
+  --c-surface: #101726;
+  --c-page: linear-gradient(135deg, #0C1220 0%, #111726 52%, #16151C 100%);
+}
+
+.phone-ui {
+  background: var(--c-page);
+  color: var(--c-ink);
+}
+
+.phone-ui .phone-header,
+.phone-ui .phone-search,
+.phone-ui .phone-status {
+  transition: height 180ms ease, max-height 180ms ease, opacity 180ms ease, margin 180ms ease, font-size 180ms ease;
+}
+
+.phone-ui .phone-pressable:active {
+  background-color: color-mix(in srgb, var(--c-brand) 13%, transparent);
+}
+
+/* 详情页：编辑器沿用同一套蓝色强调，不再出现绿色 */
+.phone-ui .editor-root { background: var(--c-surface); }
+.phone-ui .ring-emerald-500 { --tw-ring-color: var(--c-brand); }
+.phone-ui .bg-emerald-500 { background-color: var(--c-brand); }
+.phone-ui [class*="bg-emerald-100"] { background-color: var(--c-tint); color: var(--c-brand); }
+.phone-ui .editor-toolbar button[class*="bg-zinc-200"] { background-color: var(--c-tint); color: var(--c-brand); }
+.phone-ui .ProseMirror { caret-color: var(--c-brand); }
+.phone-ui .ProseMirror ::selection { background: color-mix(in srgb, var(--c-brand) 28%, transparent); }
+.phone-ui .ProseMirror .selectedCell::after { background: var(--c-brand); }
+.phone-ui .ProseMirror .column-resize-handle { background: var(--c-brand); }
+.phone-ui .ProseMirror a { color: var(--c-brand); }
+.phone-ui .ProseMirror blockquote { border-left-color: var(--c-brand); }

@@ -289,7 +289,14 @@ function fakeCloud(t, getDocs = async () => ({ forEach() {} })) {
   t.mock.method(syncService, '_getServices', () => ({ firestore: {} }))
   t.mock.method(syncService._firebase, 'collection', (_db, _users, uid, kind) => ({ uid, kind }))
   t.mock.method(syncService._firebase, 'getDocs', getDocs)
-  t.mock.method(syncService._firebase, 'onSnapshot', (target, callback) => {
+  t.mock.method(syncService._firebase, 'query', (target, ...constraints) => ({ ...target, constraints }))
+  t.mock.method(syncService._firebase, 'documentId', () => '__name__')
+  for (const method of ['where', 'orderBy', 'startAfter', 'limit']) {
+    t.mock.method(syncService._firebase, method, (...values) => ({ method, values }))
+  }
+  t.mock.method(syncService._firebase, 'doc', (_db, _users, uid, kind, id) => ({ uid, kind, id }))
+  t.mock.method(syncService._firebase, 'getDoc', async target => ({ id: target.id, exists: () => false, metadata: { fromCache: false } }))
+  t.mock.method(syncService._firebase, 'onSnapshot', (target, options, callback) => {
     callbacks.push({ target, callback })
     return () => {}
   })
@@ -312,11 +319,12 @@ test('cached reads cannot report a successful full sync or replace local notes',
 })
 
 test('logout invalidates a delayed full pull and preserves local drafts', async t => {
-  const read = deferred()
-  fakeCloud(t, () => read.promise)
+  const read = deferred(), started = deferred()
+  fakeCloud(t, () => { started.resolve(); return read.promise })
   await createDraft('local-draft', 'Keep this draft')
   syncService.currentUser = { uid: 'A' }
   const pulling = syncService.syncNow()
+  await started.promise
   syncService.setUser(null)
   read.resolve(cloudSnapshot([{ id: 'old-account-notebook', name: 'A' }]))
   await pulling
@@ -326,21 +334,24 @@ test('logout invalidates a delayed full pull and preserves local drafts', async 
 })
 
 test('a new account gets its full pull after the old request settles; late snapshots are ignored', async t => {
-  const read = deferred()
+  const read = deferred(), started = deferred()
+  let blockOld = false
   const requests = []
   const callbacks = fakeCloud(t, target => {
     requests.push(target)
-    if (target.uid === 'A') return read.promise
-    return Promise.resolve(cloudSnapshot(target.kind === 'notes' ? [remoteNote({ id: 'b-note' })] : []))
+    if (target.uid === 'A' && blockOld) { started.resolve(); return read.promise }
+    return Promise.resolve(cloudSnapshot(target.uid === 'B' && target.kind === 'notes' ? [remoteNote({ id: 'b-note' })] : []))
   })
   syncService.currentUser = { uid: 'A' }
-  syncService.startRealtimeSync()
+  await syncService.syncNow()
+  blockOld = true
   const old = syncService.syncNow()
+  await started.promise
   syncService.setUser({ uid: 'B' })
   const next = syncService.syncNow()
   read.resolve(cloudSnapshot([]))
   await Promise.all([old, next])
-  assert.equal(requests.filter(target => target.uid === 'B').length, 3)
+  assert.deepEqual([...new Set(requests.filter(target => target.uid === 'B').map(target => target.kind))].sort(), ['attachments', 'notebooks', 'notes'])
   assert.ok(await db.notes.get('b-note'))
   const late = callbacks.find(item => item.target.uid === 'A' && item.target.kind === 'notes')
   await late.callback({ docChanges: () => [{ type: 'added', doc: { id: 'a-note', data: () => remoteNote({ id: 'a-note' }) } }] })

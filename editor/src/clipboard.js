@@ -269,6 +269,9 @@ export function transformPastedHtml(html) {
 export function convertPastedText(text, html) {
   if (!text || isEditorClipboardHtml(html)) return null
 
+  // Prefer clipboard HTML so Markdown-like list text cannot discard embedded links or marks.
+  if (html) return null
+
   const lines = text
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
@@ -286,7 +289,6 @@ export function convertPastedText(text, html) {
   }
 
   if (hasMarkdownSyntax(text)) return markdownToCleanHtml(text)
-  if (html) return null
 
   const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
   return normalized.includes('$') ? markdownToCleanHtml(normalized) : null

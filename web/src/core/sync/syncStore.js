@@ -29,7 +29,7 @@ export function purgedNote(id, now, local = {}) {
   }
 }
 
-export async function mergeRemoteNote(remote, type = 'modified') {
+export async function mergeRemoteNote(remote, type = 'modified', onBlocked = null) {
   // Physical removal has no durable deletion event for an offline desktop.
   // Both clients propagate deletion through deletedAt/purgedAt instead.
   if (type === 'removed') return false
@@ -37,7 +37,7 @@ export async function mergeRemoteNote(remote, type = 'modified') {
     const local = await db.notes.get(remote.id)
     const pending = await db.sync_outbox.where('entity_type').equals('note')
       .and(item => item.entity_id === remote.id).count()
-    if (pending || noteDrafts.has(remote.id)) return false
+    if (pending || noteDrafts.has(remote.id)) { onBlocked?.(); return false }
     const updatedAt = toIsoString(remote.updatedAt)
     if (local && new Date(local.updated_at) >= new Date(updatedAt)) return false
     const deletedAt = toIsoString(remote.deletedAt, null)
@@ -62,14 +62,15 @@ export async function mergeRemoteNote(remote, type = 'modified') {
   })
 }
 
-export async function mergeRemoteNotebook(remote, type = 'modified') {
+export async function mergeRemoteNotebook(remote, type = 'modified', onBlocked = null) {
   if (type === 'removed') return false
   return db.transaction('rw', db.notebooks, db.sync_outbox, async () => {
     const local = await db.notebooks.get(remote.id)
     const pending = await db.sync_outbox.where('entity_type').equals('notebook')
       .and(item => item.entity_id === remote.id).count()
     const updatedAt = toIsoString(remote.updatedAt)
-    if (pending || (local && new Date(local.updated_at) >= new Date(updatedAt))) return false
+    if (pending) { onBlocked?.(); return false }
+    if (local && new Date(local.updated_at) >= new Date(updatedAt)) return false
     await db.notebooks.put({
       ...local, id: remote.id, name: remote.name || local?.name || '未命名笔记本',
       group_id: remote.groupId ?? local?.group_id ?? null,
