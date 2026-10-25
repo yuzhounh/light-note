@@ -173,6 +173,45 @@ public sealed class DailyUseTests : IDisposable
     }
 
     [Fact]
+    public async Task MigrationDoesNotReplacePreferredDatabaseWithSmallerCandidateWhenFileIsLocked()
+    {
+        var smallRoot = Path.Combine(_testDirectory, "legacy-small");
+        var richRoot = Path.Combine(_testDirectory, "legacy-rich");
+        var destinationRoot = Path.Combine(_testDirectory, "stable");
+        await SeedNotesAsync(smallRoot, 1);
+        await SeedNotesAsync(richRoot, 3);
+
+        using (var lockedSettings = new FileStream(
+                   Path.Combine(richRoot, "settings.json"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            var error = Assert.Throws<IOException>(() =>
+                AppDataMigrator.MigrateIfNeeded(destinationRoot, [smallRoot, richRoot]));
+            Assert.Contains(richRoot, error.Message);
+            Assert.False(File.Exists(Path.Combine(destinationRoot, "lightnote.db")));
+        }
+
+        var result = AppDataMigrator.MigrateIfNeeded(destinationRoot, [smallRoot, richRoot]);
+        Assert.Equal(richRoot, result?.SourceDirectory);
+        var notes = new SqliteNoteRepository(new SqliteConnectionFactory(new AppDataPaths(destinationRoot)));
+        Assert.Equal(3, (await notes.ListAsync(null, true, false)).Count);
+    }
+
+    [Fact]
+    public async Task MigrationIgnoresNonDatabaseCandidate()
+    {
+        var invalidRoot = Path.Combine(_testDirectory, "invalid");
+        var richRoot = Path.Combine(_testDirectory, "legacy-rich");
+        Directory.CreateDirectory(invalidRoot);
+        File.WriteAllText(Path.Combine(invalidRoot, "lightnote.db"), "not a SQLite database");
+        await SeedNotesAsync(richRoot, 3);
+
+        var result = AppDataMigrator.MigrateIfNeeded(Path.Combine(_testDirectory, "stable"), [invalidRoot, richRoot]);
+
+        Assert.Equal(richRoot, result?.SourceDirectory);
+        Assert.Equal(3, result?.NoteCount);
+    }
+
+    [Fact]
     public async Task AutomaticBackupRunsDailyAndEnforcesRetention()
     {
         var paths = new AppDataPaths(_testDirectory);
