@@ -9,9 +9,9 @@ import { CompactMenu, PhoneDialog, PhoneIconButton, useToast, ICON_STROKE } from
 // 手机主界面：视图标题栏 + 常驻搜索框 + 列表面板 + 浮动新建按钮；长按进入选择模式
 
 const DENSITY = {
-  compact: { pad: 'py-2', lines: 'line-clamp-1', gap: 'mt-1' },
-  comfortable: { pad: 'py-3', lines: 'line-clamp-2', gap: 'mt-1.5' },
-  spacious: { pad: 'py-4', lines: 'line-clamp-3', gap: 'mt-2' },
+  compact: { pad: 'py-2' },
+  comfortable: { pad: 'py-3' },
+  spacious: { pad: 'py-4' },
 }
 
 function previewText(bodyText) {
@@ -28,7 +28,7 @@ function formatDate(isoString) {
   if (!isoString) return ''
   const d = new Date(isoString)
   const pad = value => String(value).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function Highlight({ text, query }) {
@@ -352,20 +352,25 @@ export function PhoneNoteList({
                       </span>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-[15px] font-semibold text-ink truncate">
-                        <Highlight text={note.title || '无标题'} query={searchQuery} />
-                      </h4>
-                      <p className={`text-[14px] text-muted leading-snug ${style.lines}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="min-w-0 flex-1 text-[15px] font-semibold text-ink truncate">
+                          <Highlight text={note.title || '无标题'} query={searchQuery} />
+                        </h4>
+                        <span className="shrink-0 text-[11px] text-muted">{formatDate(sort.by === 'updated' ? note.updated_at : (note.created_at || note.updated_at))}</span>
+                      </div>
+                      {/* 零宽浮动占位顶住第一行，标签只占第二行预览右侧，第一行预览占满整行；
+                          占位用一行文字撑高而非 em，WebView 按系统字号放大文字时高度同步 */}
+                      <p className="mt-1 min-h-[2.8em] text-[14px] text-muted leading-[1.4] line-clamp-2">
+                        {!isSingleNotebook && (
+                          <>
+                            <span aria-hidden="true" className="float-right w-0 overflow-hidden">{' '}</span>
+                            <span className="float-right clear-right ml-2 max-w-[40%] truncate text-[11px] px-1.5 py-0.5 rounded-md bg-tint text-brand">
+                              {notebookName(note.notebook_id)}
+                            </span>
+                          </>
+                        )}
                         <Highlight text={previewText(note.body_text)} query={searchQuery} />
                       </p>
-                      <div className={`${style.gap} flex items-center justify-between gap-2 text-[12px] text-muted`}>
-                        <span className="shrink-0">{formatDate(sort.by === 'updated' ? note.updated_at : (note.created_at || note.updated_at))}</span>
-                        {!isSingleNotebook && (
-                          <span className="min-w-0 max-w-[50%] truncate text-[11px] px-1.5 py-0.5 rounded-md bg-tint text-brand">
-                            {notebookName(note.notebook_id)}
-                          </span>
-                        )}
-                      </div>
                     </div>
                     {!isChecked && index < visibleNotes.length - 1 && (
                       <div className="absolute bottom-0 left-2 right-2 h-px bg-line pointer-events-none" />
