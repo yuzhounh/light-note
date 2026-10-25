@@ -67,8 +67,9 @@ public static class AppDataMigrator
             return null;
         }
 
-        Exception? lastError = null;
-        foreach (var candidate in candidates)
+        // Once ranked, an operational failure must never replace the richest source with less data.
+        var candidate = candidates[0];
+        for (var attempt = 0; ; attempt++)
         {
             try
             {
@@ -77,11 +78,18 @@ public static class AppDataMigrator
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SqliteException)
             {
-                lastError = exception;
+                // Retry only transient Windows sharing/lock violations, always using the same source.
+                if (attempt < 3 && exception is IOException && (exception.HResult & 0xffff) is 32 or 33)
+                {
+                    Thread.Sleep(50 << attempt);
+                    continue;
+                }
+
+                throw new IOException(
+                    $"无法迁移首选 LightNote 数据目录“{candidate.Directory}”（{candidate.NoteCount} 篇笔记）；未改用其他旧目录。",
+                    exception);
             }
         }
-
-        throw new IOException("无法将现有 LightNote 数据迁移到稳定数据目录。", lastError);
     }
 
     private static MigrationCandidate? InspectCandidate(string directory)
@@ -109,9 +117,14 @@ public static class AppDataMigrator
             var info = new FileInfo(databasePath);
             return new MigrationCandidate(directory, noteCount, info.Length, info.LastWriteTimeUtc);
         }
-        catch (SqliteException)
+        catch (SqliteException exception) when (exception.SqliteErrorCode is 1 or 11 or 26)
         {
+            // Missing schema, corrupt data, or a non-SQLite file is not a usable legacy database.
             return null;
+        }
+        catch (SqliteException exception)
+        {
+            throw new IOException($"无法读取候选 LightNote 数据库“{databasePath}”；请解除文件占用或恢复访问后重试。", exception);
         }
     }
 
