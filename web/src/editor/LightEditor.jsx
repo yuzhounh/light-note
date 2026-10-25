@@ -21,6 +21,7 @@ import { createSizedTable, createTableSizing } from '../../../editor/src/tableSi
 import { openInsertTableDialog } from '../../../editor/src/insertTableDialog.js'
 import { createCodeBlockSelection } from '../../../editor/src/codeBlockSelection.js'
 import { useBackDismiss, registerBackDismiss } from '../hooks/useBackDismiss'
+import { contentSnapshot } from './contentSnapshot'
 
 // “Markdown 自动排版”开关（设置 → 外观）：关闭时在输入规则之前接管文字输入，按原样插入，
 // 因此 `1. `、`# `、`**粗体**`、`$公式$` 等规则都不会触发；工具栏与快捷键不受影响。
@@ -499,7 +500,8 @@ export const LightEditor = forwardRef(function LightEditor(
   useBackDismiss(!!lightboxSrc, () => setLightboxSrc(null), 51)
 
   const titleInputRef = useRef(null)
-  const lastDispatchedHtml = useRef(content || '')
+  // The content (stored HTML or an editor snapshot) the editor already shows.
+  const lastContent = useRef(content || '')
 
   useEffect(() => {
     window.__openImageLightbox = (src) => setLightboxSrc(src)
@@ -538,7 +540,7 @@ export const LightEditor = forwardRef(function LightEditor(
         allowBase64: true,
       }),
     ],
-    content: content || '',
+    content: typeof content === 'object' && content ? content.json : content || '',
     editorProps: {
       attributes: {
         class: 'focus:outline-none min-h-[400px] text-zinc-900 dark:text-zinc-100 text-[14.5px] leading-[1.65]',
@@ -624,15 +626,10 @@ export const LightEditor = forwardRef(function LightEditor(
       }
     },
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML()
-      lastDispatchedHtml.current = html
-      if (onChange) {
-        onChange({
-          html,
-          text: editor.getText(),
-          json: editor.getJSON(),
-        })
-      }
+      // No serialization per keystroke: the snapshot produces HTML/text/JSON when first read.
+      const snapshot = contentSnapshot(editor)
+      lastContent.current = snapshot
+      onChange?.(snapshot)
     },
   })
 
@@ -649,12 +646,14 @@ export const LightEditor = forwardRef(function LightEditor(
 
 
   useEffect(() => {
-    if (editor && content !== undefined) {
-      if (content !== lastDispatchedHtml.current && editor.getHTML() !== content) {
-        lastDispatchedHtml.current = content
-        editor.commands.setContent(content || '', false)
-      }
+    if (!editor || content === undefined || content === lastContent.current) return
+    // Another snapshot (a restored draft) or stored HTML replaces what the editor shows.
+    if (typeof content === 'object' && content) {
+      if (content.doc !== editor.state.doc) editor.commands.setContent(content.json, false)
+    } else if (editor.getHTML() !== content) {
+      editor.commands.setContent(content || '', false)
     }
+    lastContent.current = content
   }, [content, editor])
 
   useEffect(() => {

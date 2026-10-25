@@ -82,7 +82,7 @@ export function NoteDetail({
           ref={editorRef}
           title={note.title || ''}
           onUpdateTitle={onUpdateTitle}
-          content={note.body_html || ''}
+          content={note.content_snapshot || note.body_html || ''}
           onChange={onUpdateContent}
           isMobile={isMobile}
           autoFocus={autoFocus}
