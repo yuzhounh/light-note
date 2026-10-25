@@ -492,18 +492,18 @@ export function NoteList({
                     {/* Top part: Lines 1-3 (Title + Preview) */}
                     <div className="min-w-0">
                       <div className={`${cardStyle.titleGap} flex items-center gap-1.5`}>
-                        <h4 className={`${isAndroidApp ? 'text-[13.5px]' : 'text-[14.5px]'} font-semibold truncate text-zinc-900 dark:text-zinc-100`}>
+                        <h4 className={`${isAndroidApp ? 'text-[13.5px]' : 'text-[15px]'} font-semibold truncate text-zinc-900 dark:text-zinc-100`}>
                           {highlightMatch(note.title || '无标题', searchQuery)}
                         </h4>
                       </div>
 
-                      <p className={`${isAndroidApp ? 'text-[12px]' : 'text-[13px]'} text-zinc-600 dark:text-zinc-400 line-clamp-2 ${cardStyle.summary}`}>
+                      <p className={`${isAndroidApp ? 'text-[12px]' : 'text-[14px]'} text-zinc-600 dark:text-zinc-400 line-clamp-2 ${cardStyle.summary}`}>
                         {highlightMatch(getNotePreviewText(note.body_text), searchQuery)}
                       </p>
                     </div>
 
                     {/* Date and notebook use opposite ends in every column layout. */}
-                    <div className={`note-card-footer flex items-center justify-between ${isAndroidApp ? 'text-[11px]' : 'text-xs'} text-zinc-400 font-sans ${cardStyle.footer}`}>
+                    <div className={`note-card-footer flex items-center justify-between text-[11px] text-zinc-400 font-sans ${cardStyle.footer}`}>
                       <div className="flex items-center justify-between gap-2 min-w-0 flex-1">
                         <span className="shrink-0">{formatFullDate(sort.by === 'updated' ? note.updated_at : (note.created_at || note.updated_at))}</span>
 
