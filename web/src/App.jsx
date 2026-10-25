@@ -5,6 +5,7 @@ import { createNoteListLoader } from './core/db/noteListLoader'
 import { seedInitialData } from './core/db/database'
 import { syncService, subscribeSyncState, getSyncState } from './core/sync/syncService'
 import { noteDrafts } from './core/sync/noteDrafts'
+import { patchNote, withEditorContent } from './core/noteContent'
 import { useResponsive } from './hooks/useResponsive'
 import { useBackButton } from './hooks/useBackButton'
 import { Sidebar } from './components/layout/Sidebar'
@@ -232,16 +233,16 @@ export function App() {
   // Update Note Title
   function handleUpdateTitle(newTitle) {
     if (!activeNote) return
-    const updated = { ...activeNote, title: newTitle }
+    const updated = patchNote(activeNote, { title: newTitle })
     setActiveNote(updated)
     setNotes(prev => prev.map(n => n.id === updated.id ? updated : n))
     triggerAutoSave(updated)
   }
 
-  // Update Note Body Content
-  function handleUpdateContent({ html, text, json }) {
+  // Update Note Body Content: the editor snapshot serializes only when a field is first read (autosave, preview)
+  function handleUpdateContent(snapshot) {
     if (!activeNote) return
-    const updated = { ...activeNote, body_html: html, body_text: text, body_json: JSON.stringify(json) }
+    const updated = withEditorContent(activeNote, snapshot)
     setActiveNote(updated)
     setNotes(prev => prev.map(n => n.id === updated.id ? updated : n))
     triggerAutoSave(updated)
