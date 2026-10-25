@@ -1,3 +1,4 @@
+import Dexie from 'dexie'
 import { db, DEFAULT_NOTEBOOK_ID } from './database.js'
 import { syncService } from '../sync/syncService.js'
 import { queueOutbox, purgedNote } from '../sync/syncStore.js'
@@ -61,11 +62,12 @@ export const NotesRepository = {
   // --- Notebooks ---
   async getNotebookCounts() {
     const counts = new Map()
-    await db.notes.filter(note => !note.is_deleted && !note.purged_at).each(note => {
-      if (note.notebook_id) {
-        counts.set(note.notebook_id, (counts.get(note.notebook_id) || 0) + 1)
-      }
-    })
+    // Index keys only: autosave re-runs this live query, and it must not read every note body.
+    const keys = await db.notes.where('[is_deleted+notebook_id]')
+      .between([0, Dexie.minKey], [0, Dexie.maxKey]).keys()
+    for (const [, notebookId] of keys) {
+      if (notebookId) counts.set(notebookId, (counts.get(notebookId) || 0) + 1)
+    }
     return counts
   },
 
@@ -130,11 +132,9 @@ export const NotesRepository = {
       return notes.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
     }
 
+    // A notebook view reads only that notebook's notes through its index.
+    if (notebookId) query = query.where('notebook_id').equals(notebookId)
     let notes = await query.filter(n => !n.is_deleted && !n.purged_at).toArray()
-
-    if (notebookId) {
-      notes = notes.filter(n => n.notebook_id === notebookId)
-    }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim()

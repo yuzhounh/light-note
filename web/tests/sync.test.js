@@ -391,3 +391,22 @@ test('switching accounts during upload stops the old batch without acknowledging
   assert.equal((await db.notes.get('new-draft')).title, 'Created after logout')
   assert.equal(syncService.getSyncState().status, 'idle')
 })
+
+test('queued notes upload in one batch; a failed batch retries one by one and keeps only the failing note queued', async () => {
+  for (const id of ['note-1', 'note-2', 'note-3']) await mergeRemoteNote(remoteNote({ id }))
+  for (const id of ['note-1', 'note-2', 'note-3']) await save(id, `Edited ${id}`)
+  const batches = [], singles = []
+  await pushPendingChanges(async (_type, id) => singles.push(id), () => {},
+    async entries => { batches.push(entries.map(entry => [entry.entityType, entry.id, entry.record.title])) })
+  assert.deepEqual(batches, [[['note', 'note-1', 'Edited note-1'], ['note', 'note-2', 'Edited note-2'], ['note', 'note-3', 'Edited note-3']]])
+  assert.deepEqual(singles, [])
+  assert.equal(await db.sync_outbox.count(), 0)
+
+  for (const id of ['note-1', 'note-2', 'note-3']) await save(id, `Again ${id}`)
+  await assert.rejects(pushPendingChanges(async (_type, id) => {
+    if (id === 'note-2') throw new Error('document too large')
+    singles.push(id)
+  }, () => {}, async () => { throw new Error('batch rejected') }), /document too large/)
+  assert.deepEqual(singles, ['note-1'])
+  assert.deepEqual((await db.sync_outbox.toArray()).map(item => item.entity_id).sort(), ['note-2', 'note-3'])
+})
