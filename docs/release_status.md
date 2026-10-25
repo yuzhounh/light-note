@@ -4,13 +4,13 @@
 
 - 原CI仅留下“应选3篇笔记的库、实际选1篇”的断言，候选异常已被旧代码吞掉，不能追溯当次具体文件占用来源。已通过锁定首选库的settings.json确定性复现相同错误选择，新增回归测试在旧实现失败。
 - 迁移选定笔记最多的库后，不再因IO或SQLite错误降级到更少数据的库。Windows共享/锁冲突最多重试3次（50、100、200ms），仍失败则保留具体源目录与内部异常；候选读取的操作错误也不再被当作无效库略过。非SQLite文件、损坏库或缺失表结构仍可排除。
-- 修复后3项迁移测试通过；按CI筛选、两核和覆盖率配置执行的106项集成测试全部通过。GitHub完整Windows CI回执待推送后登记。本轮未更新日常Windows程序或APK。
+- 修复提交3a50376已推送main。3项迁移测试通过；按CI筛选、两核和覆盖率配置执行的106项集成测试全部通过。[GitHub完整Windows CI 40167550726](https://github.com/yuzhounh/light-note/actions/runs/40167550726)成功，包含编辑器检查、Windows构建、覆盖率测试、原生UI检查、自包含构建和产物检查。本轮未更新日常Windows程序或APK。
 
 ## 网页字号与查询同步集成（2026-10-25，已上线）
 
 - 网页列表和详情标题15px、普通正文14px，保留分栏、多列、按钮及右键菜单。经用户确认纳入另一任务的数据库索引和批量同步提交3209c72，界面集成提交ac4ee12已推送main。
 - 最终51项Web测试及生产构建通过，复用该构建完成Cloudflare 850aabae与Firebase lightnote-sync/light-note部署；GitHub Pages工作流40166436624成功。三个公开入口的版本、索引代码及新字号资源已检查。
-- 同时触发的Windows CI 40166436625失败于DailyUseTests.MigrationChoosesLegacyDatabaseWithMostNotes，103项集成测试通过、1项失败；该Windows迁移测试未在本轮扩展修复。网页发布流程成功，Windows日常程序仍为2.3.0，APK保持上一轮2.3.2/code45。
+- 当时触发的Windows CI 40166436625失败于DailyUseTests.MigrationChoosesLegacyDatabaseWithMostNotes，103项集成测试通过、1项失败；后续已按上节修复并通过CI 40167550726。网页发布流程成功，Windows日常程序仍为2.3.0，APK保持上一轮2.3.2/code45。
 
 ## Android 字号统一：2.3.2 / code 45（2026-10-25，已安装）
 
