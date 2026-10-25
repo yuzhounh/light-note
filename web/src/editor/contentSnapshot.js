@@ -1,8 +1,9 @@
 import { getHTMLFromFragment, getText, getTextSerializersFromSchema } from '@tiptap/core'
 
 /**
- * A keystroke keeps only the editor's immutable document. HTML, text and JSON are produced on first read
- * (autosave, word count, list preview) and cached, with the same output as editor.getHTML()/getText()/getJSON().
+ * Each update captures the editor's immutable document; consumers produce and cache each field on first read.
+ * Word counts and previews may read text immediately; HTML/JSON can wait for autosave.
+ * Output matches editor.getHTML()/getText()/getJSON().
  */
 export function contentSnapshot(editor) {
   const doc = editor.state.doc, schema = editor.schema

@@ -626,7 +626,7 @@ export const LightEditor = forwardRef(function LightEditor(
       }
     },
     onUpdate: ({ editor }) => {
-      // No serialization per keystroke: the snapshot produces HTML/text/JSON when first read.
+      // Cache fields on first read; previews may read text now, while HTML/JSON can wait for autosave.
       const snapshot = contentSnapshot(editor)
       lastContent.current = snapshot
       onChange?.(snapshot)

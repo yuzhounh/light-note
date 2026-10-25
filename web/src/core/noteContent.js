@@ -8,8 +8,9 @@ export function patchNote(note, changes = {}) {
 }
 
 /**
- * Body fields are produced from the editor snapshot on first read, so typing costs no full serialization;
- * the snapshot rides along non-enumerable for the editor. A plain spread reads the fields into strings.
+ * Body fields are produced and cached on first read. HTML and JSON wait for consumers such as autosave;
+ * word counts and list previews may still read the full text after each edit.
+ * The snapshot rides along non-enumerable for the editor. A plain spread reads the fields into strings.
  */
 export function withEditorContent(note, snapshot) {
   let bodyJson

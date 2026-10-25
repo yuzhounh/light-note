@@ -1,4 +1,20 @@
-# LightNote 当前正式版本发布
+# LightNote 发布与日常交付状态
+
+## 当前目标：Web / Android 2.3.3 / code 46（2026-10-25，准备交付）
+
+- 统一源码版本为2.3.3，Android versionCode从45增至46。当前唯一APK交付路径为 `artifacts/android/2.3.3/LightNote-2.3.3-code46.apk`；此前code45的不同内容构建作为历史保留，不再作为当前交付包。
+- 保留49b713d的编辑器不可变快照及按需序列化：HTML和JSON延后至自动保存等读取时生成并缓存；字数与列表预览仍可能在每次输入后读取全文纯文本，不声称完全消除输入时的全文转换。
+- Windows源码声明同步为2.3.3；实际日常程序仍为2.3.2+834c818，包含3a50376旧库迁移修复，保持原Debug/current渠道。本轮不构建或安装Windows；网页和Android使用的编辑器实现与原生Windows独立。
+- 本节准备提交时，Web测试、生产构建、Android assembleRelease/lintRelease、原签名检查、覆盖安装和网页部署尚待完成，完成后据实际回执更新。Cloudflare/Firebase继续使用根路径构建；GitHub Pages由既有工作流使用 `/light-note/` 构建。跳过Netlify和第三方Vercel，不创建公开GitHub Release，不修改账户、数据库、附件或设置。
+
+以下为各次历史交付记录；端版本与安装状态以上述当前节和最新回执为准。
+
+## Windows日常版2.3.2（2026-10-25 14:10，已更新）
+
+- 保留Debug开发日常渠道，将包含迁移修复3a50376的源码834c818构建为完整程序包，0错误、1项既有SkiaSharp过时提示。复用未变的嵌入式编辑器产物和已通过的迁移/CI验证。
+- 原2.3.0后台进程通过Restart Manager正常退出（未强制结束），完整程序复制到原`artifacts/development/current/win-x64`后恢复后台运行。当前程序集版本`2.3.2+834c818ee27a48cf520d916e67c9eafd06af6514`，启动日志成功，新进程43168响应正常。
+- 数据目录身份、152篇笔记、11个笔记本、54条附件记录及settings.json的修改时间和长度保持；未覆盖数据目录，未添加文件哈希或逐文件复制核验。桌面快捷方式目标与参数保持。
+- 完整构建位于`artifacts/development/pending/migration-fix-3a50376/win-x64`；安装及有限数据状态回执位于`tmp/install-migration-fix-daily-result.json`、`tmp/daily-migration-data-before.json`和`tmp/daily-migration-data-after.json`。本轮未重新部署网页、安装APK或公开Release。
 
 ## Windows旧库迁移修复（2026-10-25）
 
