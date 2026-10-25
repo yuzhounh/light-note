@@ -1,5 +1,23 @@
 # LightNote 当前正式版本发布
 
+## Android 列表标签排版：2.3.2 / code 43（2026-10-25，已覆盖安装）
+
+- 主列表正文第一行预览占满整行，笔记本标签只占第二行预览右侧：标签改为浮动，前置零宽浮动占位顶住第一行。占位以一行文字撑高而非 `em`，以适配系统字号缩放（本机 font_scale 1.25，WebView 放大文字但不放大 `em` 长度）。
+- 沿用 versionName 2.3.2，versionCode 增至 43。code 42 首次构建并安装后真机仍压窄第一行（`1.4em` 占位未随字号放大），已由 code 43 覆盖；`LightNote-2.3.2-code42.apk` 保留未删。Web/PWA 构建、Capacitor 同步及 `assembleRelease` 成功，APK v2 签名有效、证书与 code41 一致。
+- 覆盖安装至 REDMI K80 Pro（1999ffe8），实读 2.3.2/code43，appId 10385 及首次安装时间保持，未卸载或清除数据；回看主列表确认排版。未构建或更新 Windows，未公开发布，修改未提交。交付包：`artifacts/android/2.3.2/LightNote-2.3.2-code43.apk`（SHA-256 `8180a48497a25c67558fbd2092dc831b97d24883375a471502ee3ae4e9296213`）。
+
+## Android 笔记列表修正：2.3.2 / code 41（2026-10-24，已覆盖安装）
+
+- 列表正文预览由固定高度改为最小高度，并调整行距，避免第二行文字被裁断；右上角日期简化为 `MM-DD HH:mm`。保留当前两行预览、笔记本标签和既有未提交修改。
+- 用户确认 patch 版本后统一源码版本为 2.3.2，Android versionCode 增至 41。Web/PWA 构建、Capacitor 资源同步及一次 `assembleRelease` 成功；未构建或更新 Windows，未公开发布。
+- `adb install -r` 覆盖安装返回 Success，REDMI K80 Pro（1999ffe8）实读 2.3.2/code41；未卸载或清除数据。安装后仅回看主列表，确认正文两行完整显示、日期不含年份。交付包：`artifacts/android/2.3.2/LightNote-2.3.2-code41.apk`。
+
+## Android 全屏使用说明：2.3.1 / code 40（2026-10-24，已覆盖安装）
+
+- “笔记本与设置”中的入口和页面标题统一为“使用说明”，原书本图标保留。说明改为全屏页面，固定标题栏右上角“×”关闭，正文独立滚动并适配安全区域；关闭或系统返回回到原设置。保留新建编辑、笔记本管理、搜索与批量操作、历史版本与回收站、Markdown、登录同步以及 JSON 备份和恢复范围。
+- 用户确认 patch 更新后，统一源码版本为 2.3.1；本次关闭按钮修正沿用版本号，Android versionCode 增至 40。Windows 日常程序仍为已安装的 2.3.0，本次不构建或安装 Windows，也不发布网页或公开 Release。
+- 复用已通过的 Web/PWA 构建，Capacitor 资源复制、Android assembleRelease 成功，APK v2 签名有效，沿用原签名配置。全屏修订包：`artifacts/android/2.3.1/LightNote-2.3.1-code40-fullscreen.apk`，旧包保留。已用 `adb install -r` 覆盖安装至 REDMI K80 Pro（1999ffe8），返回 Success；设备实读 2.3.1/code40，appId 10385、原数据目录和首次安装时间保持，未卸载或清除数据。
+
 ## 当前日常版本：2.3.0（2026-10-23）
 
 - 累积手机界面调整、邮件粘贴和本次同步/缩略图优化，按 minor 发布日常版本；不创建公开 GitHub Release。Windows 与网页 2.3.0，Android code 38。

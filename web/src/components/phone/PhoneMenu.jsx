@@ -6,7 +6,7 @@ import {
 import { APP_NAME, APP_VERSION } from '../../core/version'
 import { exportBackup, importBackup } from '../../core/db/backup'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
-import { CompactMenu, PhoneDialog, PhoneIconButton, useToast, ICON_STROKE } from './phoneUi'
+import { CompactMenu, PhoneDialog, PhoneIconButton, PhoneScreen, useToast, ICON_STROKE } from './phoneUi'
 
 // 全屏菜单：汇总视图 + 笔记本分组（齿轮管理）+ 少量全局设置 + 页脚
 
@@ -95,7 +95,6 @@ export function PhoneMenu({
     onCreateNotebook(name)
     setNewName('')
     setAdding(false)
-    onClose()
   }
 
   function notebookMenu(event, notebook, index) {
@@ -227,7 +226,7 @@ export function PhoneMenu({
           <input type="file" accept=".json" onChange={handleImport} className="hidden" />
         </label>
 
-        <Row icon={BookOpen} label="使用文档" onClick={() => setDialog({ type: 'doc' })} />
+        <Row icon={BookOpen} label="使用说明" onClick={() => setDialog({ type: 'doc' })} />
 
         <Divider />
 
@@ -240,14 +239,14 @@ export function PhoneMenu({
                 <span className="flex-1 min-w-0 text-[11px] text-muted truncate">{currentUser.email}</span>
               )}
               <div className="ml-auto shrink-0">
-                <PhoneIconButton label="退出登录" onClick={() => { onLogout(); onClose() }}>
+                <PhoneIconButton label="退出登录" onClick={onLogout}>
                   <LogOut size={20} strokeWidth={ICON_STROKE} />
                 </PhoneIconButton>
               </div>
             </div>
           </>
         ) : (
-          <Row icon={LogIn} label="登录 Google 账号" onClick={() => { onLoginGoogle(); onClose() }} />
+          <Row icon={LogIn} label="登录 Google 账号" onClick={onLoginGoogle} />
         )}
 
         <div className="mt-4 pt-4 border-t border-line flex flex-col items-center">
@@ -259,14 +258,41 @@ export function PhoneMenu({
       {menu && <CompactMenu items={menu.items} style={menu.style} onClose={() => setMenu(null)} />}
 
       {dialog?.type === 'doc' && (
-        <PhoneDialog title="使用文档" onClose={() => setDialog(null)} actions={[{ label: '好', primary: true, onClick: () => setDialog(null) }]}>
-          <div className="px-4 pb-2 space-y-3 text-muted">
-            <div><div className="text-ink font-semibold">Markdown 自动排版</div>输入 # 、- 、**粗体** 等符号时自动转换为标题、列表和粗体。</div>
-            <div><div className="text-ink font-semibold">导出备份</div>把全部笔记本与笔记导出为一个 JSON 文件。</div>
-            <div><div className="text-ink font-semibold">导入备份</div>选择之前导出的 JSON 文件，恢复其中的笔记本与笔记。</div>
-            <div><div className="text-ink font-semibold">登录 Google 账号</div>登录后可在多台设备间同步笔记。</div>
+        <PhoneScreen title="使用说明" onClose={() => setDialog(null)}>
+          <div className="space-y-4 leading-relaxed text-muted select-text">
+            <section>
+              <h2 className="text-ink font-semibold">新建与编辑</h2>
+              <p>点列表右下角的“+”新建笔记，输入标题和正文；内容会自动保存在本机。点一篇笔记继续编辑，使用编辑工具栏设置格式、插入图片或数学公式，点左上角返回列表。</p>
+            </section>
+            <section>
+              <h2 className="text-ink font-semibold">笔记本与列表</h2>
+              <p>打开列表右上角菜单，选择“全部笔记”或某个笔记本。点“新建笔记本”创建分类，笔记本旁的齿轮可重命名、调整顺序或删除；删除笔记本后，其中的笔记保留在“全部笔记”中，显示为未归类。</p>
+              <p className="mt-1">“排序方式”可按创建或修改时间排序，并切换新旧顺序；“卡片密度”调整列表的紧凑程度，“外观”切换浅色和深色。</p>
+            </section>
+            <section>
+              <h2 className="text-ink font-semibold">搜索与批量操作</h2>
+              <p>在列表顶部搜索框输入关键词，搜索标题和正文。长按笔记进入选择模式，可多选后移动到其他笔记本或移入回收站；只选一篇时，“更多”中可查看笔记信息和历史版本。</p>
+            </section>
+            <section>
+              <h2 className="text-ink font-semibold">历史版本与回收站</h2>
+              <p>在正文右上角打开“历史版本”，选中旧版本预览后恢复。连续编辑期间不会逐次生成版本，停顿一段时间再编辑时会保留编辑前的内容。</p>
+              <p className="mt-1">删除的笔记先进入回收站。在菜单打开“回收站”，长按选择笔记后可恢复或彻底删除；清空回收站和彻底删除均无法撤销。</p>
+            </section>
+            <section>
+              <h2 className="text-ink font-semibold">Markdown 自动排版</h2>
+              <p>开启后，输入 #、-、&gt;、**粗体** 等 Markdown 写法时，可自动转换为标题、列表、引用和粗体。需要原样输入这些符号时，在设置关闭“Markdown 自动排版”；编辑工具栏仍可使用。</p>
+            </section>
+            <section>
+              <h2 className="text-ink font-semibold">登录与同步</h2>
+              <p>无需登录也能在本机记笔记；在菜单登录 Google 账号后，可与登录同一账号的其他设备同步。列表顶部显示同步状态，在列表顶部下拉可手动同步；出现“同步异常”时点状态查看原因，检查网络后重试。</p>
+            </section>
+            <section>
+              <h2 className="text-ink font-semibold">导出与导入备份</h2>
+              <p>在菜单点“导出备份”，把本机全部笔记本与笔记导出为 JSON 文件。“导入备份”可选择此前导出的文件；相同 ID 的记录会被导入内容更新，其他记录保留，建议导入前先导出当前数据。</p>
+              <p className="mt-1">此 JSON 备份不包含历史版本和独立图片文件；笔记中的图片引用会保留，恢复后的图片显示仍取决于原图片是否可访问。</p>
+            </section>
           </div>
-        </PhoneDialog>
+        </PhoneScreen>
       )}
 
       {dialog?.type === 'rename' && (

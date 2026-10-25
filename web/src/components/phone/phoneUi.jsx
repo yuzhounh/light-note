@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
 
 // 手机界面共用部件：图标按钮、紧凑菜单、对话框、Toast（尺寸取自 review/mobile_design_system.md）
@@ -48,6 +48,27 @@ export function CompactMenu({ items, onClose, style }) {
           </button>
         ))}
       </div>
+    </div>
+  )
+}
+
+export function PhoneScreen({ title, onClose, children }) {
+  useBackDismiss(true, onClose, 60)
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-0 z-[70] phone-ui flex min-h-0 w-full flex-col overflow-hidden"
+      style={{ paddingTop: 'var(--safe-top)', paddingBottom: 'var(--safe-bottom)', paddingLeft: 'var(--safe-left)', paddingRight: 'var(--safe-right)' }}
+    >
+      <div className="shrink-0 h-[60px] flex items-center pl-4 pr-1">
+        <h1 className="flex-1 text-[18px] font-bold text-ink truncate">{title}</h1>
+        <PhoneIconButton label={`关闭${title}`} onClick={onClose}>
+          <X size={24} strokeWidth={ICON_STROKE} />
+        </PhoneIconButton>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-5 text-[14px] text-ink">{children}</div>
     </div>
   )
 }
