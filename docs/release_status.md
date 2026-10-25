@@ -1,5 +1,12 @@
 # LightNote 当前正式版本发布
 
+## Android 与网页列表调整：2.3.2 / code 44（2026-10-25，已交付）
+
+- 手机笔记列表标题与日期时间改为垂直居中；保留此前两行摘要、笔记本标签、设置及说明页修改。版本号沿用2.3.2，Android构建号增至44。
+- 复用本次成功的Web/PWA构建；50项Web测试、Capacitor同步、assembleRelease/lintRelease与APK签名检查通过。交付包：`artifacts/android/2.3.2/LightNote-2.3.2-code44.apk`。
+- 已覆盖安装至REDMI K80 Pro（1999ffe8），实读2.3.2/code44、启动正常；原数据目录及首次安装时间保持，未卸载或清除应用数据。未执行真实账户编辑或云端写入验收。
+- 源码f9bdec8已推送main，GitHub Pages工作流40157329409成功；Cloudflare部署0cbc36fa与Firebase Hosting lightnote-sync/light-note成功，新入口及列表资源已检查。Windows日常版仍为2.3.0，未创建公开Release；Vercel/Netlify原名属于第三方，未调用。
+
 ## Android 列表标签排版：2.3.2 / code 43（2026-10-25，已覆盖安装）
 
 - 主列表正文第一行预览占满整行，笔记本标签只占第二行预览右侧：标签改为浮动，前置零宽浮动占位顶住第一行。占位以一行文字撑高而非 `em`，以适配系统字号缩放（本机 font_scale 1.25，WebView 放大文字但不放大 `em` 长度）。
