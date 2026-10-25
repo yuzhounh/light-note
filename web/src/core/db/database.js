@@ -28,7 +28,23 @@ export class LightNoteDatabase extends Dexie {
       attachment.relative_path = normalizeAttachmentPath(attachment.relative_path)
     }))
     this.version(4).stores({ image_cache: 'key, owner_uid, last_accessed' })
+    // Version 5: notebook totals read only [is_deleted+notebook_id] index keys, never note bodies.
+    // Every write normalizes is_deleted (purged notes count as deleted) so the index stays complete.
+    this.version(5).stores({
+      notes: 'id, notebook_id, title, is_pinned, is_deleted, sort_order, updated_at, deleted_at, [is_deleted+notebook_id]'
+    }).upgrade(transaction => transaction.table('notes').toCollection().modify(note => {
+      note.is_deleted = deletedFlag(note)
+    }))
+    this.notes.hook('creating', (_key, note) => { note.is_deleted = deletedFlag(note) })
+    this.notes.hook('updating', (changes, _key, note) => {
+      const flag = deletedFlag({ ...note, ...changes })
+      return flag === note.is_deleted ? undefined : { is_deleted: flag }
+    })
   }
+}
+
+export function deletedFlag(note) {
+  return note.is_deleted || note.purged_at ? 1 : 0
 }
 
 export const db = new LightNoteDatabase()

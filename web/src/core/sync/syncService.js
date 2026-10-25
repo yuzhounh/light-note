@@ -4,8 +4,9 @@ import {
   collection, 
   doc, 
   getDocsFromServer as getDocs,
-  setDoc, 
-  onSnapshot, 
+  setDoc,
+  writeBatch,
+  onSnapshot,
   query, where, orderBy, startAfter, limit, documentId, getDocFromServer,
 } from 'firebase/firestore'
 import { getStorage, ref, getDownloadURL } from 'firebase/storage'
@@ -332,7 +333,7 @@ export const syncService = {
     const job = (async () => {
       try {
         await pushPendingChanges((entityType, id, record) => this._uploadRecord(user, entityType, id, record),
-          () => this._assertCurrent(session))
+          () => this._assertCurrent(session), entries => this._uploadBatch(user, entries))
         this._assertCurrent(session)
         if (!this._isSyncing) {
           syncState.status = 'synced'
@@ -370,6 +371,16 @@ export const syncService = {
     const document = doc(firestore, 'users', user.uid,
       entityType === 'note' ? 'notes' : 'notebooks', id)
     await setDoc(document, buildSyncPayload(entityType, record), { merge: true })
+  },
+
+  async _uploadBatch(user, entries) {
+    const { firestore } = this._getServices()
+    const batch = writeBatch(firestore)
+    for (const { entityType, id, record } of entries) {
+      batch.set(doc(firestore, 'users', user.uid, entityType === 'note' ? 'notes' : 'notebooks', id),
+        buildSyncPayload(entityType, record), { merge: true })
+    }
+    await batch.commit()
   },
 
   /**

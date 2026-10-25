@@ -20,6 +20,10 @@ public sealed class FirebaseSyncService(
     HttpClient httpClient,
     IAppLogger logger) : IFirebaseSyncService
 {
+    // One commit carries up to this many documents and roughly this much JSON, well under Firestore's 500 writes / 10 MiB.
+    private const int MaxBatchWrites = 100;
+    private const int MaxBatchChars = 4_000_000;
+
     private readonly FirebaseConfigurationProvider _configurationProvider = new(paths);
     private readonly FirebaseSessionStore _sessionStore = new(paths);
     private readonly SemaphoreSlim _syncGate = new(1, 1);
@@ -510,12 +514,17 @@ public sealed class FirebaseSyncService(
         var items = await ListOutboxAsync(attachmentsOnly, cancellationToken);
         var uploaded = 0;
         Exception? firstError = null;
-        foreach (var item in items)
+        // Notebooks and notes share one commit per batch. Attachments upload their file first and stay
+        // per item; a failed batch is retried item by item so one bad document does not block the rest.
+        var batch = new List<(OutboxItem Item, JsonObject Fields)>();
+        var batchChars = 0;
+
+        async Task PushOneAsync(OutboxItem item, JsonObject? fields)
         {
             try
             {
                 EnsureCurrentSession(session, cancellationToken);
-                var fields = item.EntityType switch
+                fields ??= item.EntityType switch
                 {
                     "notebook" => await ReadNotebookFieldsAsync(item.EntityId, cancellationToken),
                     "note" => await ReadNoteFieldsAsync(item.EntityId, cancellationToken),
@@ -526,7 +535,7 @@ public sealed class FirebaseSyncService(
                 if (fields is null)
                 {
                     await CompleteOutboxAsync(item, cancellationToken);
-                    continue;
+                    return;
                 }
 
                 EnsureCurrentSession(session, cancellationToken);
@@ -548,6 +557,72 @@ public sealed class FirebaseSyncService(
                 logger.Error($"Failed to sync {item.EntityType} {item.EntityId}.", exception);
             }
         }
+
+        async Task FlushAsync()
+        {
+            var entries = batch.ToArray();
+            batch.Clear();
+            batchChars = 0;
+            if (entries.Length == 0) return;
+            if (entries.Length > 1)
+            {
+                try
+                {
+                    EnsureCurrentSession(session, cancellationToken);
+                    var writes = new JsonArray(entries.Select(entry => (JsonNode?)CreateWrite(
+                        configuration, session, CollectionName(entry.Item.EntityType), entry.Item.EntityId,
+                        (JsonObject)entry.Fields.DeepClone())).ToArray());
+                    await CommitWritesAsync(configuration, session, writes, cancellationToken);
+                    EnsureCurrentSession(session, cancellationToken);
+                    foreach (var entry in entries) await CompleteOutboxAsync(entry.Item, cancellationToken);
+                    uploaded += entries.Length;
+                    return;
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    logger.Error($"Batch sync of {entries.Length} items failed; retrying them one by one.", exception);
+                }
+            }
+            foreach (var entry in entries) await PushOneAsync(entry.Item, entry.Fields);
+        }
+
+        foreach (var item in items)
+        {
+            if (item.EntityType is not ("notebook" or "note"))
+            {
+                await FlushAsync();
+                await PushOneAsync(item, null);
+                continue;
+            }
+            JsonObject? fields;
+            try
+            {
+                EnsureCurrentSession(session, cancellationToken);
+                fields = item.EntityType == "notebook"
+                    ? await ReadNotebookFieldsAsync(item.EntityId, cancellationToken)
+                    : await ReadNoteFieldsAsync(item.EntityId, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                firstError ??= exception;
+                await RecordOutboxFailureAsync(item, exception.Message, cancellationToken);
+                logger.Error($"Failed to sync {item.EntityType} {item.EntityId}.", exception);
+                continue;
+            }
+            if (fields is null)
+            {
+                await CompleteOutboxAsync(item, cancellationToken);
+                continue;
+            }
+            var size = fields.ToJsonString().Length;
+            if (batch.Count > 0 && (batch.Count >= MaxBatchWrites || batchChars + size > MaxBatchChars))
+            {
+                await FlushAsync();
+            }
+            batch.Add((item, fields));
+            batchChars += size;
+        }
+        await FlushAsync();
 
         if (firstError is not null)
         {
@@ -628,24 +703,44 @@ public sealed class FirebaseSyncService(
         JsonObject fields,
         CancellationToken cancellationToken)
     {
-        var endpoint = $"{FirestoreBase(configuration)}/documents:commit";
+        await CommitWritesAsync(
+            configuration,
+            session,
+            new JsonArray(CreateWrite(configuration, session, collection, documentId, fields)),
+            cancellationToken);
+    }
+
+    private static JsonObject CreateWrite(
+        FirebaseConfiguration configuration,
+        FirebaseSession session,
+        string collection,
+        string documentId,
+        JsonObject fields)
+    {
         var documentName = $"projects/{configuration.ProjectId}/databases/{configuration.DatabaseId}/documents/users/{session.UserId}/{collection}/{documentId}";
-        var body = new JsonObject
+        return new JsonObject
         {
-            ["writes"] = new JsonArray(new JsonObject
+            ["update"] = new JsonObject
             {
-                ["update"] = new JsonObject
-                {
-                    ["name"] = documentName,
-                    ["fields"] = fields,
-                },
-                ["updateTransforms"] = new JsonArray(new JsonObject
-                {
-                    ["fieldPath"] = "serverUpdatedAt",
-                    ["setToServerValue"] = "REQUEST_TIME",
-                }),
+                ["name"] = documentName,
+                ["fields"] = fields,
+            },
+            ["updateTransforms"] = new JsonArray(new JsonObject
+            {
+                ["fieldPath"] = "serverUpdatedAt",
+                ["setToServerValue"] = "REQUEST_TIME",
             }),
         };
+    }
+
+    private async Task CommitWritesAsync(
+        FirebaseConfiguration configuration,
+        FirebaseSession session,
+        JsonArray writes,
+        CancellationToken cancellationToken)
+    {
+        var endpoint = $"{FirestoreBase(configuration)}/documents:commit";
+        var body = new JsonObject { ["writes"] = writes };
         using var request = CreateAuthorizedRequest(HttpMethod.Post, endpoint, session.IdToken);
         request.Content = JsonContent.Create(body);
         using var response = await httpClient.SendAsync(request, cancellationToken);

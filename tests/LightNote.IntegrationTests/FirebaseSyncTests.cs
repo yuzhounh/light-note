@@ -51,14 +51,19 @@ public sealed class FirebaseSyncTests : IDisposable
         Assert.Equal("user-1", account.UserId);
         Assert.Equal(3, first.Uploaded);
         Assert.Equal(0, second.Uploaded);
-        Assert.Equal(3, handler.PatchedDocuments.Count);
+        // The notebook and note share one commit; the attachment follows its storage upload.
+        Assert.Equal(2, handler.PatchedDocuments.Count);
         var uploadedNote = JsonDocument.Parse(handler.CommittedBodies
             .Single(body => body.Contains($"/notes/{note.Id}", StringComparison.Ordinal)));
         using (uploadedNote)
         {
-            var uploadedTags = uploadedNote.RootElement.GetProperty("writes")[0].GetProperty("update")
-                .GetProperty("fields").GetProperty("tags").GetProperty("arrayValue").GetProperty("values")
-                .EnumerateArray().Select(value => value.GetProperty("stringValue").GetString()!).ToArray();
+            var writes = uploadedNote.RootElement.GetProperty("writes").EnumerateArray().ToArray();
+            Assert.Equal(2, writes.Length);
+            Assert.EndsWith($"/notebooks/{notebook.Id}", writes[0].GetProperty("update").GetProperty("name").GetString());
+            var uploadedTags = writes.Single(write => write.GetProperty("update").GetProperty("name").GetString()!
+                    .EndsWith($"/notes/{note.Id}", StringComparison.Ordinal))
+                .GetProperty("update").GetProperty("fields").GetProperty("tags").GetProperty("arrayValue")
+                .GetProperty("values").EnumerateArray().Select(value => value.GetProperty("stringValue").GetString()!).ToArray();
             Assert.Equal(["local", "sync"], uploadedTags);
         }
         Assert.Single(handler.StorageUploads);
@@ -67,6 +72,27 @@ public sealed class FirebaseSyncTests : IDisposable
             Encoding.UTF8.GetString(await File.ReadAllBytesAsync(paths.FirebaseSessionPath)),
             StringComparison.Ordinal);
         Assert.Equal(SyncState.Clean, (await notes.GetAsync(note.Id))?.SyncState);
+    }
+
+    [Fact]
+    public async Task RejectedBatchCommitIsRetriedOneDocumentAtATime()
+    {
+        var (paths, factory, notes) = await CreateServicesAsync();
+        var first = CreateNote("First", "first body");
+        var second = CreateNote("Second", "second body");
+        await notes.UpsertAsync(first);
+        await notes.UpsertAsync(second);
+
+        var handler = new RecordingFirebaseHandler { RejectBatchCommits = true };
+        var service = new FirebaseSyncService(paths, factory, new HttpClient(handler), new NullLogger());
+        await service.SignInAsync("test@example.com", "password123");
+        var result = await service.SyncAsync();
+
+        Assert.Equal(1, handler.RejectedBatches);
+        Assert.Equal(2, result.Uploaded);
+        Assert.Equal(2, handler.PatchedDocuments.Count);
+        Assert.Equal(SyncState.Clean, (await notes.GetAsync(first.Id))?.SyncState);
+        Assert.Equal(SyncState.Clean, (await notes.GetAsync(second.Id))?.SyncState);
     }
 
     [Fact]
@@ -390,6 +416,10 @@ public sealed class FirebaseSyncTests : IDisposable
 
         public bool StorageShouldReturnNotFound { get; init; }
 
+        public bool RejectBatchCommits { get; init; }
+
+        public int RejectedBatches { get; private set; }
+
         public Func<Task>? OnStorageUpload { get; init; }
 
         protected override async Task<HttpResponseMessage> SendAsync(
@@ -446,8 +476,17 @@ public sealed class FirebaseSyncTests : IDisposable
             if (url.Contains("/documents:commit", StringComparison.Ordinal) &&
                 request.Method == HttpMethod.Post)
             {
+                var body = await request.Content!.ReadAsStringAsync(cancellationToken);
+                if (RejectBatchCommits && JsonDocument.Parse(body).RootElement.GetProperty("writes").GetArrayLength() > 1)
+                {
+                    RejectedBatches++;
+                    return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                    {
+                        Content = new StringContent("{\"error\":{\"message\":\"batch rejected\"}}"),
+                    };
+                }
                 PatchedDocuments.Add(url);
-                CommittedBodies.Add(await request.Content!.ReadAsStringAsync(cancellationToken));
+                CommittedBodies.Add(body);
                 return JsonResponse("{}");
             }
 
