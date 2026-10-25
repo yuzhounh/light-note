@@ -8,5 +8,7 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(NativeGoogleAuthPlugin.class);
         super.onCreate(savedInstanceState);
+        getBridge().getWebView().getSettings().setTextZoom(
+            Math.round(100 * getResources().getConfiguration().fontScale));
     }
 }

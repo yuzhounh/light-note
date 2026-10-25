@@ -1076,7 +1076,7 @@ export const LightEditor = forwardRef(function LightEditor(
               editor?.commands.focus('start')
             }
           }}
-          className="note-title w-full text-[21px] font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-3 tracking-tight shrink-0 cursor-text"
+          className="note-title w-full text-[15px] font-bold bg-transparent outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 mb-3 tracking-tight shrink-0 cursor-text"
         />
         <EditorContent editor={editor} className="tiptap-editor-wrapper flex-1 flex flex-col cursor-text" />
         {tableBar && (
