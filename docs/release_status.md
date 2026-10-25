@@ -1,11 +1,12 @@
 # LightNote 发布与日常交付状态
 
-## 当前目标：Web / Android 2.3.3 / code 46（2026-10-25，准备交付）
+## 当前目标：Web / Android 2.3.3 / code 46（2026-10-25，构建通过，安装及部署待完成）
 
 - 统一源码版本为2.3.3，Android versionCode从45增至46。当前唯一APK交付路径为 `artifacts/android/2.3.3/LightNote-2.3.3-code46.apk`；此前code45的不同内容构建作为历史保留，不再作为当前交付包。
 - 保留49b713d的编辑器不可变快照及按需序列化：HTML和JSON延后至自动保存等读取时生成并缓存；字数与列表预览仍可能在每次输入后读取全文纯文本，不声称完全消除输入时的全文转换。
 - Windows源码声明同步为2.3.3；实际日常程序仍为2.3.2+834c818，包含3a50376旧库迁移修复，保持原Debug/current渠道。本轮不构建或安装Windows；网页和Android使用的编辑器实现与原生Windows独立。
-- 本节准备提交时，Web测试、生产构建、Android assembleRelease/lintRelease、原签名检查、覆盖安装和网页部署尚待完成，完成后据实际回执更新。Cloudflare/Firebase继续使用根路径构建；GitHub Pages由既有工作流使用 `/light-note/` 构建。跳过Netlify和第三方Vercel，不创建公开GitHub Release，不修改账户、数据库、附件或设置。
+- 应用构建源a7d63796a4df09ea90167527cc1201ba748e0460：54项Web测试通过，一次根路径生产构建、Capacitor同步和 `assembleRelease lintRelease`（Gradle最多2个worker）成功；APK v2签名有效，aapt实读 `com.lightnote.app` / 2.3.3 / code46。唯一交付路径的复制正常完成；没有额外文件哈希或逐项复制核验。保留既有Vite大包和Gradle弃用提示。
+- Cloudflare/Firebase复用 `web/dist` 根路径静态包，入口资源 `index-23SDXPFl.js` / `index-DndjBoRc.css`；GitHub Pages由既有工作流使用 `/light-note/` 构建。覆盖安装及网页部署尚待主任务完成并据回执更新。跳过Netlify和第三方Vercel，不创建公开GitHub Release，不修改账户、数据库、附件或设置。日志位于 `tmp/release-2.3.3-web-test.log`、`tmp/release-2.3.3-web-build.log`、`tmp/release-2.3.3-cap-sync.log`、`tmp/release-2.3.3-android-build.log`。
 
 以下为各次历史交付记录；端版本与安装状态以上述当前节和最新回执为准。
 

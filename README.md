@@ -17,7 +17,7 @@
   <a href="https://light-note.web.app/">在线体验</a> · <a href="https://github.com/yuzhounh/light-note/releases/latest">发布版本</a> · <a href="#开发">快速开始</a> · <a href="LICENSE">开源协议</a>
 </p>
 
-LightNote 是一个轻量、本地优先的跨端笔记工具，支持 SQLite FTS5 全文搜索、多级分组、KaTeX 数学公式、多版本历史记录、Windows 系统托盘与可选云同步。当前源码版本为 **2.3.3**，网页与 Android 正在准备同版交付，Android 构建号为 **46**，统一交付路径为 `artifacts/android/2.3.3/LightNote-2.3.3-code46.apk`；实际构建、安装和部署结果见[发布状态](docs/release_status.md)。Windows 日常程序保持 **2.3.2+834c818**，包含旧库迁移修复，沿用 `artifacts/development/current/win-x64` 入口。公开安装包仍见 [v2.2.24](https://github.com/yuzhounh/light-note/releases/tag/v2.2.24)，本轮不创建公开 Release。升级保留原有数据库、附件、设置和应用数据。
+LightNote 是一个轻量、本地优先的跨端笔记工具，支持 SQLite FTS5 全文搜索、多级分组、KaTeX 数学公式、多版本历史记录、Windows 系统托盘与可选云同步。当前源码及已构建网页、Android 版本为 **2.3.3**，Android 构建号为 **46**，统一交付路径为 `artifacts/android/2.3.3/LightNote-2.3.3-code46.apk`；实际安装和部署结果见[发布状态](docs/release_status.md)。Windows 日常程序保持 **2.3.2+834c818**，包含旧库迁移修复，沿用 `artifacts/development/current/win-x64` 入口。公开安装包仍见 [v2.2.24](https://github.com/yuzhounh/light-note/releases/tag/v2.2.24)，本轮不创建公开 Release。升级保留原有数据库、附件、设置和应用数据。
 
 ## 在线访问
 
