@@ -1,5 +1,11 @@
 # LightNote 当前正式版本发布
 
+## 网页字号与查询同步集成（2026-10-25，已上线）
+
+- 网页列表和详情标题15px、普通正文14px，保留分栏、多列、按钮及右键菜单。经用户确认纳入另一任务的数据库索引和批量同步提交3209c72，界面集成提交ac4ee12已推送main。
+- 最终51项Web测试及生产构建通过，复用该构建完成Cloudflare 850aabae与Firebase lightnote-sync/light-note部署；GitHub Pages工作流40166436624成功。三个公开入口的版本、索引代码及新字号资源已检查。
+- 同时触发的Windows CI 40166436625失败于DailyUseTests.MigrationChoosesLegacyDatabaseWithMostNotes，103项集成测试通过、1项失败；该Windows迁移测试未在本轮扩展修复。网页发布流程成功，Windows日常程序仍为2.3.0，APK保持上一轮2.3.2/code45。
+
 ## Android 字号统一：2.3.2 / code 45（2026-10-25，已安装）
 
 - 13:03追加：详情标题、普通正文改为15px、14px，与列表一致；复用刚通过构建的code45修订包覆盖安装到1999ffe8。安装与启动成功，原数据目录及首次安装时间保持。下文18px／16px为此前安装记录。
