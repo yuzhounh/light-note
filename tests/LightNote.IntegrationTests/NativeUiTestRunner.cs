@@ -33,8 +33,11 @@ internal static class NativeUiTestRunner
                 case "caret-scrolling":
                     new CaretScrollingTests().VerifyCaretScrolling();
                     break;
+                case "tray-exit":
+                    new TrayExitTests().ExitingTrayInstanceClosesWithoutSaveFailure();
+                    break;
                 default:
-                    throw new ArgumentException("Specify message-dialog, sidebar, window-controls, title-editing, image-paste, table-sizing or caret-scrolling.");
+                    throw new ArgumentException("Specify message-dialog, sidebar, window-controls, title-editing, image-paste, table-sizing, caret-scrolling or tray-exit.");
             }
             Console.WriteLine($"Native UI verification passed: {args[0]}");
             return 0;

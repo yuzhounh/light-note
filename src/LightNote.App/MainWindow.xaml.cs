@@ -777,8 +777,17 @@ public partial class MainWindow : Window
 
             SaveWindowSettings();
             _allowClose = true;
-            Close();
-            System.Windows.Application.Current.Shutdown();
+            // 不能在 Closing 回调内直接 Close()：此时窗口仍处于“正在关闭”状态，
+            // VerifyNotClosing 会抛 InvalidOperationException。托盘启动、从未显示过的实例
+            // 因为两个 await 都同步返回，必然走到这里，退出会失败并弹“退出前保存失败”。
+            // 先让本次 Closing 返回，再由 Dispatcher 在本次事件处理完后走正常关闭。
+            _ = Dispatcher.BeginInvoke(
+                new Action(() =>
+                {
+                    Close();
+                    System.Windows.Application.Current.Shutdown();
+                }),
+                System.Windows.Threading.DispatcherPriority.Background);
         }
         catch (Exception exception)
         {

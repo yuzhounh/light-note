@@ -497,7 +497,11 @@ public partial class NoteWindow : Window
                 throw new InvalidOperationException("笔记尚未保存完成。");
             }
             _allowClose = true;
-            Close();
+            // 同 MainWindow：不能在 Closing 回调内直接 Close()，否则窗口仍处于“正在关闭”
+            // 状态时 VerifyNotClosing 会抛 InvalidOperationException，窗口再也关不掉。
+            _ = Dispatcher.BeginInvoke(
+                new Action(Close),
+                System.Windows.Threading.DispatcherPriority.Background);
         }
         catch (Exception exception)
         {
