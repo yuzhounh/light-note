@@ -1,10 +1,17 @@
 # LightNote 发布与日常交付状态
 
+## 当前Windows日常版2.3.3（2026-10-25 16:30，已更新）
+
+- 从1740ca399c220272460f6904f8253c63a2f0b086进行一次完整Debug构建，复用未变的原生嵌入编辑器。0错误、1项既有SkiaSharp过时提示；完整程序包位于 `artifacts/development/pending/windows-2.3.3-1740ca3/win-x64`。
+- 旧后台进程43168通过Restart Manager正常退出，确认真正退出后完整复制程序到原 `artifacts/development/current/win-x64`；没有强制终止，未向运行中的目录构建。新进程40448仍使用 `--background`、Session1，响应正常，启动日志确认托盘模式成功；实际版本 `2.3.3+1740ca399c220272460f6904f8253c63a2f0b086`。
+- 原数据目录身份、152篇笔记、11个笔记本、54条附件记录保持；桌面快捷方式目标、参数、工作目录和描述不变，未修改自启动配置或数据目录。程序正常退出时重写了settings.json（612→610字节）；更新前仅保留了设置文件元数据，不能逐属性证明完全不变，安装器未覆盖或重置设置。现有自动备份设置继续启用，程序正常启动自行生成了自动备份，没有额外创建项目快照。
+- 本轮没有更新网页/APK、提交或推送。构建日志 `tmp/windows-2.3.3-build.log`，安装回执 `tmp/windows-2.3.3-install-result.json`，有限数据状态 `tmp/daily-migration-data-windows233-before.json` / `tmp/daily-migration-data-windows233-after.json`，快捷方式原状态 `tmp/windows-2.3.3-launcher-before.json`。
+
 ## 当前交付：Web / Android 2.3.3 / code 46（2026-10-25，已安装并上线）
 
 - 统一源码版本为2.3.3，Android versionCode从45增至46。当前唯一APK交付路径为 `artifacts/android/2.3.3/LightNote-2.3.3-code46.apk`；此前code45的不同内容构建作为历史保留，不再作为当前交付包。
 - 保留49b713d的编辑器不可变快照及按需序列化：HTML和JSON延后至自动保存等读取时生成并缓存；字数与列表预览仍可能在每次输入后读取全文纯文本，不声称完全消除输入时的全文转换。
-- Windows源码声明同步为2.3.3；实际日常程序仍为2.3.2+834c818，包含3a50376旧库迁移修复，保持原Debug/current渠道。本轮不构建或安装Windows；网页和Android使用的编辑器实现与原生Windows独立。
+- Windows源码声明同步为2.3.3；本次网页/Android交付时日常程序为2.3.2+834c818，后续Windows更新已完成，见上节。网页和Android使用的编辑器实现与原生Windows独立。
 - 应用构建源a7d63796a4df09ea90167527cc1201ba748e0460：54项Web测试通过，一次根路径生产构建、Capacitor同步和 `assembleRelease lintRelease`（Gradle最多2个worker）成功；APK v2签名有效，aapt实读 `com.lightnote.app` / 2.3.3 / code46。唯一交付路径的复制正常完成；没有额外文件哈希或逐项复制核验。保留既有Vite大包和Gradle弃用提示。
 - 16:01从唯一交付路径以 `adb install -r` 覆盖安装至1999ffe8，实读2.3.3/code46；数据目录和首次安装时间保持，未卸载或清除正式应用数据。
 - Cloudflare部署 `d09e1392` 与Firebase `lightnote-sync/light-note` 复用 `web/dist` 根路径静态包，入口资源 `index-23SDXPFl.js` / `index-DndjBoRc.css`；GitHub Pages工作流 `40175029710` 成功，使用 `/light-note/` 构建。线上脚本及样式资源已核对。应用源码a7d6379、构建记录d5663ab已推送；当前结果统一见维护中心 `PROJECT_RELEASES.md`。跳过Netlify和第三方Vercel，不创建公开GitHub Release，不修改账户、数据库、附件或设置。日志位于 `tmp/release-2.3.3-web-test.log`、`tmp/release-2.3.3-web-build.log`、`tmp/release-2.3.3-cap-sync.log`、`tmp/release-2.3.3-android-build.log`。
