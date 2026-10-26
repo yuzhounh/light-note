@@ -32,6 +32,10 @@ test('adds a clickable source line after the pasted block', () => {
   assert.equal(doc[2].content[1].text, 'example.com')
   assert.equal(doc[2].content[1].marks[0].attrs.href, 'https://example.com/a')
   assert.equal(doc[3].content[0].text, '最后一段')
+  // 光标落在来源行末尾，而不是粘贴内容末尾
+  const sourceStart = editor.state.doc.child(0).nodeSize + editor.state.doc.child(1).nodeSize
+  assert.equal(editor.state.selection.empty, true)
+  assert.equal(editor.state.selection.from, sourceStart + 1 + editor.state.doc.child(2).content.size)
   editor.destroy()
 })
 
@@ -43,6 +47,8 @@ test('application sources are plain text and duplicates are skipped', () => {
   assert.equal(doc.length, 2)
   assert.equal(doc[1].content.map(part => part.text).join(''), '来源：Word')
   assert.ok(doc[1].content.every(part => !part.marks))
+  // 光标停在来源行末尾；重复来源被跳过时光标留在原处
+  assert.equal(editor.state.selection.from, editor.state.doc.child(0).nodeSize + 1 + '来源：Word'.length)
   editor.destroy()
 })
 

@@ -21,8 +21,10 @@ export function insertSourceLine(editor, pos, source) {
     ? { type: 'text', text: label, marks: [{ type: 'link', attrs: { href: source.url } }] }
     : { type: 'text', text: label })
 
-  return editor
+  const chain = editor
     .chain()
     .insertContentAt(insertAt, { type: 'paragraph', content }, { updateSelection: false })
-    .run()
+  // 光标停在来源这一行的末尾，而不是粘贴内容的末尾（来源行位于粘贴内容之后）。
+  // 插入点之前的坐标不受影响，来源段落始于 insertAt，其文字末尾即 insertAt + 1 + 文字长度。
+  return chain.setTextSelection(insertAt + 1 + text.length).scrollIntoView().run()
 }
