@@ -4,6 +4,7 @@ import { db } from '../../core/db/database'
 import { NotesRepository } from '../../core/db/notesRepository'
 import { APP_DISPLAY_VERSION } from '../../core/version'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
+import { getLang, setLang } from '../../i18n'
 
 function readMarkdownAutoFormat() {
   try {
@@ -24,6 +25,7 @@ export function SettingsModal({
   const [markdownAutoFormat, setMarkdownAutoFormat] = useState(readMarkdownAutoFormat)
   const [isExporting, setIsExporting] = useState(false)
   const [msg, setMsg] = useState('')
+  const [lang, setLangState] = useState(getLang())
   useBackDismiss(isOpen, onClose, 55)
 
   if (!isOpen) return null
@@ -262,6 +264,22 @@ export function SettingsModal({
                   >
                     <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${markdownAutoFormat ? 'translate-x-4' : ''}`} />
                   </button>
+                </div>
+
+                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-4">
+                  <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">语言 / Language</div>
+                  <select
+                    value={lang}
+                    onChange={(e) => {
+                      const v = e.target.value === 'en' ? 'en' : 'zh'
+                      setLangState(v)
+                      setLang(v)
+                    }}
+                    className="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-2 py-1 text-xs"
+                  >
+                    <option value="zh">简体中文</option>
+                    <option value="en">English</option>
+                  </select>
                 </div>
               </div>
             )}

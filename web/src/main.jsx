@@ -5,6 +5,7 @@ import { Capacitor } from '@capacitor/core'
 import { App } from './App'
 import { installButtonPressFeedback } from './core/buttonPressFeedback'
 import './index.css'
+import './i18n'
 
 if (Capacitor.getPlatform() === 'android') {
   document.documentElement.classList.add('lightnote-android')

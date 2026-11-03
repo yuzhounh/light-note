@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import {
   X, Layers, Trash2, NotebookText, Settings, Plus, Check, ArrowUpDown, Rows3, Sun, Moon, Type, Download, Upload,
-  LogIn, LogOut, Pencil, ChevronUp, ChevronDown, BookOpen, UserRound,
+  LogIn, LogOut, Pencil, ChevronUp, ChevronDown, BookOpen, UserRound, Languages,
 } from 'lucide-react'
+import { getLang, setLang } from '../../i18n'
 import { APP_NAME, APP_VERSION } from '../../core/version'
 import { exportBackup, importBackup } from '../../core/db/backup'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
@@ -78,6 +79,12 @@ export function PhoneMenu({
   const [dialog, setDialog] = useState(null) // { type: 'rename' | 'delete', notebook }
   const [renameValue, setRenameValue] = useState('')
   const [markdownAuto, setMarkdownAuto] = useState(readMarkdownAutoFormat)
+  const [lang, setLangState] = useState(getLang())
+  function toggleLang() {
+    const next = lang === 'zh' ? 'en' : 'zh'
+    setLang(next)
+    setLangState(next)
+  }
 
   const total = [...notebookCounts.values()].reduce((sum, value) => sum + value, 0)
 
@@ -213,6 +220,7 @@ export function PhoneMenu({
           onClick={sortMenu} />
         <Row icon={Rows3} label="卡片密度" value={DENSITY_LABEL[density] || '舒适'} onClick={densityMenu} />
         <Row icon={isDark ? Moon : Sun} label="外观" value={isDark ? '深色' : '浅色'} onClick={onToggleTheme} />
+        <Row icon={Languages} label="界面语言" value={lang === 'zh' ? '简体中文' : 'English'} onClick={toggleLang} />
         <Row icon={Type} label="Markdown 自动排版"
           value={markdownAuto ? '开' : '关'}
           onClick={toggleMarkdownAuto} />

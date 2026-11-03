@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import { getLang, setLang } from '../../i18n'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { 
-  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2, Sun, Moon, RefreshCw, Search
+  FileText, Folder, Book, Plus, Settings, ChevronDown, ChevronRight, X, Check, LogOut, Trash2, Sun, Moon, RefreshCw, Search, Languages
 } from 'lucide-react'
 
 export function Sidebar({
@@ -28,6 +29,28 @@ export function Sidebar({
   onSync
 }) {
   const [isGroupOpen, setIsGroupOpen] = useState(true)
+  const [currentLang, setCurrentLang] = useState(getLang())
+
+  useEffect(() => {
+    const onLangChanged = (e) => setCurrentLang(e.detail || getLang())
+    window.addEventListener('lightnote:lang-changed', onLangChanged)
+    return () => window.removeEventListener('lightnote:lang-changed', onLangChanged)
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.key === 'l' || e.key === 'L') && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        const tag = document.activeElement?.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return
+        const next = getLang() === 'zh' ? 'en' : 'zh'
+        setLang(next)
+        setCurrentLang(next)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const [isAddingNotebook, setIsAddingNotebook] = useState(false)
   const [newNotebookName, setNewNotebookName] = useState('')
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
@@ -420,6 +443,26 @@ export function Sidebar({
               </div>
 
               <div className="border-t border-zinc-100 dark:border-zinc-800" />
+
+              <button
+                type="button"
+                onClick={() => {
+                  const next = currentLang === 'zh' ? 'en' : 'zh'
+                  setLang(next)
+                  setCurrentLang(next)
+                }}
+                className="w-full flex items-center justify-between py-1.5 px-2 text-zinc-700 dark:text-zinc-300 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] rounded-lg text-xs transition cursor-pointer"
+                title={currentLang === 'zh' ? 'Switch to English (L)' : '切换为简体中文 (L)'}
+              >
+                <div className="flex items-center gap-2">
+                  <Languages size={14} className="text-zinc-500 dark:text-zinc-400" />
+                  <span>{currentLang === 'zh' ? 'English' : '简体中文'}</span>
+                </div>
+                <span className="text-[10px] text-zinc-400 px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono">
+                  L
+                </span>
+              </button>
+
 
               <button
                 onClick={() => {
