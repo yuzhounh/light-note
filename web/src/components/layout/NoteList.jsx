@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 import { Menu, FileText, X, ArrowUpDown, Check, Search, Plus } from 'lucide-react'
 import { NoteContextMenu } from './NoteContextMenu'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
+import { getLang } from '../../i18n'
 
 const isAndroidApp = Capacitor.getPlatform() === 'android'
 
@@ -78,6 +79,13 @@ export function NoteList({
   const pullRef = useRef(null)
   const pullSyncingRef = useRef(false)
   const cardStyle = DENSITY_STYLES[density] || DENSITY_STYLES.comfortable
+  const [currentLang, setCurrentLang] = useState(getLang())
+
+  useEffect(() => {
+    const onLangChanged = (e) => setCurrentLang(e?.detail || getLang())
+    window.addEventListener('lightnote:lang-changed', onLangChanged)
+    return () => window.removeEventListener('lightnote:lang-changed', onLangChanged)
+  }, [])
 
   useEffect(() => {
     if (!isOptionsOpen) return undefined
@@ -390,7 +398,7 @@ export function NoteList({
           <span className="truncate">
             {searchQuery ? (isCompactHeader ? '搜索结果' : `搜索: "${searchQuery}"`) : (currentNotebookName || '全部笔记')}
           </span>
-          <span className="text-zinc-400 shrink-0">{isCompactHeader ? `· ${notes.length}` : `(${notes.length}条)`}</span>
+          <span className="text-zinc-400 shrink-0">{isCompactHeader ? `· ${notes.length}` : (currentLang === 'en' ? `(${notes.length})` : `(${notes.length}条)`)}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {onSortChange && (

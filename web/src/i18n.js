@@ -155,6 +155,115 @@ const DICT = {
   '导出与导入备份': 'Export & import backup',
   '开': 'On',
   '关': 'Off',
+
+  // General & Preferences
+  '常规': 'General',
+  '常规设置': 'General settings',
+  '自定义外观主题、界面语言与编辑偏好。': 'Customize appearance theme, interface language, and editing preferences.',
+  '选择软件界面的显示语言。': 'Choose the display language for the application.',
+  '中文界面': 'Chinese interface',
+  '默认中文界面': 'Default Chinese interface',
+  'English interface': 'English interface',
+  '英文界面': 'English interface',
+  'Markdown 自动格式化': 'Markdown auto-format',
+  '输入 1.、#、-、>、**粗体**、$公式$ 等符号时自动转换为列表、标题、引用、粗体、公式。关闭后这些符号按原样输入，工具栏和快捷键仍可使用。':
+    'Typing 1., #, -, >, **bold**, $formula$ auto-converts to lists, headings, quotes, bold and formulas. When disabled, these characters are typed literally; toolbar and shortcuts remain available.',
+  '输入 1. 、# 、- 、> 、**粗体**、$公式$ 等符号时自动转换为列表、标题、引用、粗体、公式。关闭后这些符号按原样输入，工具栏和快捷键仍可使用。':
+    'Typing 1., #, -, >, **bold**, $formula$ auto-converts to lists, headings, quotes, bold and formulas. When disabled, these characters are typed literally; toolbar and shortcuts remain available.',
+  '输入 1. 、# 、- 、&gt; 、**粗体**、$公式$ 等符号时自动转换为列表、标题、引用、粗体、公式。关闭后这些符号按原样输入，工具栏和快捷键仍可使用。':
+    'Typing 1., #, -, >, **bold**, $formula$ auto-converts to lists, headings, quotes, bold and formulas. When disabled, these characters are typed literally; toolbar and shortcuts remain available.',
+  '输入 1.、#、-、&gt;、**粗体**、$公式$ 等符号时自动转换为列表、标题、引用、粗体、公式。关闭后这些符号按原样输入，工具栏和快捷键仍可使用。':
+    'Typing 1., #, -, >, **bold**, $formula$ auto-converts to lists, headings, quotes, bold and formulas. When disabled, these characters are typed literally; toolbar and shortcuts remain available.',
+  '开启后，输入 #、-、>、**粗体** 等 Markdown 写法时，可自动转换为标题、列表、引用和粗体。需要原样输入这些符号时，在设置关闭“Markdown 自动排版”；编辑工具栏仍可使用。':
+    'When enabled, typing #, -, >, **bold** auto-converts to headings, lists, quotes and bold text. Turn off in Settings to enter these characters literally; formatting toolbar remains available.',
+  '开启后，输入 #、-、&gt;、**粗体** 等 Markdown 写法时，可自动转换为标题、列表、引用和粗体。需要原样输入这些符号时，在设置关闭“Markdown 自动排版”；编辑工具栏仍可使用。':
+    'When enabled, typing #, -, >, **bold** auto-converts to headings, lists, quotes and bold text. Turn off in Settings to enter these characters literally; formatting toolbar remains available.',
+
+  // Common UI & Empty States
+  '默认': 'Default',
+  '暂无相关笔记': 'No notes yet',
+  '可通过右下角新建笔记或登录读取云端笔记': 'Create a note with "+" at the bottom right or sign in to load cloud notes',
+  '选择或新建笔记开始记录': 'Select or create a note to start writing',
+  '排序与卡片密度': 'Sort & card density',
+  '排序依据': 'Sort by',
+  '新建笔记（Ctrl+N）': 'New note (Ctrl+N)',
+  '新建笔记 (Ctrl+N)': 'New note (Ctrl+N)',
+  '打开导航与设置': 'Open navigation & settings',
+  '清除搜索（Esc）': 'Clear search (Esc)',
+  '清除搜索 (Esc)': 'Clear search (Esc)',
+  '向下滚动加载更多...': 'Scroll down to load more...',
+  '向下滚动加载更多…': 'Scroll down to load more…',
+  '正在加载编辑器…': 'Loading editor…',
+  '正在加载编辑器...': 'Loading editor...',
+  '返回列表': 'Back to list',
+  '无标题笔记': 'Untitled note',
+  '加载中…': 'Loading…',
+  '加载中...': 'Loading...',
+  '请检查网络后下拉重试': 'Check your network connection and pull down to retry',
+  '未命名笔记本': 'Untitled notebook',
+  '已删除的笔记本': 'Deleted notebook',
+  '已永久删除的笔记': 'Permanently deleted notes',
+  '已选择 {selectedCount} 项': 'Selected {selectedCount} items',
+  '切换为简体中文 (L)': 'Switch to Simplified Chinese (L)',
+  '切换为英文 (L)': 'Switch to English (L)',
+  '切换语言 (L)': 'Switch language (L)',
+  '关闭 (Esc)': 'Close (Esc)',
+  '关闭（Esc）': 'Close (Esc)',
+
+  // Editor toolbar & formula modals
+  '25% 默认宽度': '25% width',
+  '50% 默认宽度': '50% width',
+  '75% 默认宽度': '75% width',
+  '100% 默认宽度': '100% width',
+  '删除图片': 'Delete image',
+  '查看大图': 'View full image',
+  '大图预览': 'Image preview',
+  '拖拽调节大小': 'Drag to resize',
+  '插入表格': 'Insert table',
+  '删除表格': 'Delete table',
+  '上方加行': 'Insert row above',
+  '下方加行': 'Insert row below',
+  '左侧加列': 'Insert column left',
+  '右侧加列': 'Insert column right',
+  '删除行': 'Delete row',
+  '删除列': 'Delete column',
+  '表头': 'Header row',
+  '平均分配': 'Equalize columns',
+  '重置表宽': 'Reset table width',
+  '统一列宽': 'Standardize column width',
+  '插入当前时间': 'Insert current time',
+  '插入数学公式 (KaTeX)': 'Insert math formula (KaTeX)',
+  '插入公式': 'Insert formula',
+  '编辑公式': 'Edit formula',
+  '删除公式': 'Delete formula',
+  '点击编辑数学公式': 'Click to edit math formula',
+  '数学公式': 'Math formula',
+  '插入 LaTeX 数学公式': 'Insert LaTeX math formula',
+  '编辑 LaTeX 数学公式': 'Edit LaTeX math formula',
+  '支持常用 KaTeX 语法': 'Supports common KaTeX syntax',
+  '实时渲染效果': 'Live preview',
+  '常用符号速选：': 'Common symbols:',
+  '常用符号速选': 'Common symbols',
+  'LaTeX 源码': 'LaTeX source',
+  'LaTeX 语法有误': 'LaTeX syntax error',
+  '分数': 'Fraction',
+  '根号': 'Square root',
+  '上标': 'Superscript',
+  '下标': 'Subscript',
+  '求和': 'Sum',
+  '积分': 'Integral',
+  '极限': 'Limit',
+  '矩阵': 'Matrix',
+  '文本荧光高亮': 'Highlight',
+  '无序列表': 'Bullet list',
+  '编号列表': 'Numbered list',
+  '引用': 'Quote',
+  '代码块': 'Code block',
+  '下划线 (Ctrl+U)': 'Underline (Ctrl+U)',
+  '删除线': 'Strikethrough',
+  '粗体 (Ctrl+B)': 'Bold (Ctrl+B)',
+  '斜体 (Ctrl+I)': 'Italic (Ctrl+I)',
+  'Ctrl + 单击在浏览器中打开链接': 'Ctrl + click to open link in browser',
 }
 
 const origText = new WeakMap()
@@ -174,6 +283,18 @@ function pad(original, replacement) {
   return lead + replacement + trail
 }
 
+function translateString(str) {
+  if (!str) return null
+  const key = str.trim()
+  if (Object.prototype.hasOwnProperty.call(DICT, key)) {
+    return pad(str, DICT[key])
+  }
+  if (/^\((\d+)\s*条\)$/.test(key)) {
+    return pad(str, key.replace(/^\((\d+)\s*条\)$/, '($1)'))
+  }
+  return null
+}
+
 function processText(node, en) {
   const parent = node.parentNode
   if (parent) {
@@ -184,10 +305,9 @@ function processText(node, en) {
   if (origText.has(node)) {
     const original = origText.get(node)
     if (en) {
-      const key = original.trim()
-      if (Object.prototype.hasOwnProperty.call(DICT, key)) {
-        const targetVal = pad(original, DICT[key])
-        if (node.nodeValue !== targetVal) node.nodeValue = targetVal
+      const translated = translateString(original)
+      if (translated && node.nodeValue !== translated) {
+        node.nodeValue = translated
       }
     } else {
       if (node.nodeValue !== original) node.nodeValue = original
@@ -197,11 +317,10 @@ function processText(node, en) {
   }
   if (!en) return
   const current = node.nodeValue
-  const key = current ? current.trim() : ''
-  if (!key || !Object.prototype.hasOwnProperty.call(DICT, key)) return
+  const translated = translateString(current)
+  if (!translated) return
   origText.set(node, current)
-  const targetVal = pad(current, DICT[key])
-  if (node.nodeValue !== targetVal) node.nodeValue = targetVal
+  if (node.nodeValue !== translated) node.nodeValue = translated
 }
 
 function processAttr(el, en) {
@@ -215,8 +334,8 @@ function processAttr(el, en) {
     }
     if (!map.has(attr)) map.set(attr, el.getAttribute(attr) || '')
     const original = map.get(attr) || ''
-    const key = original.trim()
-    const targetVal = (en && Object.prototype.hasOwnProperty.call(DICT, key)) ? DICT[key] : original
+    const translated = translateString(original)
+    const targetVal = en && translated ? translated : original
     if (el.getAttribute(attr) !== targetVal) {
       el.setAttribute(attr, targetVal)
     }

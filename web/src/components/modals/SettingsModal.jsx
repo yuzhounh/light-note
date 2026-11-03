@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Download, Upload, Trash2, Sun, Moon, Database, Globe } from 'lucide-react'
+import { X, Download, Upload, Trash2, Sun, Moon, Database, Globe, Sliders } from 'lucide-react'
 import { db } from '../../core/db/database'
 import { NotesRepository } from '../../core/db/notesRepository'
 import { APP_DISPLAY_VERSION } from '../../core/version'
@@ -21,7 +21,7 @@ export function SettingsModal({
   onChangeTheme,
   onDataImported
 }) {
-  const [activeTab, setActiveTab] = useState('appearance') // 'appearance' | 'data'
+  const [activeTab, setActiveTab] = useState('general') // 'general' | 'data'
   const [markdownAutoFormat, setMarkdownAutoFormat] = useState(readMarkdownAutoFormat)
   const [isExporting, setIsExporting] = useState(false)
   const [msg, setMsg] = useState('')
@@ -100,7 +100,7 @@ export function SettingsModal({
   return (
     <div className="app-modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm select-none">
       <div 
-        className="app-dialog w-full max-w-xl max-h-[85vh] sm:h-[420px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
+        className="app-dialog w-full max-w-xl max-h-[85vh] sm:h-[460px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
         role="dialog"
         aria-modal="true"
         aria-label="设置"
@@ -124,15 +124,15 @@ export function SettingsModal({
         {/* Mobile Tab Switcher (Hidden on sm and above) */}
         <div className="flex sm:hidden items-center gap-1.5 p-2 bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
           <button
-            onClick={() => { setActiveTab('appearance'); setMsg('') }}
+            onClick={() => { setActiveTab('general'); setMsg('') }}
             className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
-              activeTab === 'appearance'
+              activeTab === 'general'
                 ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50'
             }`}
           >
-            <Sun size={14} />
-            <span>外观主题</span>
+            <Sliders size={14} />
+            <span>常规</span>
           </button>
 
           <button
@@ -156,15 +156,15 @@ export function SettingsModal({
             </h3>
             <div className="space-y-1">
               <button
-                onClick={() => { setActiveTab('appearance'); setMsg('') }}
+                onClick={() => { setActiveTab('general'); setMsg('') }}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition cursor-pointer text-left ${
-                  activeTab === 'appearance'
+                  activeTab === 'general'
                     ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-900'
                 }`}
               >
-                <Sun size={15} />
-                <span>外观主题</span>
+                <Sliders size={15} />
+                <span>常规</span>
               </button>
 
               <button
@@ -209,55 +209,112 @@ export function SettingsModal({
               </div>
             )}
 
-            {/* TAB 1: Appearance (外观主题) */}
-            {activeTab === 'appearance' && (
+            {/* TAB 1: General (常规) */}
+            {activeTab === 'general' && (
               <div className="space-y-4">
                 <div>
                   <h4 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                    外观主题
+                    常规
                   </h4>
                   <p className="text-zinc-500 text-[11px] mt-0.5">
-                    选择浅色明亮或深色护眼外观。
+                    自定义外观主题、界面语言与编辑偏好。
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <button
-                    onClick={() => onChangeTheme('light')}
-                    className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
-                      theme === 'light'
-                        ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
-                        : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-                    }`}
-                  >
-                    <Sun size={18} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                    <div className="min-w-0">
-                      <div className="font-medium text-xs truncate">浅色模式</div>
-                      <div className="text-[10px] text-zinc-400 truncate">标准明亮界面</div>
-                    </div>
-                  </button>
+                {/* 1. 外观主题 */}
+                <div className="pt-1">
+                  <div>
+                    <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">外观主题</div>
+                    <p className="text-zinc-500 text-[11px] mt-0.5">选择浅色明亮或深色护眼外观。</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => onChangeTheme('light')}
+                      className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                        theme === 'light'
+                          ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
+                          : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                      }`}
+                    >
+                      <Sun size={18} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs truncate">浅色模式</div>
+                        <div className="text-[10px] text-zinc-400 truncate">标准明亮界面</div>
+                      </div>
+                    </button>
 
-                  <button
-                    onClick={() => onChangeTheme('dark')}
-                    className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
-                      theme === 'dark'
-                        ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
-                        : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-                    }`}
-                  >
-                    <Moon size={18} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                    <div className="min-w-0">
-                      <div className="font-medium text-xs truncate">深色模式</div>
-                      <div className="text-[10px] text-zinc-400 truncate">暗色护眼界面</div>
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => onChangeTheme('dark')}
+                      className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                        theme === 'dark'
+                          ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
+                          : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                      }`}
+                    >
+                      <Moon size={18} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs truncate">深色模式</div>
+                        <div className="text-[10px] text-zinc-400 truncate">暗色护眼界面</div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
+                {/* 2. 界面语言 */}
+                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                  <div>
+                    <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">界面语言</div>
+                    <p className="text-zinc-500 text-[11px] mt-0.5">选择软件界面的显示语言。</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLangState('zh')
+                        setLang('zh')
+                      }}
+                      className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                        lang === 'zh'
+                          ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
+                          : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                      }`}
+                    >
+                      <Globe size={18} className={lang === 'zh' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs truncate">简体中文</div>
+                        <div className="text-[10px] text-zinc-400 truncate">中文界面</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLangState('en')
+                        setLang('en')
+                      }}
+                      className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                        lang === 'en'
+                          ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
+                          : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                      }`}
+                    >
+                      <Globe size={18} className={lang === 'en' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs truncate">English</div>
+                        <div className="text-[10px] text-zinc-400 truncate">English interface</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Markdown 自动排版 */}
                 <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">Markdown 自动排版</div>
                     <p className="text-zinc-500 text-[11px] leading-relaxed mt-0.5">
-                      输入 1. 、# 、- 、&gt; 、**粗体**、$公式$ 等符号时自动转换为列表、标题、引用、粗体、公式。关闭后这些符号按原样输入，工具栏和快捷键仍可使用。
+                      输入 1.、#、-、&gt;、**粗体**、$公式$ 等符号时自动转换为列表、标题、引用、粗体、公式。关闭后这些符号按原样输入，工具栏和快捷键仍可使用。
                     </p>
                   </div>
                   <button
@@ -272,25 +329,6 @@ export function SettingsModal({
                     className={`relative shrink-0 w-10 h-6 rounded-full transition cursor-pointer ${markdownAutoFormat ? 'bg-[#009467]' : 'bg-zinc-300 dark:bg-zinc-600'}`}
                   >
                     <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${markdownAutoFormat ? 'translate-x-4' : ''}`} />
-                  </button>
-                </div>
-
-                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = lang === 'en' ? 'zh' : 'en'
-                      setLangState(next)
-                      setLang(next)
-                    }}
-                    className="w-full min-h-[44px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 active:bg-zinc-100 dark:active:bg-zinc-800 transition cursor-pointer text-left text-xs"
-                    title={lang === 'en' ? 'Switch to Chinese' : '切换为英文'}
-                  >
-                    <Globe size={18} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
-                    <span className="font-medium text-zinc-800 dark:text-zinc-200">界面语言</span>
-                    <span translate="no" className="ml-auto text-zinc-500 dark:text-zinc-400 text-xs">
-                      {lang === 'en' ? 'English' : '简体中文'}
-                    </span>
                   </button>
                 </div>
               </div>
