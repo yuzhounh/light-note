@@ -100,7 +100,7 @@ export function SettingsModal({
   return (
     <div className="app-modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm select-none">
       <div 
-        className="app-dialog w-full max-w-xl max-h-[85vh] sm:h-[390px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
+        className="app-dialog w-full max-w-xl max-h-[85vh] sm:h-[480px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
         role="dialog"
         aria-modal="true"
         aria-label="设置"
@@ -210,60 +210,80 @@ export function SettingsModal({
             {/* TAB 1: General (常规) */}
             {activeTab === 'general' && (
               <div className="space-y-3.5 pr-8 sm:pr-9">
-                <h4 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                  常规
-                </h4>
+                <div>
+                  <h4 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                    常规
+                  </h4>
+                  <p className="text-zinc-500 text-[11px] mt-0.5">
+                    自定义外观主题、界面语言与快捷排版习惯。
+                  </p>
+                </div>
 
                 {/* 1. 外观主题 */}
-                <div>
-                  <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200 mb-1.5">外观主题</div>
-                  <div className="grid grid-cols-2 gap-2.5">
+                <div className="pt-0.5">
+                  <div>
+                    <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">外观主题</div>
+                    <p className="text-zinc-500 text-[11px] mt-0.5">选择浅色明亮或深色护眼外观。</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5 pt-1.5">
                     <button
                       type="button"
                       onClick={() => onChangeTheme('light')}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                         theme === 'light'
                           ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
                           : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Sun size={17} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                      <span className="font-medium text-xs truncate">浅色模式</span>
+                      <Sun size={18} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs truncate">浅色模式</div>
+                        <div className="text-[10px] text-zinc-400 truncate">标准明亮界面</div>
+                      </div>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => onChangeTheme('dark')}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                         theme === 'dark'
                           ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
                           : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Moon size={17} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                      <span className="font-medium text-xs truncate">深色模式</span>
+                      <Moon size={18} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs truncate">深色模式</div>
+                        <div className="text-[10px] text-zinc-400 truncate">暗色护眼界面</div>
+                      </div>
                     </button>
                   </div>
                 </div>
 
                 {/* 2. 界面语言 */}
                 <div className="pt-2.5 border-t border-zinc-100 dark:border-zinc-800">
-                  <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200 mb-1.5">界面语言</div>
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">界面语言</div>
+                    <p className="text-zinc-500 text-[11px] mt-0.5">选择软件界面的显示语言。</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5 pt-1.5">
                     <button
                       type="button"
                       onClick={() => {
                         setLangState('zh')
                         setLang('zh')
                       }}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                         lang === 'zh'
                           ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
                           : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Globe size={17} className={lang === 'zh' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                      <span className="font-medium text-xs truncate">简体中文</span>
+                      <Globe size={18} className={lang === 'zh' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs truncate">简体中文</div>
+                        <div className="text-[10px] text-zinc-400 truncate">中文界面</div>
+                      </div>
                     </button>
 
                     <button
@@ -272,14 +292,17 @@ export function SettingsModal({
                         setLangState('en')
                         setLang('en')
                       }}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                         lang === 'en'
                           ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
                           : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Globe size={17} className={lang === 'en' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                      <span className="font-medium text-xs truncate">English</span>
+                      <Globe size={18} className={lang === 'en' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs truncate">English</div>
+                        <div className="text-[10px] text-zinc-400 truncate">English interface</div>
+                      </div>
                     </button>
                   </div>
                 </div>
@@ -289,7 +312,7 @@ export function SettingsModal({
                   <div className="min-w-0">
                     <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">Markdown 自动排版</div>
                     <p className="text-zinc-500 text-[11px] leading-relaxed mt-0.5">
-                      输入符号时自动转换为标题、列表、引用与粗体。
+                      输入 1.、#、-、&gt;、**粗体**、$公式$ 时自动转换为列表、标题、引用、粗体与数学公式。
                     </p>
                   </div>
                   <button

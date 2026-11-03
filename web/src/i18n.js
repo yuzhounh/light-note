@@ -157,6 +157,9 @@ const DICT = {
   '关': 'Off',
 
   // General & Preferences
+  '自定义外观主题、界面语言与快捷排版习惯。': 'Customize appearance theme, interface language, and formatting habits.',
+  '输入 1.、#、-、>、**粗体**、$公式$ 时自动转换为列表、标题、引用、粗体与数学公式。': 'Typing 1., #, -, >, **bold**, $formula$ auto-converts to lists, headings, quotes, bold, and math formulas.',
+  '输入 1.、#、-、&gt;、**粗体**、$公式$ 时自动转换为列表、标题、引用、粗体与数学公式。': 'Typing 1., #, -, >, **bold**, $formula$ auto-converts to lists, headings, quotes, bold, and math formulas.',
   '输入符号时自动转换为标题、列表、引用与粗体。': 'Auto-format symbols into headings, lists, quotes, and bold.',
   '输入符号时自动转换为标题、列表、引用或粗体。': 'Auto-format symbols into headings, lists, quotes or bold.',
   '常规': 'General',
