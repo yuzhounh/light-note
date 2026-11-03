@@ -100,7 +100,7 @@ export function SettingsModal({
   return (
     <div className="app-modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm select-none">
       <div 
-        className="app-dialog w-full max-w-xl max-h-[85vh] sm:h-[460px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
+        className="app-dialog w-full max-w-xl max-h-[85vh] sm:h-[390px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-500 rounded-xl shadow-2xl dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-150"
         role="dialog"
         aria-modal="true"
         aria-label="设置"
@@ -188,21 +188,19 @@ export function SettingsModal({
         </div>
 
         {/* Right Column: Tab Content */}
-        <div className="flex-1 flex flex-col bg-white dark:bg-zinc-900 min-w-0 overflow-hidden">
-          {/* Header with Close X button (Desktop only, mobile has it in top bar) */}
-          <div className="hidden sm:flex items-center justify-end px-4 pt-3.5 pb-1">
-            <button
-              onClick={onClose}
-              aria-label="关闭设置"
-              className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-500 hover:text-emerald-600 hover:border-emerald-500 transition cursor-pointer shadow-xs"
-              title="关闭"
-            >
-              <X size={20} />
-            </button>
-          </div>
+        <div className="flex-1 flex flex-col bg-white dark:bg-zinc-900 min-w-0 overflow-hidden relative">
+          {/* Close button (Desktop floating in top-right corner, mobile in top bar) */}
+          <button
+            onClick={onClose}
+            aria-label="关闭设置"
+            className="hidden sm:flex absolute top-3.5 right-3.5 z-10 w-8 h-8 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:border-zinc-400 dark:hover:border-zinc-500 transition cursor-pointer shadow-xs"
+            title="关闭"
+          >
+            <X size={16} />
+          </button>
 
-          {/* Scrollable Tab Body */}
-          <div className="modal-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:pb-6 sm:pt-1 text-xs text-zinc-700 dark:text-zinc-300 space-y-4">
+          {/* Tab Body */}
+          <div className="modal-scroll flex-1 min-h-0 overflow-y-auto px-4 py-3.5 sm:px-6 sm:py-5 text-xs text-zinc-700 dark:text-zinc-300">
             {msg && (
               <div className="p-2.5 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-800 dark:text-zinc-200">
                 {msg}
@@ -211,81 +209,61 @@ export function SettingsModal({
 
             {/* TAB 1: General (常规) */}
             {activeTab === 'general' && (
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                    常规
-                  </h4>
-                  <p className="text-zinc-500 text-[11px] mt-0.5">
-                    自定义外观主题、界面语言与编辑偏好。
-                  </p>
-                </div>
+              <div className="space-y-3.5 pr-8 sm:pr-9">
+                <h4 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                  常规
+                </h4>
 
                 {/* 1. 外观主题 */}
-                <div className="pt-1">
-                  <div>
-                    <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">外观主题</div>
-                    <p className="text-zinc-500 text-[11px] mt-0.5">选择浅色明亮或深色护眼外观。</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pt-2">
+                <div>
+                  <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200 mb-1.5">外观主题</div>
+                  <div className="grid grid-cols-2 gap-2.5">
                     <button
                       type="button"
                       onClick={() => onChangeTheme('light')}
-                      className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                         theme === 'light'
                           ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
                           : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Sun size={18} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                      <div className="min-w-0">
-                        <div className="font-medium text-xs truncate">浅色模式</div>
-                        <div className="text-[10px] text-zinc-400 truncate">标准明亮界面</div>
-                      </div>
+                      <Sun size={17} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <span className="font-medium text-xs truncate">浅色模式</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => onChangeTheme('dark')}
-                      className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                         theme === 'dark'
                           ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
                           : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Moon size={18} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                      <div className="min-w-0">
-                        <div className="font-medium text-xs truncate">深色模式</div>
-                        <div className="text-[10px] text-zinc-400 truncate">暗色护眼界面</div>
-                      </div>
+                      <Moon size={17} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <span className="font-medium text-xs truncate">深色模式</span>
                     </button>
                   </div>
                 </div>
 
                 {/* 2. 界面语言 */}
-                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                  <div>
-                    <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">界面语言</div>
-                    <p className="text-zinc-500 text-[11px] mt-0.5">选择软件界面的显示语言。</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="pt-2.5 border-t border-zinc-100 dark:border-zinc-800">
+                  <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200 mb-1.5">界面语言</div>
+                  <div className="grid grid-cols-2 gap-2.5">
                     <button
                       type="button"
                       onClick={() => {
                         setLangState('zh')
                         setLang('zh')
                       }}
-                      className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                         lang === 'zh'
                           ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
                           : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Globe size={18} className={lang === 'zh' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                      <div className="min-w-0">
-                        <div className="font-medium text-xs truncate">简体中文</div>
-                        <div className="text-[10px] text-zinc-400 truncate">中文界面</div>
-                      </div>
+                      <Globe size={17} className={lang === 'zh' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <span className="font-medium text-xs truncate">简体中文</span>
                     </button>
 
                     <button
@@ -294,27 +272,24 @@ export function SettingsModal({
                         setLangState('en')
                         setLang('en')
                       }}
-                      className={`flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                         lang === 'en'
                           ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
                           : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Globe size={18} className={lang === 'en' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
-                      <div className="min-w-0">
-                        <div className="font-medium text-xs truncate">English</div>
-                        <div className="text-[10px] text-zinc-400 truncate">English interface</div>
-                      </div>
+                      <Globe size={17} className={lang === 'en' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <span className="font-medium text-xs truncate">English</span>
                     </button>
                   </div>
                 </div>
 
                 {/* 3. Markdown 自动排版 */}
-                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-4">
+                <div className="pt-2.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">Markdown 自动排版</div>
                     <p className="text-zinc-500 text-[11px] leading-relaxed mt-0.5">
-                      输入 1.、#、-、&gt;、**粗体**、$公式$ 等符号时自动转换为列表、标题、引用、粗体、公式。关闭后这些符号按原样输入，工具栏和快捷键仍可使用。
+                      输入符号时自动转换为标题、列表、引用与粗体。
                     </p>
                   </div>
                   <button
@@ -336,7 +311,7 @@ export function SettingsModal({
 
             {/* TAB 2: Data & Backup (数据与备份) */}
             {activeTab === 'data' && (
-              <div className="space-y-4">
+              <div className="space-y-3.5 pr-8 sm:pr-9">
                 <div>
                   <h4 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100">
                     数据与备份

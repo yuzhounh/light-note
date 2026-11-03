@@ -157,6 +157,8 @@ const DICT = {
   '关': 'Off',
 
   // General & Preferences
+  '输入符号时自动转换为标题、列表、引用与粗体。': 'Auto-format symbols into headings, lists, quotes, and bold.',
+  '输入符号时自动转换为标题、列表、引用或粗体。': 'Auto-format symbols into headings, lists, quotes or bold.',
   '常规': 'General',
   '常规设置': 'General settings',
   '自定义外观主题、界面语言与编辑偏好。': 'Customize appearance theme, interface language, and editing preferences.',
