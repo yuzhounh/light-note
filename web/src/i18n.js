@@ -235,6 +235,18 @@ function applyAll() {
   walk(document.body, getLang() === 'en')
 }
 
+
+// Cross-tab language synchronization
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY && (e.newValue === 'zh' || e.newValue === 'en')) {
+      if (typeof document !== 'undefined') document.documentElement.lang = e.newValue === 'en' ? 'en' : 'zh-CN'
+      applyAll()
+      window.dispatchEvent(new CustomEvent('lightnote:lang-changed', { detail: e.newValue }))
+    }
+  })
+}
+
 export function setLang(lang) {
   try {
     localStorage.setItem(STORAGE_KEY, lang)
