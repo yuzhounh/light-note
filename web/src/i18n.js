@@ -179,14 +179,18 @@ function processText(node, en) {
   if (parent) {
     const tag = parent.nodeName
     if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return
+    if (parent.closest && parent.closest('[data-no-i18n], .notranslate, [translate="no"]')) return
   }
   if (origText.has(node)) {
     const original = origText.get(node)
     if (en) {
       const key = original.trim()
-      if (Object.prototype.hasOwnProperty.call(DICT, key)) node.nodeValue = pad(original, DICT[key])
+      if (Object.prototype.hasOwnProperty.call(DICT, key)) {
+        const targetVal = pad(original, DICT[key])
+        if (node.nodeValue !== targetVal) node.nodeValue = targetVal
+      }
     } else {
-      node.nodeValue = original
+      if (node.nodeValue !== original) node.nodeValue = original
       origText.delete(node)
     }
     return
@@ -196,11 +200,13 @@ function processText(node, en) {
   const key = current ? current.trim() : ''
   if (!key || !Object.prototype.hasOwnProperty.call(DICT, key)) return
   origText.set(node, current)
-  node.nodeValue = pad(current, DICT[key])
+  const targetVal = pad(current, DICT[key])
+  if (node.nodeValue !== targetVal) node.nodeValue = targetVal
 }
 
 function processAttr(el, en) {
-  ['placeholder', 'title', 'aria-label', 'alt'].forEach((attr) => {
+  if (el.closest && el.closest('[data-no-i18n], .notranslate, [translate="no"]')) return
+  ;['placeholder', 'title', 'aria-label', 'alt'].forEach((attr) => {
     if (!el.hasAttribute(attr)) return
     let map = origAttr.get(el)
     if (!map) {
@@ -210,8 +216,10 @@ function processAttr(el, en) {
     if (!map.has(attr)) map.set(attr, el.getAttribute(attr) || '')
     const original = map.get(attr) || ''
     const key = original.trim()
-    if (en && Object.prototype.hasOwnProperty.call(DICT, key)) el.setAttribute(attr, DICT[key])
-    else el.setAttribute(attr, original)
+    const targetVal = (en && Object.prototype.hasOwnProperty.call(DICT, key)) ? DICT[key] : original
+    if (el.getAttribute(attr) !== targetVal) {
+      el.setAttribute(attr, targetVal)
+    }
   })
 }
 
@@ -268,10 +276,9 @@ function start() {
     const en = getLang() === 'en'
     for (const mutation of mutations) {
       if (mutation.type === 'childList') mutation.addedNodes.forEach((node) => walk(node, en))
-      else if (mutation.type === 'characterData') processText(mutation.target, en)
     }
   })
-  observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+  observer.observe(document.body, { childList: true, subtree: true })
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start)

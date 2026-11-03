@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { X, Download, Upload, Trash2, Sun, Moon, Database } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X, Download, Upload, Trash2, Sun, Moon, Database, Globe } from 'lucide-react'
 import { db } from '../../core/db/database'
 import { NotesRepository } from '../../core/db/notesRepository'
 import { APP_DISPLAY_VERSION } from '../../core/version'
@@ -26,6 +26,15 @@ export function SettingsModal({
   const [isExporting, setIsExporting] = useState(false)
   const [msg, setMsg] = useState('')
   const [lang, setLangState] = useState(getLang())
+
+  useEffect(() => {
+    const onLangChanged = (e) => {
+      if (e?.detail) setLangState(e.detail)
+    }
+    window.addEventListener('lightnote:lang-changed', onLangChanged)
+    return () => window.removeEventListener('lightnote:lang-changed', onLangChanged)
+  }, [])
+
   useBackDismiss(isOpen, onClose, 55)
 
   if (!isOpen) return null
@@ -266,20 +275,23 @@ export function SettingsModal({
                   </button>
                 </div>
 
-                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-4">
-                  <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">语言 / Language</div>
-                  <select
-                    value={lang}
-                    onChange={(e) => {
-                      const v = e.target.value === 'en' ? 'en' : 'zh'
-                      setLangState(v)
-                      setLang(v)
+                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = lang === 'en' ? 'zh' : 'en'
+                      setLangState(next)
+                      setLang(next)
                     }}
-                    className="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-2 py-1 text-xs"
+                    className="w-full min-h-[44px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 active:bg-zinc-100 dark:active:bg-zinc-800 transition cursor-pointer text-left text-xs"
+                    title={lang === 'en' ? 'Switch to Chinese' : '切换为英文'}
                   >
-                    <option value="zh">简体中文</option>
-                    <option value="en">English</option>
-                  </select>
+                    <Globe size={18} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
+                    <span className="font-medium text-zinc-800 dark:text-zinc-200">界面语言</span>
+                    <span translate="no" className="ml-auto text-zinc-500 dark:text-zinc-400 text-xs">
+                      {lang === 'en' ? 'English' : '简体中文'}
+                    </span>
+                  </button>
                 </div>
               </div>
             )}
