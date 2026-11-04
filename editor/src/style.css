@@ -142,6 +142,8 @@ html.light, [data-theme="light"] {
 }
 
 * { box-sizing: border-box; }
+.tiptap a[href], .tiptap a[href] * { cursor: text; }
+.tiptap.ctrl-link-open a[href], .tiptap.ctrl-link-open a[href] * { cursor: pointer; }
 html, body { height: 100%; margin: 0; }
 html { overflow: hidden; }
 body {

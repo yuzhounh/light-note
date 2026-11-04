@@ -50,6 +50,113 @@ async function openEditor(t) {
   return { window, messages, send, load }
 }
 
+function requestContext(app, editor, selector, position) {
+  editor.view.posAtCoords = () => ({ pos: position, inside: -1 })
+  const target = editor.view.dom.querySelector(selector) || editor.view.dom
+  target.dispatchEvent(new app.window.MouseEvent('mousedown', { button: 2, bubbles: true, clientX: 10, clientY: 10 }))
+  target.dispatchEvent(new app.window.MouseEvent('contextmenu', { button: 2, bubbles: true, clientX: 10, clientY: 10 }))
+  return app.window.lightNoteEditor.contextMenu.read()
+}
+
+test('native context preserves a selected phrase and moves the caret for a click outside it', async t => {
+  const app = await openEditor(t)
+  const editor = await app.load('<p>abcdef</p><p>second</p>')
+  editor.commands.setTextSelection({ from: 2, to: 5 })
+  let context = requestContext(app, editor, 'p', 3)
+  assert.deepEqual({ from: editor.state.selection.from, to: editor.state.selection.to }, { from: 2, to: 5 })
+  assert.equal(context.items.find(item => item.id === 'copy').enabled, true)
+  context = requestContext(app, editor, 'p', 6)
+  assert.equal(editor.state.selection.empty, true)
+  assert.equal(editor.state.selection.from, 6)
+  assert.equal(context.items.find(item => item.id === 'copy').enabled, false)
+})
+
+test('link menu changes only the clicked link, keeps its label, and supports undo', async t => {
+  const app = await openEditor(t)
+  const editor = await app.load('<p>before <a href="https://example.com">label</a> after</p>')
+  const context = requestContext(app, editor, 'a', 9)
+  const bridge = app.window.lightNoteEditor.contextMenu
+  assert.equal(context.link, 'https://example.com')
+  assert.equal(bridge.run(context.id, 'link.edit', 'https://example.org/new'), true)
+  assert.equal(editor.getText(), 'before label after')
+  assert.match(editor.getHTML(), /href="https:\/\/example.org\/new"/)
+  editor.commands.undo()
+  assert.match(editor.getHTML(), /href="https:\/\/example.com"/)
+  const next = requestContext(app, editor, 'a', 9)
+  assert.equal(bridge.run(next.id, 'link.remove'), true)
+  assert.equal(editor.view.dom.querySelector('a'), null)
+  assert.equal(editor.getText(), 'before label after')
+})
+
+test('context plain paste stays literal, is undoable, and rejects a stale note or read-only edits', async t => {
+  const app = await openEditor(t)
+  const editor = await app.load('<p>hello</p>')
+  const context = requestContext(app, editor, 'p', 6)
+  const bridge = app.window.lightNoteEditor.contextMenu
+  assert.equal(bridge.run(context.id, 'paste.plain', '**literal** $x^2$'), true)
+  assert.equal(editor.getText(), 'hello**literal** $x^2$')
+  assert.equal(editor.getHTML().includes('<strong>'), false)
+  editor.commands.undo()
+  assert.equal(editor.getText(), 'hello')
+  await app.load('<p>other note</p>', 'other')
+  assert.equal(bridge.run(context.id, 'paste.plain', 'wrong note'), false)
+  await app.load('<p>read only</p>', 'readonly', true)
+  const readOnly = requestContext(app, editor, 'p', 2)
+  assert.equal(readOnly.items.find(item => item.id === 'paste').enabled, false)
+  assert.equal(bridge.run(readOnly.id, 'paste.plain', 'forbidden'), false)
+  assert.equal(editor.getText(), 'read only')
+})
+
+test('image, formula and table context commands target their objects and remain undoable', async t => {
+  const app = await openEditor(t)
+  const editor = await app.load('<img src="https://lightnote.attachments/test.png" data-image-base-width="800"><p>after</p>')
+  let context = requestContext(app, editor, '.resizable-image-wrapper', 0)
+  const bridge = app.window.lightNoteEditor.contextMenu
+  assert.equal(context.imageSrc, 'https://lightnote.attachments/test.png')
+  assert.equal(bridge.run(context.id, 'image.size.50%'), true)
+  assert.equal(editor.getJSON().content[0].attrs.width, '540px')
+  editor.commands.undo()
+  context = requestContext(app, editor, '.resizable-image-wrapper', 0)
+  assert.equal(bridge.run(context.id, 'object.delete'), true)
+  assert.equal(editor.getText(), 'after')
+  editor.commands.undo()
+  await app.load('<p><span data-type="inline-math" data-latex="x^2"></span></p>', 'math-context')
+  context = requestContext(app, editor, '[data-type="inline-math"]', 1)
+  assert.equal(context.latex, 'x^2')
+  assert.equal(context.items.some(item => item.id === 'math.edit'), true)
+  await app.load('<table><tr><td><p>A</p></td><td><p>B</p></td></tr></table>', 'table-context')
+  context = requestContext(app, editor, 'td p', 4)
+  assert.equal(context.items.some(item => item.label === '表格操作'), true)
+  assert.equal(bridge.run(context.id, 'addRowAfter'), true)
+  assert.equal(editor.getJSON().content[0].content.length, 2)
+  editor.commands.undo()
+  assert.equal(editor.getJSON().content[0].content.length, 1)
+})
+
+test('Ctrl plus left click opens externally while ordinary clicks edit and key release clears the cursor', async t => {
+  const app = await openEditor(t)
+  const editor = await app.load('<p><a href="https://example.com">link</a></p>')
+  const opened = []
+  app.window.open = url => opened.push(url)
+  const anchor = editor.view.dom.querySelector('a')
+  const click = (button, ctrlKey) => {
+    const event = new app.window.MouseEvent('click', { button, ctrlKey, cancelable: true })
+    Object.defineProperty(event, 'target', { value: anchor })
+    return editor.options.editorProps.handleClick(editor.view, 1, event)
+  }
+  assert.equal(click(0, false), false)
+  assert.equal(click(0, true), true)
+  assert.equal(click(2, true), false)
+  assert.deepEqual(opened, ['https://example.com/'])
+  app.window.dispatchEvent(new app.window.KeyboardEvent('keydown', { key: 'Control', ctrlKey: true }))
+  assert.equal(editor.view.dom.classList.contains('ctrl-link-open'), true)
+  app.window.dispatchEvent(new app.window.KeyboardEvent('keyup', { key: 'Control', ctrlKey: false }))
+  assert.equal(editor.view.dom.classList.contains('ctrl-link-open'), false)
+  app.window.dispatchEvent(new app.window.KeyboardEvent('keydown', { key: 'Control', ctrlKey: true }))
+  app.window.dispatchEvent(new app.window.Event('blur'))
+  assert.equal(editor.view.dom.classList.contains('ctrl-link-open'), false)
+})
+
 test('a note containing images permits Enter, text editing, undo and redo after reload', async t => {
   const app = await openEditor(t)
   const editor = await app.load('<p>2026-10-11 22:40:12</p><img src="https://lightnote.attachments/test.png">')

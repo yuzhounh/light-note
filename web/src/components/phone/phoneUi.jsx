@@ -7,13 +7,14 @@ import { useBackDismiss } from '../../hooks/useBackDismiss'
 export const ICON_STROKE = 1.8
 
 // 48dp 图标按钮，内边距 12dp
-export function PhoneIconButton({ label, onClick, children, className = '', active = false }) {
+export function PhoneIconButton({ label, onClick, children, className = '', active = false, translateLabel = true }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
       title={label}
+      translate={translateLabel ? undefined : 'no'}
       className={`phone-pressable w-12 h-12 min-w-12 min-h-12 shrink-0 rounded-full p-3 flex items-center justify-center cursor-pointer transition ${active ? 'text-brand' : 'text-ink'} ${className}`}
     >
       {children}

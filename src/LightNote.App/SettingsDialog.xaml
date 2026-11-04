@@ -245,7 +245,7 @@
                             <TextBlock Text="自定义应用外观色彩与主题模式。"
                                        Style="{StaticResource PageDescriptionStyle}" />
 
-                            <TextBlock Text="外观模式" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="外观主题" Style="{StaticResource SectionTitleStyle}" />
                             <Border Style="{StaticResource SettingsCardStyle}">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -253,7 +253,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="应用主题" Style="{StaticResource CardTitleStyle}" />
+                                        <TextBlock Text="外观主题" Style="{StaticResource CardTitleStyle}" />
                                         <TextBlock Margin="0,4,12,0" Text="选择深浅色外观，或根据 Windows 系统外观设置自动切换。"
                                                    Style="{StaticResource CardDescriptionStyle}" />
                                     </StackPanel>
@@ -283,22 +283,9 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="链接打开方式" Style="{StaticResource CardTitleStyle}" />
-                                        <TextBlock Margin="0,4,12,0" Text="在笔记中点击网页链接时，选用内置浏览器或使用外部浏览器打开。"
+                                        <TextBlock Margin="0,4,12,0" Text="普通单击可编辑链接；按住 Ctrl 时显示手形，Ctrl + 鼠标左键使用系统默认浏览器打开。"
                                                    Style="{StaticResource CardDescriptionStyle}" />
                                     </StackPanel>
-                                    <Border Grid.Column="1" Background="{DynamicResource SecondaryPanelBrush}"
-                                            CornerRadius="7" Padding="3" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal">
-                                            <RadioButton x:Name="LinkInternalRadio" Content="内置浏览器"
-                                                         GroupName="LinkOpenModeGroup"
-                                                         Style="{StaticResource SegmentedRadioButtonStyle}"
-                                                         Checked="OnLinkModeRadioChecked" />
-                                            <RadioButton x:Name="LinkExternalRadio" Content="外部浏览器"
-                                                         GroupName="LinkOpenModeGroup"
-                                                         Style="{StaticResource SegmentedRadioButtonStyle}"
-                                                         Checked="OnLinkModeRadioChecked" />
-                                        </StackPanel>
-                                    </Border>
                                 </Grid>
                             </Border>
 

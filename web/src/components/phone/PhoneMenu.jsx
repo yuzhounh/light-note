@@ -36,7 +36,7 @@ function Row({ icon, label, sub, value, count, selected, onClick, trailing, dang
           <span className="block text-[15px] truncate">{label}</span>
           {sub && <span className="block text-[12px] text-muted truncate">{sub}</span>}
         </span>
-        {value && <span className="text-[12px] text-muted shrink-0 max-w-[40%] truncate">{value}</span>}
+        {value && <span data-no-i18n={label === '界面语言' ? 'true' : undefined} className="text-[12px] text-muted shrink-0 max-w-[40%] truncate">{value}</span>}
         {count > 0 && <span className="text-[12px] text-muted shrink-0">{count}</span>}
       </button>
       {trailing}
@@ -185,7 +185,8 @@ export function PhoneMenu({
               selected={currentView === 'all' && currentNotebookId === notebook.id}
               onClick={() => { onSelectNotebook(notebook.id); onClose() }}
               trailing={(
-                <PhoneIconButton label={`管理笔记本“${notebook.name}”`} className="text-muted"
+                <PhoneIconButton label={lang === 'en' ? `Manage notebook “${notebook.name}”` : `管理笔记本“${notebook.name}”`}
+                  translateLabel={false} className="text-muted"
                   onClick={event => notebookMenu(event, notebook, index)}>
                   <Settings size={22} strokeWidth={ICON_STROKE} />
                 </PhoneIconButton>
@@ -219,8 +220,8 @@ export function PhoneMenu({
           value={`${sort.by === 'updated' ? '修改时间' : '创建时间'} · ${sort.descending ? '逆序' : '顺序'}`}
           onClick={sortMenu} />
         <Row icon={Rows3} label="卡片密度" value={DENSITY_LABEL[density] || '舒适'} onClick={densityMenu} />
-        <Row icon={isDark ? Moon : Sun} label="外观" value={isDark ? '深色' : '浅色'} onClick={onToggleTheme} />
-        <Row icon={Languages} label="界面语言" value={lang === 'zh' ? '简体中文' : 'English'} onClick={toggleLang} />
+        <Row icon={isDark ? Sun : Moon} label="外观主题" value={isDark ? '浅色' : '深色'} onClick={onToggleTheme} />
+        <Row icon={Languages} label="界面语言" value={lang === 'zh' ? 'English' : '简体中文'} onClick={toggleLang} />
         <Row icon={Type} label="Markdown 自动排版"
           value={markdownAuto ? '开' : '关'}
           onClick={toggleMarkdownAuto} />

@@ -123,7 +123,6 @@ public sealed class SidebarContextMenuTests
                     {
                         NotebookKind.Group => "删除笔记本组…",
                         NotebookKind.User => "删除笔记本…",
-                        NotebookKind.GroupRoot => "新建笔记本组",
                         NotebookKind.All => "新建笔记",
                         NotebookKind.Unfiled => "新建未归类笔记",
                         _ => "隐藏此入口",

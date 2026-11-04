@@ -37,6 +37,8 @@ public sealed partial class MainViewModel(
     private bool _showRecentNavigation;
     private bool _showTrashNavigation;
     private bool _showUnfiledNavigation;
+    private bool _tagSectionExpanded;
+    private readonly HashSet<string> _expandedNotebookGroupIds = [];
     private int _reloadGeneration;
     private NotebookListItem? _loadedNotesNotebook;
     private int _tagLoadGeneration;
@@ -47,6 +49,10 @@ public sealed partial class MainViewModel(
 
     public event EventHandler? NewNotebookRequested;
     public event EventHandler<string>? NewNoteCreated;
+    public event EventHandler? SidebarExpansionChanged;
+
+    public bool TagSectionExpanded => _tagSectionExpanded;
+    public string[] ExpandedNotebookGroupIds => _expandedNotebookGroupIds.Order().ToArray();
 
     /// <summary>某篇笔记的修改已写入本地数据库（用于触发保存后的快速同步）。</summary>
     public event EventHandler? NoteSaved;
@@ -128,6 +134,56 @@ public sealed partial class MainViewModel(
         _showRecentNavigation = showRecent;
         _showTrashNavigation = showTrash;
         _showUnfiledNavigation = showUnfiled;
+    }
+
+    public void ConfigureSidebarExpansion(bool tagsExpanded, IEnumerable<string>? expandedGroups)
+    {
+        _tagSectionExpanded = tagsExpanded;
+        _expandedNotebookGroupIds.Clear();
+        if (expandedGroups is not null)
+        {
+            _expandedNotebookGroupIds.UnionWith(expandedGroups);
+        }
+        UpdateSidebarVisibility();
+    }
+
+    public void ToggleSidebarExpansion(NotebookListItem item)
+    {
+        switch (item.Kind)
+        {
+            case NotebookKind.TagRoot:
+                _tagSectionExpanded = !_tagSectionExpanded;
+                break;
+            case NotebookKind.Group when item.Id is not null:
+                if (!_expandedNotebookGroupIds.Remove(item.Id))
+                {
+                    _expandedNotebookGroupIds.Add(item.Id);
+                }
+                break;
+            default:
+                return;
+        }
+        UpdateSidebarVisibility();
+        SidebarExpansionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void UpdateSidebarVisibility()
+    {
+        foreach (var item in Notebooks)
+        {
+            item.IsExpanded = item.Kind switch
+            {
+                NotebookKind.TagRoot => _tagSectionExpanded,
+                NotebookKind.Group => item.Id is not null && _expandedNotebookGroupIds.Contains(item.Id),
+                _ => false,
+            };
+            item.IsVisible = item.Kind switch
+            {
+                NotebookKind.User => item.GroupId is null || _expandedNotebookGroupIds.Contains(item.GroupId),
+                NotebookKind.Tag => _tagSectionExpanded,
+                _ => true,
+            };
+        }
     }
 
     public async Task UpdateNavigationAsync(
@@ -1103,7 +1159,6 @@ public sealed partial class MainViewModel(
         {
             Notebooks.Add(new NotebookListItem(null, "未归类", NotebookKind.Unfiled));
         }
-        Notebooks.Add(new NotebookListItem(null, "笔记本组", NotebookKind.GroupRoot));
         foreach (var group in groups)
         {
             Notebooks.Add(new NotebookListItem(
@@ -1130,6 +1185,10 @@ public sealed partial class MainViewModel(
                 NotebookKind.User,
                 SortOrder: notebook.SortOrder) { NoteCount = notebook.NoteCount });
         }
+        if (tags.Count > 0)
+        {
+            Notebooks.Add(new NotebookListItem(null, "标签", NotebookKind.TagRoot));
+        }
         foreach (var tag in tags)
         {
             Notebooks.Add(new NotebookListItem(tag.Id, tag.Name, NotebookKind.Tag));
@@ -1138,6 +1197,7 @@ public sealed partial class MainViewModel(
         {
             Notebooks.Add(new NotebookListItem(null, "回收站", NotebookKind.Trash));
         }
+        UpdateSidebarVisibility();
 
         SelectedNotebook = Notebooks.FirstOrDefault(item =>
             item.Id == currentId && item.Kind is NotebookKind.User or NotebookKind.Tag or NotebookKind.Group)
@@ -1323,7 +1383,7 @@ public sealed partial class MainViewModel(
                     cancellationToken),
             _ => await noteRepository.ListAsync(
                 notebook.Kind == NotebookKind.User ? notebook.Id : null,
-                notebook.Kind is NotebookKind.All or NotebookKind.GroupRoot or NotebookKind.Trash,
+                notebook.Kind is NotebookKind.All or NotebookKind.TagRoot or NotebookKind.Trash,
                 notebook.Kind == NotebookKind.Trash,
                 limit,
                 offset,
@@ -1338,7 +1398,7 @@ public sealed partial class MainViewModel(
         return resolvedNotes.Select(note =>
         {
             var nbName = GetNotebookName(note.NotebookId);
-            return new NoteListItem(note, notebookName: nbName, showNotebookBadge: isMultiNotebook, attachmentsDirectory: _paths?.AttachmentsDirectory, thumbnailCacheDirectory: _paths?.ThumbnailCacheDirectory);
+            return new NoteListItem(note, notebookName: nbName, showNotebookBadge: notebook.Kind == NotebookKind.Tag || isMultiNotebook, attachmentsDirectory: _paths?.AttachmentsDirectory, thumbnailCacheDirectory: _paths?.ThumbnailCacheDirectory);
         }).ToArray();
     }
 
@@ -1348,7 +1408,7 @@ public sealed partial class MainViewModel(
     {
         return notebook.Kind switch
         {
-            NotebookKind.All or NotebookKind.GroupRoot =>
+            NotebookKind.All or NotebookKind.TagRoot =>
                 await noteRepository.CountAsync(
                     null, allNotebooks: true, deletedOnly: false, cancellationToken: cancellationToken),
             NotebookKind.Unfiled =>
@@ -2054,6 +2114,37 @@ public sealed record NotebookListItem(
     int SortOrder = 0) : INotifyPropertyChanged
 {
     private int _noteCount;
+    private bool _isVisible = true;
+    private bool _isExpanded;
+
+    public bool IsVisible
+    {
+        get => _isVisible;
+        set
+        {
+            if (_isVisible == value) return;
+            _isVisible = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsVisible)));
+        }
+    }
+
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value) return;
+            _isExpanded = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ExpansionIconData)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ExpansionAction)));
+        }
+    }
+
+    public bool CanExpand => Kind is NotebookKind.Group or NotebookKind.TagRoot;
+    public bool ShowNavigationIcon => !CanExpand;
+    public string ExpansionIconData => IsExpanded ? "M6,8 L10,12 L14,8" : "M8,6 L12,10 L8,14";
+    public string ExpansionAction => $"{(IsExpanded ? "折叠" : "展开")}{Name}";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -2080,9 +2171,8 @@ public sealed record NotebookListItem(
 
     public double Indent => Kind switch
     {
-        NotebookKind.Group => 14,
-        NotebookKind.User when GroupId is not null => 32,
-        NotebookKind.User => 14,
+        NotebookKind.User when GroupId is not null => 18,
+        NotebookKind.Tag => 14,
         _ => 0,
     };
 
@@ -2092,7 +2182,6 @@ public sealed record NotebookListItem(
     {
         NotebookKind.Recent => "M10,2 A8,8 0 1 0 18,10 M10,5 V10 L14,12",
         NotebookKind.All => "M4,2 H16 V18 H4 Z M7,6 H13 M7,10 H13 M7,14 H13",
-        NotebookKind.GroupRoot => "M2,5 H8 L10,7 H18 V17 H2 Z M4,3 H9 L11,5",
         NotebookKind.Group => "M2,6 H8 L10,8 H18 V17 H2 Z",
         NotebookKind.Unfiled => "M4,3 H16 V17 H4 Z",
         NotebookKind.User => "M4,3 H14 A2,2 0 0 1 16,5 V17 H6 A2,2 0 0 1 4,15 Z M7,3 V17",
@@ -2106,10 +2195,10 @@ public enum NotebookKind
 {
     Recent,
     All,
-    GroupRoot,
     Group,
     Unfiled,
     User,
     Tag,
     Trash,
+    TagRoot,
 }

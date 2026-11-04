@@ -297,11 +297,31 @@ export function Sidebar({
             <button
               type="button"
               onClick={onToggleTheme}
-              className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-zinc-200 dark:border-zinc-700/80 bg-zinc-50 dark:bg-zinc-900 hover:border-emerald-500 text-zinc-700 dark:text-zinc-200 flex items-center justify-center cursor-pointer transition shadow-xs"
+              className="px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700/80 bg-zinc-50 dark:bg-zinc-900 hover:border-emerald-500 text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 cursor-pointer transition shadow-xs text-xs font-medium"
               title={theme === 'dark' ? '切换为浅色主题' : '切换为深色主题'}
               aria-label="切换外观主题"
             >
-              {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{theme === 'dark' ? '浅色' : '深色'}</span>
+            </button>
+          </div>
+
+          {/* Row 2: 界面语言 */}
+          <div className="flex items-center justify-between min-h-[48px] px-1 border-t border-zinc-100 dark:border-zinc-800/80 pt-1">
+            <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">界面语言</span>
+            <button
+              type="button"
+              onClick={() => {
+                const next = currentLang === 'zh' ? 'en' : 'zh'
+                setLang(next)
+                setCurrentLang(next)
+              }}
+              className="px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700/80 bg-zinc-50 dark:bg-zinc-900 hover:border-emerald-500 text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 cursor-pointer transition shadow-xs text-xs font-medium"
+              title={currentLang === 'zh' ? 'Switch to English (L)' : '切换为简体中文 (L)'}
+              aria-label="界面语言"
+            >
+              <Languages size={16} />
+              <span data-no-i18n="true">{currentLang === 'zh' ? 'English' : '简体中文'}</span>
             </button>
           </div>
 
@@ -456,8 +476,11 @@ export function Sidebar({
               >
                 <div className="flex items-center gap-2">
                   <Languages size={14} className="text-zinc-500 dark:text-zinc-400" />
-                  <span>{currentLang === 'zh' ? 'English' : '简体中文'}</span>
+                  <span>界面语言</span>
                 </div>
+                <span data-no-i18n="true" className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {currentLang === 'zh' ? 'English' : '简体中文'}
+                </span>
                 <span className="text-[10px] text-zinc-400 px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono">
                   L
                 </span>

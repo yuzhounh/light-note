@@ -33,6 +33,19 @@ internal static class NativeUiTestRunner
                 case "caret-scrolling":
                     new CaretScrollingTests().VerifyCaretScrolling();
                     break;
+                case "editor-menu":
+                    var dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+                    SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext(dispatcher));
+                    Exception? menuFailure = null;
+                    dispatcher.BeginInvoke(new Action(async () =>
+                    {
+                        try { await new EditorContextMenuTests().VerifyAsync(); }
+                        catch (Exception exception) { menuFailure = exception; }
+                        finally { dispatcher.BeginInvokeShutdown(System.Windows.Threading.DispatcherPriority.Background); }
+                    }));
+                    System.Windows.Threading.Dispatcher.Run();
+                    if (menuFailure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(menuFailure).Throw();
+                    break;
                 case "tray-exit":
                     new TrayExitTests().ExitingTrayInstanceClosesWithoutSaveFailure();
                     break;

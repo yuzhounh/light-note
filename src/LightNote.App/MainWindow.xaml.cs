@@ -116,6 +116,9 @@ public partial class MainWindow : Window
             _settings.ShowTrashNavigation,
             _settings.ShowUnfiledNavigation);
         _viewModel.ConfigureNoteSort(_settings.NoteSortByUpdated, _settings.NoteSortDescending);
+        _viewModel.ConfigureSidebarExpansion(
+            _settings.TagSectionExpanded, _settings.ExpandedNotebookGroupIds);
+        _viewModel.SidebarExpansionChanged += OnSidebarExpansionChanged;
         ApplyNoteListDensity(_settings.NoteListDensity);
         ApplyWindowSettings();
         if (_syncService.CurrentAccount is { } cachedAccount)
@@ -249,6 +252,7 @@ public partial class MainWindow : Window
         EditorWebView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
         EditorWebView.CoreWebView2.NewWindowRequested += OnNewWindowRequested;
         EditorWebView.CoreWebView2.NavigationStarting += OnNavigationStarting;
+        EditorContextMenu.Attach(EditorWebView, this, _paths, _logger, OpenUriInExternalBrowser);
         EditorWebView.CoreWebView2.NavigationCompleted += (_, args) =>
         {
             if (args.IsSuccess)
@@ -326,22 +330,31 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>编辑器刚发生一次外部粘贴：读取剪贴板来源并回复给编辑器。</summary>
-    private void HandleClipboardSourceRequest(JsonElement message)
+    /// <summary>编辑器刚发生一次外部粘贴：后台读取剪贴板来源并回复给编辑器，不阻塞 UI。</summary>
+    private async void HandleClipboardSourceRequest(JsonElement message)
     {
-        if (!_settings.RecordPasteSource ||
-            !message.TryGetProperty("payload", out var payload) ||
-            !payload.TryGetProperty("requestId", out var requestId))
+        try
         {
-            return;
-        }
+            if (!_settings.RecordPasteSource ||
+                !message.TryGetProperty("payload", out var payload) ||
+                !payload.TryGetProperty("requestId", out var requestId))
+            {
+                return;
+            }
 
-        var source = ClipboardSourceReader.TryRead();
-        PostEditorMessage(new
+            var requestIdText = requestId.GetString();
+            // 截图工具等会对剪贴板做延迟渲染，UI 线程直接读会被卡到对方响应为止。
+            var source = await ClipboardSourceReader.TryReadInBackgroundAsync(TimeSpan.FromSeconds(2));
+            PostEditorMessage(new
+            {
+                type = "clipboard.source",
+                payload = new { requestId = requestIdText, label = source?.Label, url = source?.Url },
+            });
+        }
+        catch (Exception exception)
         {
-            type = "clipboard.source",
-            payload = new { requestId = requestId.GetString(), label = source?.Label, url = source?.Url },
-        });
+            _logger.Error("Failed to read the clipboard source.", exception);
+        }
     }
 
     private void SendSelectedNote()
@@ -585,15 +598,8 @@ public partial class MainWindow : Window
 
     private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
-        if (string.Equals(_settings.LinkOpenMode, "external", StringComparison.OrdinalIgnoreCase))
-        {
-            e.Handled = true;
-            OpenUriInExternalBrowser(e.Uri);
-        }
-        else
-        {
-            e.Handled = false;
-        }
+        e.Handled = true;
+        OpenUriInExternalBrowser(e.Uri);
     }
 
     private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
@@ -607,19 +613,17 @@ public partial class MainWindow : Window
         }
 
         e.Cancel = true;
-        if (string.Equals(_settings.LinkOpenMode, "external", StringComparison.OrdinalIgnoreCase))
-        {
-            OpenUriInExternalBrowser(e.Uri);
-        }
-        else
-        {
-            _ = EditorWebView.CoreWebView2?.ExecuteScriptAsync(
-                $"window.open({JsonSerializer.Serialize(e.Uri)}, '_blank')");
-        }
+        OpenUriInExternalBrowser(e.Uri);
     }
 
     private void OpenUriInExternalBrowser(string uri)
     {
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out var target) ||
+            target.Scheme is not ("http" or "https" or "mailto"))
+        {
+            return;
+        }
+
         try
         {
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -1102,7 +1106,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _logger.Error("Failed to save the color mode.", exception);
-            MessageDialog.Show(this, $"颜色模式未能保存：{exception.Message}", "LightNote",
+            MessageDialog.Show(this, $"外观主题未能保存：{exception.Message}", "LightNote",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1513,8 +1517,41 @@ public partial class MainWindow : Window
 
     private void OnNotebookPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        if (sender is ListBoxItem { DataContext: NotebookListItem { Kind: NotebookKind.TagRoot } header })
+        {
+            _viewModel.ToggleSidebarExpansion(header);
+            e.Handled = true;
+            return;
+        }
         _notebookDragStartPoint = e.GetPosition(this);
         _isNotebookDragging = false;
+    }
+
+    private void OnSidebarExpansionClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: NotebookListItem item })
+        {
+            _viewModel.ToggleSidebarExpansion(item);
+            e.Handled = true;
+        }
+    }
+
+    private void OnSidebarExpansionChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            _settings = _settings with
+            {
+                TagSectionExpanded = _viewModel.TagSectionExpanded,
+                ExpandedNotebookGroupIds = _viewModel.ExpandedNotebookGroupIds,
+            };
+            _settingsService.Save(_settings);
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to save sidebar expansion state.", exception);
+            _viewModel.EditorStatus = "折叠状态未能保存，下次启动可能恢复默认状态";
+        }
     }
 
     private void OnNotebookPreviewMouseMove(object sender, MouseEventArgs e)
@@ -1611,8 +1648,8 @@ public partial class MainWindow : Window
                 return;
             }
 
-            // Target is GroupRoot or All: remove from group
-            if (target.Kind is NotebookKind.GroupRoot or NotebookKind.All)
+            // Target is All: remove from group
+            if (target.Kind == NotebookKind.All)
             {
                 if (sourceItem?.GroupId != null)
                 {
@@ -1717,8 +1754,8 @@ public partial class MainWindow : Window
                     return;
                 }
 
-                // B. Dropped onto GroupRoot or All -> unassign group
-                if (target.Kind is NotebookKind.GroupRoot or NotebookKind.All)
+                // B. Dropped onto All -> unassign group
+                if (target.Kind == NotebookKind.All)
                 {
                     if (sourceItem?.GroupId != null)
                     {
@@ -1781,12 +1818,7 @@ public partial class MainWindow : Window
     private ContextMenu? CreateNotebookContextMenu(NotebookListItem item)
     {
         var menu = new ContextMenu();
-        if (item.Kind == NotebookKind.GroupRoot)
-        {
-            menu.Items.Add(CreateNotebookMenuItem("新建笔记本组", null, OnNewNotebookGroupClick));
-            menu.Items.Add(CreateNotebookMenuItem("新建笔记本", null, OnNewNotebookClick));
-        }
-        else if (item.Kind == NotebookKind.Group)
+        if (item.Kind == NotebookKind.Group)
         {
             menu.Items.Add(CreateNotebookMenuItem("在此组新建笔记本…", item.Id, OnNewNotebookInGroupClick));
             menu.Items.Add(CreateNotebookMenuItem("重命名笔记本组…", item.Id, OnRenameNotebookGroupClick));

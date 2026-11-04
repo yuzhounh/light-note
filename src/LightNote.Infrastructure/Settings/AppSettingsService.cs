@@ -42,9 +42,7 @@ public sealed class AppSettingsService(AppDataPaths paths)
                     NoteListDensity = settings.NoteListDensity is "compact" or "spacious"
                         ? settings.NoteListDensity
                         : "comfortable",
-                    LinkOpenMode = settings.LinkOpenMode is "external"
-                        ? "external"
-                        : "internal",
+                    LinkOpenMode = "external",
                 };
             }
             catch (JsonException)

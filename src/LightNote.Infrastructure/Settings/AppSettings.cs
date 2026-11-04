@@ -24,6 +24,12 @@ public sealed record AppSettings
 
     public bool ShowUnfiledNavigation { get; init; }
 
+    public bool NotebookSectionExpanded { get; init; } = true;
+
+    public bool TagSectionExpanded { get; init; }
+
+    public string[] ExpandedNotebookGroupIds { get; init; } = [];
+
     public bool AutomaticBackups { get; init; } = true;
 
     public int BackupRetentionCount { get; init; } = 10;
@@ -33,7 +39,7 @@ public sealed record AppSettings
     /// <summary>输入 Markdown 符号（如 `1. `、`# `、`**粗体**`）时是否自动排版。</summary>
     public bool MarkdownAutoFormat { get; init; } = true;
 
-    /// <summary>粘贴外部内容后，在其后追加一行“来源：…”（网页链接或软件名）。</summary>
+    /// <summary>粘贴外部内容后，在其后追加一行“来源：…”（网页链接、文档名或软件名）。</summary>
     public bool RecordPasteSource { get; init; } = true;
 
     public bool NoteSortByUpdated { get; init; } = true;
@@ -43,5 +49,5 @@ public sealed record AppSettings
     /// <summary>笔记卡片密度：compact（紧凑）、comfortable（舒适）、spacious（宽松）。</summary>
     public string NoteListDensity { get; init; } = "comfortable";
 
-    public string LinkOpenMode { get; init; } = "internal";
+    public string LinkOpenMode { get; init; } = "external";
 }

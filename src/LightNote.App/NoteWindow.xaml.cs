@@ -98,6 +98,7 @@ public partial class NoteWindow : Window
         EditorWebView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
         EditorWebView.CoreWebView2.NewWindowRequested += OnNewWindowRequested;
         EditorWebView.CoreWebView2.NavigationStarting += OnNavigationStarting;
+        EditorContextMenu.Attach(EditorWebView, this, _paths, _logger, OpenUriInExternalBrowser);
         EditorWebView.CoreWebView2.NavigationCompleted += (_, args) =>
         {
             if (args.IsSuccess)
@@ -278,16 +279,8 @@ public partial class NoteWindow : Window
 
     private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
-        var settings = _settingsService.Load();
-        if (string.Equals(settings.LinkOpenMode, "external", StringComparison.OrdinalIgnoreCase))
-        {
-            e.Handled = true;
-            OpenUriInExternalBrowser(e.Uri);
-        }
-        else
-        {
-            e.Handled = false;
-        }
+        e.Handled = true;
+        OpenUriInExternalBrowser(e.Uri);
     }
 
     private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
@@ -301,20 +294,17 @@ public partial class NoteWindow : Window
         }
 
         e.Cancel = true;
-        var settings = _settingsService.Load();
-        if (string.Equals(settings.LinkOpenMode, "external", StringComparison.OrdinalIgnoreCase))
-        {
-            OpenUriInExternalBrowser(e.Uri);
-        }
-        else
-        {
-            _ = EditorWebView.CoreWebView2?.ExecuteScriptAsync(
-                $"window.open({JsonSerializer.Serialize(e.Uri)}, '_blank')");
-        }
+        OpenUriInExternalBrowser(e.Uri);
     }
 
     private void OpenUriInExternalBrowser(string uri)
     {
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out var target) ||
+            target.Scheme is not ("http" or "https" or "mailto"))
+        {
+            return;
+        }
+
         try
         {
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -431,21 +421,31 @@ public partial class NoteWindow : Window
         }
     }
 
-    private void HandleClipboardSourceRequest(JsonElement message)
+    /// <summary>编辑器刚发生一次外部粘贴：后台读取剪贴板来源并回复给编辑器，不阻塞 UI。</summary>
+    private async void HandleClipboardSourceRequest(JsonElement message)
     {
-        if (!_settingsService.Load().RecordPasteSource ||
-            !message.TryGetProperty("payload", out var payload) ||
-            !payload.TryGetProperty("requestId", out var requestId))
+        try
         {
-            return;
-        }
+            if (!_settingsService.Load().RecordPasteSource ||
+                !message.TryGetProperty("payload", out var payload) ||
+                !payload.TryGetProperty("requestId", out var requestId))
+            {
+                return;
+            }
 
-        var source = ClipboardSourceReader.TryRead();
-        PostEditorMessage(new
+            var requestIdText = requestId.GetString();
+            // 截图工具等会对剪贴板做延迟渲染，UI 线程直接读会被卡到对方响应为止。
+            var source = await ClipboardSourceReader.TryReadInBackgroundAsync(TimeSpan.FromSeconds(2));
+            PostEditorMessage(new
+            {
+                type = "clipboard.source",
+                payload = new { requestId = requestIdText, label = source?.Label, url = source?.Url },
+            });
+        }
+        catch (Exception exception)
         {
-            type = "clipboard.source",
-            payload = new { requestId = requestId.GetString(), label = source?.Label, url = source?.Url },
-        });
+            _logger.Error("Failed to read the clipboard source.", exception);
+        }
     }
 
     private void PostEditorMessage(object message) =>

@@ -54,7 +54,7 @@ public sealed class DailyUseTests : IDisposable
         Assert.Equal("system", loaded.Theme);
         Assert.True(loaded.ShowRecentNavigation);
         Assert.Equal(100, loaded.BackupRetentionCount);
-        Assert.Equal("internal", loaded.LinkOpenMode);
+        Assert.Equal("external", loaded.LinkOpenMode);
     }
 
     [Fact]
@@ -66,7 +66,10 @@ public sealed class DailyUseTests : IDisposable
         Assert.Equal("external", service.Load().LinkOpenMode);
 
         service.Save(new AppSettings { LinkOpenMode = "invalid" });
-        Assert.Equal("internal", service.Load().LinkOpenMode);
+        Assert.Equal("external", service.Load().LinkOpenMode);
+
+        service.Save(new AppSettings { LinkOpenMode = "internal" });
+        Assert.Equal("external", service.Load().LinkOpenMode);
     }
 
     [Fact]

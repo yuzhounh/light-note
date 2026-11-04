@@ -19,6 +19,7 @@ import { EditingKeys, currentTextStyle, selectionForMarginClick, scrollCaretInto
 import { applyNoteContent, clearDocument } from './noteDocument.js'
 import { createCodeBlockSelection } from './codeBlockSelection.js'
 import { imageLayout, imageSizingAttributes, initialImageSize, presetImageSize } from './imageSizing.js'
+import { createContextMenuBridge } from './contextMenu.js'
 import './style.css'
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
@@ -72,7 +73,8 @@ const Link = Mark.create({
     return [{ tag: 'a[href]' }]
   },
   renderHTML({ HTMLAttributes }) {
-    return ['a', mergeAttributes({ target: '_blank', rel: 'noopener noreferrer' }, HTMLAttributes), 0]
+    return ['a', mergeAttributes({ target: '_blank', rel: 'noopener noreferrer' }, HTMLAttributes,
+      { title: '按住 Ctrl 并单击打开链接' }), 0]
   },
 })
 
@@ -763,12 +765,11 @@ function EditorApp() {
       },
       handleClick(view, pos, event) {
         const link = event.target?.closest?.('a')
-        if (link && link.href && (event.ctrlKey || event.metaKey)) {
-          event.preventDefault()
-          window.open(link.href, '_blank')
-          return true
-        }
-        return false
+        if (!link?.href || event.button !== 0) return false
+        event.preventDefault()
+        if (!event.ctrlKey) return false
+        window.open(link.href, '_blank')
+        return true
       },
     },
     onUpdate: ({ editor: currentEditor }) => {
@@ -785,6 +786,24 @@ function EditorApp() {
       }
     },
   })
+
+  useEffect(() => {
+    if (!editor) return undefined
+    const dom = editor.view.dom
+    const updateLinkCursor = event => dom.classList.toggle('ctrl-link-open', event.ctrlKey)
+    const resetLinkCursor = () => dom.classList.remove('ctrl-link-open')
+    window.addEventListener('keydown', updateLinkCursor, true)
+    window.addEventListener('keyup', updateLinkCursor, true)
+    window.addEventListener('blur', resetLinkCursor)
+    dom.addEventListener('mousemove', updateLinkCursor)
+    return () => {
+      window.removeEventListener('keydown', updateLinkCursor, true)
+      window.removeEventListener('keyup', updateLinkCursor, true)
+      window.removeEventListener('blur', resetLinkCursor)
+      dom.removeEventListener('mousemove', updateLinkCursor)
+      resetLinkCursor()
+    }
+  }, [editor])
 
   // Editor-wide listeners belong here, once per editor, rather than once per image node.
   useEffect(() => {
@@ -958,6 +977,7 @@ function EditorApp() {
   useEffect(() => {
     editorRef.current = editor
     if (!editor) return undefined
+    const contextMenu = createContextMenuBridge(editor, { openImage: setLightboxSrc, openMath: openMathModal })
 
     const runCommand = (command, value) => {
       const commands = {
@@ -1037,6 +1057,7 @@ function EditorApp() {
     const onMessage = event => {
       const message = event.data
       if (message?.type === 'editor.clear') {
+        contextMenu.reset()
         closeOverlays()
         clearTimeout(changeTimerRef.current)
         reportedRevisionRef.current = revisionRef.current
@@ -1163,6 +1184,7 @@ function EditorApp() {
 
     window.lightNoteEditor = {
       getSnapshot: takeSnapshot,
+      contextMenu,
       focus: position => {
         if (position === 'start' || position === 'end' || position === 'all') {
           editor.commands.focus(position)
@@ -1174,6 +1196,7 @@ function EditorApp() {
     window.chrome?.webview?.addEventListener('message', onMessage)
     post('editor.ready')
     return () => {
+      contextMenu.destroy()
       clearTimeout(changeTimerRef.current)
       window.removeEventListener('focus', onWindowFocus)
       document.removeEventListener('click', onBodyClick)

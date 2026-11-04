@@ -1,6 +1,48 @@
 # LightNote 发布与日常交付状态
 
-## 当前Windows日常版2.3.3（2026-10-25 16:30，已更新）
+## Windows 日用版 2.3.3 图标视觉尺寸修订（2026-11-03，已安装）
+
+<!-- icon-unification-20261103:installed -->
+
+- 重新生成满幅标准图标：收紧 SVG 画布视口至 900×900 底板，等比放大前景并导出 14 尺寸 ICO（48 帧为 48×48 满幅，中心 24.0, 24.0），同步 App.xaml 及 Web 衍生资源。
+- 复用已通过的完整 Debug 构建（0 错误，1 个既有 SkiaSharp 过时警告）；在用户确认完全退出 LightNote 后，由安装脚本完整复制至 `artifacts/development/current/win-x64`，robocopy 返回成功。
+- 主可执行文件 `LightNote.exe` SHA-256 为 `F9D786EA8A2F20C5326635F60BC6F40D23C1573BF65EA9C0CF2872A7B07DDB1F`，与构建暂存包一致。
+- 桌面快捷方式 `Light Note.lnk` 仍指向原 current 入口，空参数与工作目录保持；用户笔记、附件、账户、设置及自启动状态完全保留；未自动启动。
+
+## Windows 日用版 2.3.3 原生编辑菜单与 Ctrl+左键（2026-10-29，已安装）
+
+<!-- native-menu-20261029:installed -->
+
+- 内容区域使用 LightNote 原生 WPF 菜单，主窗口与独立笔记窗口共用实现。按正文、选区、链接、图片、表格和公式显示对应操作，包含富文本剪切/复制/粘贴、纯文本粘贴、格式、链接编辑及取消链接、图片复制/另存为/尺寸、表格操作和公式编辑；公式输入框也提供原生编辑菜单。
+- 普通左键单击编辑链接；按住 Ctrl 时显示手形，Ctrl+左键使用系统默认外部浏览器打开。悬停提示、设置说明、松键及失焦恢复同步完成。保留此前侧栏根层、折叠与标签修订。
+- 编辑器桥接 14 项测试通过；真实 WebView2/WPF 检查覆盖菜单显示、选区、原生文字复制/粘贴、纯文本粘贴、外部链接回调、图片复制/另存为可用性、公式输入框粘贴及 Shift+F10。Windows 最终完整 Debug 构建 0 警告、0 错误。没有额外安装依赖、修改笔记数据、公开 Release、网页部署或 APK 更新。
+- 基础提交 `d965fde7138e73d7ded58d77680de7dc5b4d1194` 加本机未提交改动，沿用 2.3.3 日常开发渠道。复用已验证的完整包，2026-10-29 21:25（Asia/Shanghai）在用户从托盘退出、确认所有 LightNote 进程结束后，正常复制到原 `artifacts/development/current/win-x64`，robocopy 返回 3。实读产品版本 `2.3.3+d965fde7138e73d7ded58d77680de7dc5b4d1194`；桌面快捷方式目标、空参数及工作目录保持。安装只操作程序目录并排除 `.lightnote`，不读写用户笔记、附件、账户或设置；未强制退出或自动启动，未增加复制完整性核验。
+
+## Windows 日用版 2.3.3 链接单击修订（2026-10-28，已安装）
+
+- 笔记链接悬停显示手形，普通单击即可用系统默认外部浏览器打开；主窗口与独立笔记窗口行为一致，设置页同步说明，旧内置浏览器设置加载为 external。保留已有侧栏根层、折叠及状态记忆修改。
+- 复用本聊天已成功构建的完整 Debug 包，基础提交 `d965fde7138e73d7ded58d77680de7dc5b4d1194` 加当前未提交修改；编辑器构建通过，Windows 构建 0 错误、1 项既有 SkiaSharp 过时警告。沿用 2.3.3 日常开发渠道，没有另行升号或公开发布。
+- 22:33（Asia/Shanghai）确认所有 LightNote 进程已退出后，从 `src/LightNote.App/bin/Debug/net10.0-windows10.0.19041.0/win-x64` 完整复制到原 `artifacts/development/current/win-x64`；robocopy 返回 3，安装完成。实读文件版本 2.3.3.0，产品版本 `2.3.3+d965fde7138e73d7ded58d77680de7dc5b4d1194`。
+- 桌面 `Light Note.lnk` 仍指向原 current 入口，参数为空、工作目录不变；没有强制退出、自动启动、网页部署或 APK 更新。复制仅操作程序目录，排除 `.lightnote`，没有读写用户笔记、附件、账户或设置；未进行额外复制完整性核验或界面验收。
+
+## Windows 日用版 2.3.3 侧栏根层修订（2026-10-28，已在完全退出后安装）
+
+<!-- sidebar-root-20261028:installed -->
+
+- 移除最外层“笔记本组”导航，实际组和独立笔记本位于根层，组内保留一级缩进、独立折叠和状态记忆；旧整体折叠设置不再影响可见性。笔记、笔记本及其归属不做迁移。
+- 复用本聊天已通过的完整 Debug 构建（0 警告、0 错误），基础提交 `d965fde7138e73d7ded58d77680de7dc5b4d1194` 加当前未提交改动；源码补丁保存在 `tmp/sidebar-root-daily-20261028/source.patch`。安装本次已构建的同版本修订，不另行升号、构建或公开发布。
+- 所有 LightNote 进程完全退出后已整体替换为暂存的完整包；未强制关闭或自动启动。保持原 `artifacts/development/current/win-x64` 入口、Debug 渠道及快捷方式，不自动启动；只操作程序包，不读写 `.lightnote` 中的笔记、附件、账户及设置。
+- 安装状态：`tmp/sidebar-root-daily-20261028/status.json`；完成或错误由助手写入，并更新本节及管理台账。没有可用的自动聊天续接接口；不创建定时轮询或发起模型监控。目录切换保留原程序包供失败恢复，不创建项目快照。
+
+## 当前 Windows 日用版 2.3.3 本地折叠与标签修订（2026-10-27，已更新）
+
+- 复用本次已通过构建及 2 项针对性测试的完整 Debug 程序包；基础提交 `d965fde7138e73d7ded58d77680de7dc5b4d1194`，另含本机未提交的 `MainViewModel.cs`、`MainWindow.xaml`、`MainWindow.xaml.cs` 和 `AppSettings.cs` 修改。程序集信息版本 `2.3.3+d965fde7138e73d7ded58d77680de7dc5b4d1194` 不单独表示这些未提交修改。
+- 笔记本组与独立标签区支持折叠并记住状态，首次使用时具体组和标签区默认收起；标签筛选结果即使全部来自同一本，也显示所属笔记本。针对性测试覆盖刷新、设置保存重载及标签结果分页。
+- 安装前程序已退出；完整包从 `src/LightNote.App/bin/Debug/net10.0-windows10.0.19041.0/win-x64` 正常复制到原 `artifacts/development/current/win-x64`，robocopy 返回 3。没有重新构建、强制退出、自动启动或进行额外界面验收。
+- 安装器只复制程序目录，未触及 `C:\Users\Jing Wang\.lightnote` 内的数据库、附件、设置和同步资料；桌面快捷方式仍指向原 current 入口，原参数和自启动配置保留。没有新增项目备份、公开 Release、网页部署或 Android 更新。
+- 安装回执 `tmp/sidebar-daily-20261027-install.json`，复制日志 `tmp/sidebar-daily-20261027-copy.log`。
+
+## Windows 日用版 2.3.3（2026-10-25 16:30，历史更新）
 
 - 从1740ca399c220272460f6904f8253c63a2f0b086进行一次完整Debug构建，复用未变的原生嵌入编辑器。0错误、1项既有SkiaSharp过时提示；完整程序包位于 `artifacts/development/pending/windows-2.3.3-1740ca3/win-x64`。
 - 旧后台进程43168通过Restart Manager正常退出，确认真正退出后完整复制程序到原 `artifacts/development/current/win-x64`；没有强制终止，未向运行中的目录构建。新进程40448仍使用 `--background`、Session1，响应正常，启动日志确认托盘模式成功；实际版本 `2.3.3+1740ca399c220272460f6904f8253c63a2f0b086`。

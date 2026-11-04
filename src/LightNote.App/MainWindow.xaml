@@ -334,7 +334,7 @@
                                             </Grid>
                                         </Button>
 
-                                        <!-- 5. 颜色模式 -->
+                                        <!-- 5. 外观主题 -->
                                         <Button x:Name="ThemeModeButton"
                                                 Style="{StaticResource AccountPopupItemButtonStyle}"
                                                 Click="OnThemeModeClick">
@@ -358,7 +358,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16"
                                                            Text="&#xE708;" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="1" Text="颜色模式" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="外观主题" VerticalAlignment="Center" />
                                                 <TextBlock x:Name="AccountThemeCurrentText" Grid.Column="2"
                                                            Margin="8,0,4,0" Foreground="{DynamicResource MutedTextBrush}"
                                                            VerticalAlignment="Center" />
@@ -435,6 +435,7 @@
                                 <EventSetter Event="DragLeave" Handler="OnNotebookDragLeave" />
                                 <EventSetter Event="Drop" Handler="OnNotebookDrop" />
                                 <Setter Property="AllowDrop" Value="True" />
+                                <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                 <Setter Property="Background" Value="Transparent" />
                                 <Setter Property="Padding" Value="7,6" />
                                 <Setter Property="Margin" Value="0,2,12,2" />
@@ -499,7 +500,26 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <Viewbox Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                    <Button Width="24" Height="24" Padding="4" Margin="-3,0,3,0"
+                                            HorizontalAlignment="Left" VerticalAlignment="Center"
+                                            Click="OnSidebarExpansionClick"
+                                            ToolTip="{Binding ExpansionAction}"
+                                            AutomationProperties.Name="{Binding ExpansionAction}"
+                                            Foreground="{DynamicResource MutedTextBrush}"
+                                            Visibility="{Binding CanExpand, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter />
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <Path Data="{Binding ExpansionIconData}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Button>
+                                    <Viewbox Width="18" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                             Visibility="{Binding ShowNavigationIcon, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Path Width="20" Height="20" Data="{Binding IconData}"
                                               StrokeThickness="1.45"
                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round"

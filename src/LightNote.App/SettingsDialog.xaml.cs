@@ -89,15 +89,6 @@ public partial class SettingsDialog : Window
         }
 
 
-        if (settings.LinkOpenMode == "external")
-        {
-            LinkExternalRadio.IsChecked = true;
-        }
-        else
-        {
-            LinkInternalRadio.IsChecked = true;
-        }
-
         // 初始化备份配置
         AutomaticBackupsBox.IsChecked = settings.AutomaticBackups;
         CompressImagesBox.IsChecked = settings.CompressImages;
@@ -191,15 +182,6 @@ public partial class SettingsDialog : Window
             themeService.Apply(theme);
             WindowNativeHelper.ApplyNativeFrame(this);
         }
-    }
-
-    private void OnLinkModeRadioChecked(object sender, RoutedEventArgs e)
-    {
-        if (_isInitializing) return;
-
-        var mode = LinkExternalRadio.IsChecked == true ? "external" : "internal";
-        Settings = Settings with { LinkOpenMode = mode };
-        SettingsSaved = true;
     }
 
     private void OnRecordPasteSourceToggleClicked(object sender, RoutedEventArgs e)
