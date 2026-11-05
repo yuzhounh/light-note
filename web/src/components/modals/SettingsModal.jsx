@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Download, Upload, Trash2, Sun, Moon, Database, Globe, Sliders } from 'lucide-react'
+import { X, Download, Monitor, Upload, Trash2, Sun, Moon, Database, Globe, Sliders } from 'lucide-react'
 import { db } from '../../core/db/database'
 import { NotesRepository } from '../../core/db/notesRepository'
 import { APP_DISPLAY_VERSION } from '../../core/version'
@@ -225,17 +225,33 @@ export function SettingsModal({
                     <div className="font-medium text-xs text-zinc-800 dark:text-zinc-200">外观主题</div>
                     <p className="text-zinc-500 text-[11px] mt-0.5">选择浅色明亮或深色护眼外观。</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5 pt-1.5">
+                  <div className="grid grid-cols-3 gap-2 pt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onChangeTheme('system')}
+                      className={`flex items-center gap-2 p-2 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                        theme === 'system'
+                          ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
+                          : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                      }`}
+                    >
+                      <Monitor size={16} className={theme === 'system' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs truncate">跟随系统</div>
+                        <div className="text-[10px] text-zinc-400 truncate">自动匹配外观</div>
+                      </div>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => onChangeTheme('light')}
-                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                      className={`flex items-center gap-2 p-2 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                         theme === 'light'
                           ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
                           : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Sun size={18} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <Sun size={16} className={theme === 'light' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
                       <div className="min-w-0">
                         <div className="font-medium text-xs truncate">浅色模式</div>
                         <div className="text-[10px] text-zinc-400 truncate">标准明亮界面</div>
@@ -245,13 +261,13 @@ export function SettingsModal({
                     <button
                       type="button"
                       onClick={() => onChangeTheme('dark')}
-                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition cursor-pointer min-w-0 ${
+                      className={`flex items-center gap-2 p-2 rounded-xl border text-left transition cursor-pointer min-w-0 ${
                         theme === 'dark'
                           ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
                           : 'border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Moon size={18} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
+                      <Moon size={16} className={theme === 'dark' ? 'text-zinc-800 dark:text-zinc-200 shrink-0' : 'text-zinc-400 shrink-0'} />
                       <div className="min-w-0">
                         <div className="font-medium text-xs truncate">深色模式</div>
                         <div className="text-[10px] text-zinc-400 truncate">暗色护眼界面</div>

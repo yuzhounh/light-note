@@ -486,6 +486,28 @@ export function Sidebar({
                 </span>
               </button>
 
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className="w-full flex items-center justify-between py-1.5 px-2 text-zinc-700 dark:text-zinc-300 hover:bg-[#e4e7eb] dark:hover:bg-[#363b43] rounded-lg text-xs transition cursor-pointer"
+                title={theme === 'dark' ? '切换为浅色主题 (D)' : '切换为深色主题 (D)'}
+              >
+                <div className="flex items-center gap-2">
+                  {theme === 'dark' ? (
+                    <Moon size={14} className="text-zinc-500 dark:text-zinc-400" />
+                  ) : (
+                    <Sun size={14} className="text-zinc-500 dark:text-zinc-400" />
+                  )}
+                  <span>外观主题</span>
+                </div>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {theme === 'dark' ? (currentLang === 'zh' ? '深色' : 'Dark') : (currentLang === 'zh' ? '浅色' : 'Light')}
+                </span>
+                <span className="text-[10px] text-zinc-400 px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono">
+                  D
+                </span>
+              </button>
+
 
               <button
                 onClick={() => {

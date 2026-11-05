@@ -97,15 +97,45 @@ export function App() {
     })
   }
 
-  // Initialize theme class on document element
+  // Initialize theme class on document element & notify Android
   useEffect(() => {
-    if (theme === 'dark') {
+    const isDark = theme === 'dark'
+    if (isDark) {
       document.documentElement.classList.add('dark')
     } else {
       document.documentElement.classList.remove('dark')
     }
     localStorage.setItem('lightnote_theme', theme)
+    try {
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) meta.setAttribute('content', isDark ? '#101726' : '#F8FAFD')
+      window.AndroidTheme?.setDark(isDark)
+    } catch { /* ignore */ }
   }, [theme])
+
+  // System theme preference listener & cross-tab sync
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onSchemeChange = (e) => {
+      const stored = localStorage.getItem('lightnote_theme')
+      if (!stored || stored === 'system') {
+        setTheme(e.matches ? 'dark' : 'light')
+      }
+    }
+    mq.addEventListener?.('change', onSchemeChange)
+
+    const onStorage = (e) => {
+      if (e.key === 'lightnote_theme' && (e.newValue === 'light' || e.newValue === 'dark')) {
+        setTheme(e.newValue)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+
+    return () => {
+      mq.removeEventListener?.('change', onSchemeChange)
+      window.removeEventListener('storage', onStorage)
+    }
+  }, [])
 
   // Initialize database and load notebooks/notes
   useEffect(() => {
@@ -378,6 +408,17 @@ export function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
         noteDrafts.flushAll().catch(err => console.warn('Save failed:', err))
+      }
+      const target = e.target
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable || target.closest?.('.ProseMirror'))
+      if (!isInput && !e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault()
+        setTheme(t => (t === 'dark' ? 'light' : 'dark'))
+      }
+      if (!isInput && !e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'l' || e.key === 'L')) {
+        e.preventDefault()
+        const next = getLang() === 'zh' ? 'en' : 'zh'
+        setLang(next)
       }
     }
 
