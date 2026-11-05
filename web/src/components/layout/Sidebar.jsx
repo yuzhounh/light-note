@@ -301,8 +301,8 @@ export function Sidebar({
               title={theme === 'dark' ? '切换为浅色主题' : '切换为深色主题'}
               aria-label="切换外观主题"
             >
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              <span>{theme === 'dark' ? '浅色' : '深色'}</span>
+              {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+              <span>{theme === 'dark' ? '深色' : '浅色'}</span>
             </button>
           </div>
 
@@ -321,7 +321,7 @@ export function Sidebar({
               aria-label="界面语言"
             >
               <Languages size={16} />
-              <span data-no-i18n="true">{currentLang === 'zh' ? 'English' : '简体中文'}</span>
+              <span data-no-i18n="true">{currentLang === 'zh' ? '简体中文' : 'English'}</span>
             </button>
           </div>
 
@@ -479,7 +479,7 @@ export function Sidebar({
                   <span>界面语言</span>
                 </div>
                 <span data-no-i18n="true" className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {currentLang === 'zh' ? 'English' : '简体中文'}
+                  {currentLang === 'zh' ? '简体中文' : 'English'}
                 </span>
                 <span className="text-[10px] text-zinc-400 px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono">
                   L
