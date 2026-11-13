@@ -1,5 +1,14 @@
 # LightNote 发布与日常交付状态
 
+## Android 2.3.4 / code50：摘要标签与图片修复（2026-11-13，已安装）
+
+- 唯一当前手机 APK：`artifacts/android/2.3.4/LightNote-2.3.4-code50-preview-images.apk`。沿用 2.3.4 源码版本与原签名；版本码递增到 50，已用 `adb install -r` 保留数据覆盖安装，实读 2.3.4/code50，最终为 Release 包。
+- 手机列表按完整摘要和标签的实际宽度决定一行或两行。短摘要同排时完整显示，无省略号；否则第一行正文占满宽度，末行给标签预留位置，仅末行允许省略。换行/空白仅在列表归一化，保留原正文；兼容长网址、长笔记本名、表情符号和字号变化。
+- 修复 Android 图片缓存使用浏览器 fetch 时被 Storage 媒体响应的 CORS 限制拦截：改用现有 CapacitorHttp 原生下载二进制，并沿用当前账户的下载地址和持久缓存。缓存写满不阻断显示；首次加载显示占位，失败可点击重试。不改云端存储权限或真实笔记。
+- 57 项前端测试、每款 176 组浏览器布局检查、Web 构建、Capacitor 同步及 assembleRelease/lintRelease 通过。真机 Claude 条目保持标题加两行摘要，AI 与网址末行同排；SnippingTool/Tech 同排。Gemini 笔记 5 张图片均成功解码，最终 Release 重开后缓存图片正常显示；另打开花云优惠笔记，加载占位后新下载图片成功显示。
+- 包名、原签名、首次安装时间 2026-10-07 18:33:08 与数据目录路径保持。没有卸载、清除数据、重新登录、编辑笔记、更新 Windows 或发布网页。临时同签名诊断构建已由最终 Release 覆盖。来源 12991cf 加本地手机列表和图片修订，无关托盘改动保留。
+- 构建、测试与安装回执在 `tmp/Preview Layout/`；两个产品的 352 组布局结果位于 PageTrace 原项目 `tmp/Preview Layout/layout-results.json`。
+
 ## Windows 日用版 2.3.3 图标视觉尺寸修订（2026-11-03，已安装）
 
 <!-- icon-unification-20261103:installed -->

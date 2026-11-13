@@ -5,6 +5,7 @@ import {
 import { countWords, formatInfoTime } from '../../core/noteInfo'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { CompactMenu, PhoneDialog, PhoneIconButton, useToast, ICON_STROKE } from './phoneUi'
+import { PhoneNotePreview } from './PhoneNotePreview'
 
 // 手机主界面：视图标题栏 + 常驻搜索框 + 列表面板 + 浮动新建按钮；长按进入选择模式
 
@@ -19,9 +20,9 @@ function previewText(bodyText) {
   const match = /^\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*/.exec(bodyText)
   if (match) {
     const after = bodyText.slice(match[0].length).trim()
-    if (after) return after
+    if (after) return after.replace(/\s+/g, ' ')
   }
-  return bodyText.trim() || '无附加正文...'
+  return bodyText.replace(/\s+/g, ' ').trim() || '无附加正文...'
 }
 
 function formatDate(isoString) {
@@ -358,19 +359,11 @@ export function PhoneNoteList({
                         </h4>
                         <span className="shrink-0 text-[11px] text-muted">{formatDate(sort.by === 'updated' ? note.updated_at : (note.created_at || note.updated_at))}</span>
                       </div>
-                      {/* 零宽浮动占位顶住第一行，标签只占第二行预览右侧，第一行预览占满整行；
-                          占位用一行文字撑高而非 em，WebView 按系统字号放大文字时高度同步 */}
-                      <p className="mt-1 min-h-[2.8em] text-[14px] text-muted leading-[1.4] line-clamp-2">
-                        {!isSingleNotebook && (
-                          <>
-                            <span aria-hidden="true" className="float-right w-0 overflow-hidden">{' '}</span>
-                            <span className="float-right clear-right ml-2 max-w-[40%] truncate text-[11px] px-1.5 py-0.5 rounded-md bg-tint text-brand">
-                              {notebookName(note.notebook_id)}
-                            </span>
-                          </>
-                        )}
-                        <Highlight text={previewText(note.body_text)} query={searchQuery} />
-                      </p>
+                      <PhoneNotePreview
+                        text={previewText(note.body_text)}
+                        tag={!isSingleNotebook ? notebookName(note.notebook_id) : null}
+                        renderText={text => <Highlight text={text} query={searchQuery} />}
+                      />
                     </div>
                     {!isChecked && index < visibleNotes.length - 1 && (
                       <div className="absolute bottom-0 left-2 right-2 h-px bg-line pointer-events-none" />

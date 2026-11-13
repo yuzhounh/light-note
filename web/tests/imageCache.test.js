@@ -17,3 +17,9 @@ test('downloaded images reopen offline from persistent cache', async t => {
   assert.match(await cachedImageUrl(src, 'user', async () => { throw new Error('offline') }), /^blob:/)
   assert.equal(downloads, 1)
 })
+
+test('a full image cache still displays the downloaded image', async t => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(new Blob(['image'], { type: 'image/png' })))
+  t.mock.method(db.image_cache, 'put', async () => { throw new DOMException('full', 'QuotaExceededError') })
+  assert.match(await cachedImageUrl('https://lightnote.attachments/ab/full.png', 'user', async () => 'https://example.test/full'), /^blob:/)
+})

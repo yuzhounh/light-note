@@ -1,4 +1,5 @@
 import { db } from '../db/database.js'
+import { downloadImageBlob } from './imageDownload.js'
 
 const objectUrls = new Map()
 const inFlight = new Map()
@@ -17,10 +18,10 @@ export async function cachedImageUrl(src, owner, resolveDownloadUrl) {
     if (!blob) {
       const downloadUrl = await resolveDownloadUrl()
       if (downloadUrl === src) return src
-      const response = await fetch(downloadUrl, { signal: AbortSignal.timeout(15000) })
-      if (!response.ok) throw new Error(`图片下载失败（${response.status}）`)
-      blob = await response.blob()
+      blob = await downloadImageBlob(downloadUrl)
+      // A full cache must not prevent an otherwise downloaded image from displaying.
       await db.image_cache.put({ key, owner_uid: owner, src, blob, last_accessed: Date.now() })
+        .catch(error => console.warn('图片缓存未写入:', error.name))
     }
     const url = URL.createObjectURL(blob)
     objectUrls.set(key, url)

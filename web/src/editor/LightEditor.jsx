@@ -272,7 +272,9 @@ export const MathNode = Node.create({
 
 // 4. Resizable Image View Component with Quick Presets, Drag Handle and Lightbox
 function ResizableImageComponent({ node, updateAttributes, selected, deleteNode }) {
-  const [resolvedSrc, setResolvedSrc] = useState(node.attrs.src || '')
+  const [resolvedSrc, setResolvedSrc] = useState(() => node.attrs.src?.startsWith('https://lightnote.attachments/') ? '' : (node.attrs.src || ''))
+  const [imageStatus, setImageStatus] = useState('loading')
+  const retryImageRef = useRef(() => {})
   const [isResizing, setIsResizing] = useState(false)
   const [hovered, setHovered] = useState(false)
   const imageRef = useRef(null)
@@ -288,10 +290,17 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
   useEffect(() => {
     let active = true
     let unsubscribe = () => {}
+    setImageStatus('loading')
     if (node.attrs.src && node.attrs.src.startsWith('https://lightnote.attachments/')) {
+      setResolvedSrc('')
       const resolve = () => syncService.resolveImageUrl(node.attrs.src).then(resolved => {
-        if (active && resolved) setResolvedSrc(resolved)
+        if (!active) return
+        if (resolved && resolved !== node.attrs.src) setResolvedSrc(resolved)
+        else setImageStatus('error')
+      }).catch(() => {
+        if (active) setImageStatus('error')
       })
+      retryImageRef.current = () => { setImageStatus('loading'); resolve() }
       resolve()
       // Cached notes can open before sign-in and attachment metadata finish loading.
       unsubscribe = subscribeSyncState(state => {
@@ -299,6 +308,11 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
       })
     } else {
       setResolvedSrc(node.attrs.src || '')
+      retryImageRef.current = () => {
+        setImageStatus('loading')
+        const image = imageRef.current
+        if (image) image.src = node.attrs.src || ''
+      }
     }
     return () => {
       active = false
@@ -368,14 +382,19 @@ function ResizableImageComponent({ node, updateAttributes, selected, deleteNode 
       >
         <img
           ref={imageRef}
-          src={resolvedSrc}
+          src={resolvedSrc || undefined}
           alt={node.attrs.alt || ''}
           data-attachment-id={node.attrs['data-attachment-id']}
-          style={{ width: '100%', maxWidth: '100%', display: 'block' }}
+          style={{ width: '100%', maxWidth: '100%', display: imageStatus === 'ready' ? 'block' : 'none' }}
           className="rounded-lg shadow-xs cursor-pointer object-contain transition-all"
-          onLoad={readNaturalSize}
+          onLoad={() => { readNaturalSize(); setImageStatus('ready') }}
+          onError={() => setImageStatus('error')}
           onDoubleClick={handleDoubleClick}
         />
+        {imageStatus === 'loading' && <span role="status" className="block p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-[12px] text-zinc-500">正在加载图片…</span>}
+        {imageStatus === 'error' && <button type="button"
+          onClick={event => { event.preventDefault(); event.stopPropagation(); retryImageRef.current() }}
+          className="block w-full min-h-10 p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-[12px] text-zinc-500 cursor-pointer">图片加载失败，点击重试</button>}
 
         {/* Floating Quick Action Toolbar */}
         {(hovered || selected || isResizing) && (
